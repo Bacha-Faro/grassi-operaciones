@@ -41,6 +41,9 @@ export const api = {
   async login(email, password) { ok(await sb.auth.signInWithPassword({ email, password })); },
   async recuperar(email) { ok(await sb.auth.resetPasswordForEmail(email, { redirectTo: location.href.split('#')[0] })); },
   async logout() { await sb.auth.signOut(); perfil = null; },
+  async cambiarClave(password) { ok(await sb.auth.updateUser({ password })); },
+  // el link de "Olvidé mi contraseña" vuelve a la app con una sesión de recuperación
+  alRecuperar(cb) { sb.auth.onAuthStateChange(ev => { if (ev === 'PASSWORD_RECOVERY') cb(); }); },
 
   async catalogo() {
     const [empresas, sucursales, categorias, proveedores, productos] = await Promise.all([

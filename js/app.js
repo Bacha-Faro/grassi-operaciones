@@ -1,6 +1,6 @@
 // Shell de la app: sesión, navegación por rol y enrutado por #vista.
 import { api } from './api.js';
-import { h, toast, field } from './ui.js';
+import { h, toast, field, modal } from './ui.js';
 
 const VISTAS = {
   solicitar:         { label: 'Nueva solicitud', mod: () => import('./views/solicitar.js'),   roles: ['solicitante', 'auditor', 'compras', 'admin'] },
@@ -61,7 +61,9 @@ async function pintar() {
         h('div', { class: 'brand' }, h('span', { class: 'brand-mark', 'aria-hidden': 'true' }, 'G'), h('div', {}, h('strong', {}, 'Insumos'), h('small', {}, 'Grupo Grassi'))),
         nav,
         h('div', { class: 'who' }, h('strong', {}, me.sucursal || me.nombre || me.email), h('small', {}, ROL[me.rol]),
-          api.modo !== 'demo' ? h('button', { class: 'link', onclick: async () => { await api.logout(); inicio(); } }, 'Salir') : null)),
+          api.modo !== 'demo' ? h('div', { class: 'who-actions' },
+            h('button', { class: 'link', onclick: () => cambiarClave() }, 'Cambiar contraseña'),
+            h('button', { class: 'link', onclick: async () => { await api.logout(); inicio(); } }, 'Salir')) : null)),
       main));
 
   try {
@@ -73,6 +75,19 @@ async function pintar() {
     console.error(e);
     main.replaceChildren(h('div', { class: 'empty' }, h('strong', {}, 'No se pudo cargar esta sección'), h('p', {}, e.message)));
   }
+}
+
+function cambiarClave(recuperacion = false) {
+  const p1 = h('input', { id: 'cc-1', type: 'password', autocomplete: 'new-password', minlength: 8 });
+  const p2 = h('input', { id: 'cc-2', type: 'password', autocomplete: 'new-password' });
+  modal({ title: recuperacion ? 'Elegí tu contraseña nueva' : 'Cambiar contraseña',
+    body: h('div', { class: 'stack' }, field('Contraseña nueva', p1, 'Mínimo 8 caracteres'), field('Repetila', p2)),
+    actions: [recuperacion ? null : { label: 'Cancelar' }, { label: 'Guardar', kind: 'primary', onClick: async () => {
+      if (p1.value.length < 8) { toast('La contraseña tiene que tener al menos 8 caracteres', 'bad'); return false; }
+      if (p1.value !== p2.value) { toast('Las dos contraseñas no coinciden', 'bad'); return false; }
+      try { await api.cambiarClave(p1.value); toast('Contraseña actualizada'); if (recuperacion) inicio(); }
+      catch (e) { toast(e.message, 'bad'); return false; }
+    } }].filter(Boolean) });
 }
 
 function login() {
@@ -108,4 +123,5 @@ async function inicio() {
   pintar();
 }
 
+api.alRecuperar?.(() => cambiarClave(true));
 inicio();

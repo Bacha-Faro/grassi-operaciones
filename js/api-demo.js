@@ -208,6 +208,8 @@ export const api = {
   },
   async cambiarUsuario(u) { who = { id: 'demo', rol: u.rol, sucursal_id: u.sucursal_id, nombre: u.nombre }; save(); },
   async logout() {},
+  async cambiarClave() {},
+  alRecuperar() {},
 
   async catalogo() {
     return tick({ empresas: db.empresas, sucursales: db.sucursales, categorias: db.categorias,
