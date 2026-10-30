@@ -69,6 +69,7 @@ input:disabled { background: var(--sunk); color: var(--muted); }
 .badge { min-width: 22px; text-align: center; font: 600 0.75rem var(--f-mono); background: var(--accent); color: var(--accent-ink); border-radius: 10px; padding: 1px 6px; }
 .who { margin-top: auto; display: flex; flex-direction: column; gap: 2px; padding: 12px 10px 0; border-top: 1px solid var(--line); }
 .who small { color: var(--muted); }
+.who-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; margin-top: 4px; }
 .main { min-width: 0; padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .main > * { max-width: 1180px; margin-inline: auto; }
 .loading { color: var(--muted); padding: 40px 0; }
