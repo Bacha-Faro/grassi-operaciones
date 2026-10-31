@@ -84,7 +84,8 @@ export const api = {
 
   async pendientesOC() {
     const rows = ok(await sb.from('solicitud_items')
-      .select('*, solicitudes(sucursal_id, sucursales(nombre, empresa)), productos(nombre, unidad, precio_ref, proveedor_id, proveedores(nombre))')
+      .select('*, solicitudes!inner(sucursal_id, estado, sucursales(nombre, empresa)), productos(nombre, unidad, precio_ref, proveedor_id, proveedores(nombre))')
+      .in('solicitudes.estado', ['aprobada', 'aprobada_parcial', 'en_compra'])   // el histórico importado queda afuera
       .is('oc_id', null).in('estado', ['aprobado', 'ajustado']).gt('cantidad_aprobada', 0));
     return rows.map(si => ({ ...si, cantidad_aprobada: +si.cantidad_aprobada, sucursal: si.solicitudes.sucursales.nombre, empresa: si.solicitudes.sucursales.empresa,
       producto: si.productos.nombre, unidad: si.productos.unidad, precio_ref: si.productos.precio_ref,
