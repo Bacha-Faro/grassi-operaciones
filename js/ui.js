@@ -22,9 +22,13 @@ const num = new Intl.NumberFormat('es-AR', { maximumFractionDigits: 2 });
 export const money = v => ars.format(Number(v) || 0);
 export const n = v => num.format(Number(v) || 0);
 export const pct = v => (v === null || !isFinite(v)) ? '—' : `${v > 0 ? '+' : ''}${num.format(Math.round(v * 10) / 10)}%`;
-export const fecha = d => d ? new Date(d).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
+// "2026-11-12" (fecha sin hora) se interpreta como día local; si no, en Argentina se vería un día antes
+const aFecha = d => typeof d === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d) ? new Date(`${d}T12:00:00`) : new Date(d);
+export const fecha = d => d ? aFecha(d).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : '—';
 export const fechaHora = d => d ? new Date(d).toLocaleString('es-AR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—';
 export const ocNum = id => `OC-${String(id).padStart(4, '0')}`;
+// N° de documento: OP (orden de preparación, proveedor interno) u OC (orden de compra)
+export const docNum = o => `${o?.interno ? 'OP' : 'OC'}-${String(o?.id ?? o).padStart(4, '0')}`;
 export const solNum = id => `S-${String(id).padStart(4, '0')}`;
 
 const ESTADOS = {

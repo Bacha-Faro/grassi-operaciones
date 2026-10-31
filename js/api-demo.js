@@ -49,13 +49,14 @@ function _generarOrdenes(at) {
     const su = db.sucursales.find(x => x.id === s.sucursal_id);
     const p = db.productos.find(x => x.id === si.producto_id);
     if (!p.proveedor_id) continue;
-    (grupos[`${p.proveedor_id}|${su.empresa}|${s.periodo_id}`] ||= []).push(si);
+    const interno = db.proveedores.find(x => x.id === p.proveedor_id)?.interno;
+    (grupos[`${p.proveedor_id}|${interno ? '' : su.empresa}|${s.periodo_id}`] ||= []).push(si);
   }
   let n = 0;
   for (const [k, sis] of Object.entries(grupos)) {
     const [proveedor_id, empresa, periodo_id] = k.split('|');
     const prov = db.proveedores.find(p => p.id === +proveedor_id);
-    const oc = { id: nextId('ordenes_compra'), proveedor_id: +proveedor_id, empresa, periodo_id: +periodo_id,
+    const oc = { id: nextId('ordenes_compra'), proveedor_id: +proveedor_id, empresa: empresa || null, periodo_id: +periodo_id,
       estado: 'borrador', fecha: (at || new Date().toISOString()).slice(0, 10), fecha_entrega: null,
       forma_pago: prov.condicion_pago, observaciones: null, enviada_at: null, enviada_a: null,
       created_at: at || new Date().toISOString() };
@@ -182,7 +183,7 @@ function solRow(s) {
 }
 function ocRow(o) {
   const its = db.oc_items.filter(x => x.oc_id === o.id); const p = prov(o.proveedor_id);
-  return { ...o, proveedor: p.nombre, proveedor_email: p.email, periodo: per(o.periodo_id)?.nombre,
+  return { ...o, proveedor: p.nombre, proveedor_email: p.email, interno: !!p.interno, periodo: per(o.periodo_id)?.nombre,
     total: its.reduce((a, x) => a + x.cantidad * x.precio_unit, 0), n_items: its.length };
 }
 const visible = s => who.rol !== 'solicitante' || s.sucursal_id === who.sucursal_id;
@@ -242,7 +243,7 @@ export const api = {
     return tick(db.solicitud_items.filter(si => !si.oc_id && ['aprobado', 'ajustado'].includes(si.estado) && si.cantidad_aprobada > 0).map(si => {
       const s = db.solicitudes.find(x => x.id === si.solicitud_id); const p = prod(si.producto_id); const su = suc(s.sucursal_id);
       return { ...si, sucursal: su.nombre, empresa: su.empresa, producto: p.nombre, unidad: p.unidad, precio_ref: p.precio_ref,
-        proveedor_id: p.proveedor_id, proveedor: p.proveedor_id ? prov(p.proveedor_id).nombre : null };
+        proveedor_id: p.proveedor_id, proveedor: p.proveedor_id ? prov(p.proveedor_id).nombre : null, interno: !!(p.proveedor_id && prov(p.proveedor_id).interno) };
     }));
   },
   async generarOrdenes() { need('compras', 'admin'); const n = _generarOrdenes(); save(); return n; },

@@ -25,7 +25,7 @@ function solRow(s) {
 
 function ocRow(o) {
   const its = o.oc_items || [];
-  return { ...o, proveedor: o.proveedores?.nombre, proveedor_email: o.proveedores?.email, periodo: o.periodos?.nombre,
+  return { ...o, proveedor: o.proveedores?.nombre, proveedor_email: o.proveedores?.email, interno: !!o.proveedores?.interno, periodo: o.periodos?.nombre,
     total: its.reduce((a, x) => a + x.cantidad * x.precio_unit, 0), n_items: its.length };
 }
 
@@ -84,16 +84,16 @@ export const api = {
 
   async pendientesOC() {
     const rows = ok(await sb.from('solicitud_items')
-      .select('*, solicitudes!inner(sucursal_id, estado, sucursales(nombre, empresa)), productos(nombre, unidad, precio_ref, proveedor_id, proveedores(nombre))')
+      .select('*, solicitudes!inner(sucursal_id, estado, sucursales(nombre, empresa)), productos(nombre, unidad, precio_ref, proveedor_id, proveedores(nombre, interno))')
       .in('solicitudes.estado', ['aprobada', 'aprobada_parcial', 'en_compra'])   // el histórico importado queda afuera
       .is('oc_id', null).in('estado', ['aprobado', 'ajustado']).gt('cantidad_aprobada', 0));
     return rows.map(si => ({ ...si, cantidad_aprobada: +si.cantidad_aprobada, sucursal: si.solicitudes.sucursales.nombre, empresa: si.solicitudes.sucursales.empresa,
       producto: si.productos.nombre, unidad: si.productos.unidad, precio_ref: si.productos.precio_ref,
-      proveedor_id: si.productos.proveedor_id, proveedor: si.productos.proveedores?.nombre || null }));
+      proveedor_id: si.productos.proveedor_id, proveedor: si.productos.proveedores?.nombre || null, interno: !!si.productos.proveedores?.interno }));
   },
   async generarOrdenes() { return ok(await sb.rpc('generar_ordenes', {})); },
   async ordenes() {
-    return ok(await sb.from('ordenes_compra').select('*, proveedores(nombre, email), periodos(nombre), oc_items(cantidad, precio_unit)')
+    return ok(await sb.from('ordenes_compra').select('*, proveedores(nombre, email, interno), periodos(nombre), oc_items(cantidad, precio_unit)')
       .order('id', { ascending: false })).map(ocRow);
   },
   async orden(id) {
