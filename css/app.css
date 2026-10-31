@@ -1,9 +1,11 @@
 /* Layout: barra lateral fija con navegación por rol + área de trabajo; en móvil la nav pasa arriba y se desplaza. */
 :root {
-  --bg: #f3f5f3; --surface: #ffffff; --sunk: #e9eeeb; --fg: #18211f; --muted: #5b6764; --line: #d9e0dc; --grid: #e6ebe8;
-  --accent: #1f6f5c; --accent-ink: #ffffff; --accent-soft: #dcece6;
-  --ok: #2c7a47; --ok-soft: #e0f0e5; --warn: #9a6400; --warn-soft: #fbefd6; --bad: #b0412e; --bad-soft: #f8e3df;
-  --info: #2f5f9e; --info-soft: #e1eaf6; --done: #4b5753; --done-soft: #e7ebe9;
+  /* marca Farmacias Grassi: azul #0055B8 + verde #71A850 */
+  --bg: #f3f5f9; --surface: #ffffff; --sunk: #e9edf4; --fg: #141b2b; --muted: #5a6478; --line: #d8dee8; --grid: #e5e9f0;
+  --accent: #0055b8; --accent-ink: #ffffff; --accent-soft: #e1ebf8;
+  --brand-green: #71a850; --brand-green-ink: #3f7a24;
+  --ok: #2f7d32; --ok-soft: #e2f1df; --warn: #9a6400; --warn-soft: #fbefd6; --bad: #b0412e; --bad-soft: #f8e3df;
+  --info: #2f5f9e; --info-soft: #e1eaf6; --done: #4f5869; --done-soft: #e8ebf0;
   --s1: #2a78d6; --s2: #eb6834; --s3: #1baf7a;
   --f-display: 'Bricolage Grotesque', 'Segoe UI', system-ui, sans-serif;
   --f-body: 'Public Sans', 'Segoe UI', system-ui, sans-serif;
@@ -12,18 +14,20 @@
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    --bg: #121816; --surface: #1a211f; --sunk: #222b28; --fg: #e8eeeb; --muted: #9eaaa6; --line: #2e3936; --grid: #27312e;
-    --accent: #4fb596; --accent-ink: #0e1f1a; --accent-soft: #1f3a32;
-    --ok: #6cc48b; --ok-soft: #1c3326; --warn: #e3ad4c; --warn-soft: #3a2e15; --bad: #ec8a76; --bad-soft: #3d221d;
-    --info: #85aee6; --info-soft: #1d2b40; --done: #b3bdb9; --done-soft: #29312f;
+    --bg: #10151e; --surface: #171e2a; --sunk: #1f2836; --fg: #e8edf5; --muted: #9aa6ba; --line: #2a3446; --grid: #232c3b;
+    --accent: #5b9cf0; --accent-ink: #0b1424; --accent-soft: #1a2c47;
+    --brand-green: #8cc468; --brand-green-ink: #8cc468;
+    --ok: #7cc77f; --ok-soft: #1c3322; --warn: #e3ad4c; --warn-soft: #3a2e15; --bad: #ec8a76; --bad-soft: #3d221d;
+    --info: #85aee6; --info-soft: #1d2b40; --done: #b3bcc9; --done-soft: #262e3b;
     --s1: #3987e5; --s2: #d95926; --s3: #199e70; color-scheme: dark;
   }
 }
 :root[data-theme="dark"] {
-  --bg: #121816; --surface: #1a211f; --sunk: #222b28; --fg: #e8eeeb; --muted: #9eaaa6; --line: #2e3936; --grid: #27312e;
-  --accent: #4fb596; --accent-ink: #0e1f1a; --accent-soft: #1f3a32;
-  --ok: #6cc48b; --ok-soft: #1c3326; --warn: #e3ad4c; --warn-soft: #3a2e15; --bad: #ec8a76; --bad-soft: #3d221d;
-  --info: #85aee6; --info-soft: #1d2b40; --done: #b3bdb9; --done-soft: #29312f;
+  --bg: #10151e; --surface: #171e2a; --sunk: #1f2836; --fg: #e8edf5; --muted: #9aa6ba; --line: #2a3446; --grid: #232c3b;
+  --accent: #5b9cf0; --accent-ink: #0b1424; --accent-soft: #1a2c47;
+  --brand-green: #8cc468; --brand-green-ink: #8cc468;
+  --ok: #7cc77f; --ok-soft: #1c3322; --warn: #e3ad4c; --warn-soft: #3a2e15; --bad: #ec8a76; --bad-soft: #3d221d;
+  --info: #85aee6; --info-soft: #1d2b40; --done: #b3bcc9; --done-soft: #262e3b;
   --s1: #3987e5; --s2: #d95926; --s3: #199e70; color-scheme: dark;
 }
 
@@ -59,9 +63,14 @@ input:disabled { background: var(--sunk); color: var(--muted); }
 .shell { display: grid; grid-template-columns: 228px minmax(0, 1fr); min-height: calc(100% - 38px); }
 .side { position: sticky; top: 0; align-self: start; height: 100vh; display: flex; flex-direction: column; gap: 22px; padding: 22px 14px; border-right: 1px solid var(--line); background: var(--surface); }
 .brand { display: flex; align-items: center; gap: 10px; }
-.brand strong { font-family: var(--f-display); font-size: 1.1rem; display: block; line-height: 1.1; }
-.brand small { color: var(--muted); }
-.brand-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 8px; background: var(--accent); color: var(--accent-ink); font: 700 1.1rem var(--f-display); }
+.brand-iso { width: 34px; height: 34px; border-radius: 8px; display: none; }
+.brand-logo { display: flex; flex-direction: column; gap: 6px; padding: 2px 8px 0; }
+.brand-logo img { width: 132px; height: auto; display: block; }
+.brand-app { font: 600 0.72rem var(--f-body); text-transform: uppercase; letter-spacing: 0.12em; color: var(--brand-green-ink); }
+/* logo de color en claro, versión blanca en oscuro */
+.logo-oscuro { display: none !important; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .logo-claro { display: none !important; } :root:not([data-theme="light"]) .logo-oscuro { display: block !important; } }
+:root[data-theme="dark"] .logo-claro { display: none !important; } :root[data-theme="dark"] .logo-oscuro { display: block !important; }
 .nav { display: flex; flex-direction: column; gap: 2px; }
 .nav-item { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; color: var(--fg); text-decoration: none; font-weight: 500; }
 .nav-item:hover { background: var(--sunk); }
@@ -77,7 +86,8 @@ input:disabled { background: var(--sunk); color: var(--muted); }
 @media (max-width: 860px) {
   .shell { grid-template-columns: minmax(0, 1fr); }
   .side { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; height: auto; flex-direction: row; align-items: center; gap: 12px; padding: 10px 0 10px max(16px, env(safe-area-inset-left, 0px)); border-right: 0; border-bottom: 1px solid var(--line); }
-  .brand div, .who { display: none; }
+  .brand-logo, .who { display: none; }
+  .brand-iso { display: block; }
   .nav { flex-direction: row; overflow-x: auto; scrollbar-width: none; padding-right: 16px; }
   .nav-item { white-space: nowrap; }
   .main { padding-block: 20px 48px; }
@@ -247,10 +257,27 @@ input:disabled { background: var(--sunk); color: var(--muted); }
 .toast-bad { border-left-color: var(--bad); } .toast-warn { border-left-color: var(--warn); }
 .toast.out { opacity: 0; transform: translateY(6px); }
 
-.login { min-height: 100%; display: grid; place-items: center; padding-block: 24px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
-.login-card { width: min(380px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 28px; display: flex; flex-direction: column; gap: 14px; }
+.login { min-height: 100vh; min-height: 100dvh; display: grid; place-items: center; align-content: center; gap: 18px; padding-block: 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  background: radial-gradient(1100px 520px at 50% -10%, var(--accent-soft), transparent 70%), var(--bg); }
+.login-card { width: min(380px, 100%); background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 28px; display: flex; flex-direction: column; gap: 14px;
+  box-shadow: 0 1px 2px rgb(15 30 60 / 0.06), 0 12px 32px rgb(15 30 60 / 0.08); }
+.login-logo { display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 4px 0 6px; }
+.login-logo img { width: 190px; max-width: 70%; height: auto; }
+.login-logo .brand-app { font-size: 0.78rem; }
+.login-logo::after { content: ''; width: 44px; height: 3px; border-radius: 2px; background: var(--brand-green); margin-top: 2px; }
+.creditos { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.78rem; }
+.creditos img { width: 22px; height: 22px; }
+.creditos strong { color: var(--fg); font-weight: 600; }
+/* animación de entrada: el logo aparece y después el formulario */
+.login-logo { animation: logo-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.login-logo::after { animation: barra-in 0.5s 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; transform-origin: center; }
+.login-card > :not(.login-logo), .creditos { animation: sube 0.5s 0.35s ease-out both; }
+@keyframes logo-in { from { opacity: 0; transform: translateY(8px) scale(0.92); } to { opacity: 1; transform: none; } }
+@keyframes barra-in { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes sube { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
 /* OC: facturar a y entregas por dirección */
 .ocdoc-facturar { background: var(--accent-soft); border-radius: 6px; padding: 10px 12px; }
