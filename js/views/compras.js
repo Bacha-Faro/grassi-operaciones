@@ -2,6 +2,7 @@
 // permite ajustar precios, enviar la OC por mail y registrar la recepción.
 import { h, money, n, pill, empty, toast, fecha, docNum, sum, groupBy, modal, confirmar, tabs, field } from '../ui.js';
 import { ocHTML, ocPDF, pdfBase64 } from '../oc-doc.js';
+import { abrirRecepcion, estadoRecepcion, difsTexto } from './recepcion.js';
 
 export async function render({ api, me, refresh }) {
   const puede = ['compras', 'admin'].includes(me.rol);
@@ -94,33 +95,29 @@ export async function render({ api, me, refresh }) {
         } catch (e) { toast(e.message, 'bad'); return false; }
       } });
     }
-    if (['enviada', 'recibida_parcial'].includes(oc.estado) && ['compras', 'admin', 'auditor'].includes(me.rol))
-      acciones.push({ label: op ? 'Registrar entrega' : 'Registrar recepción', kind: 'primary', onClick: () => { recepcion(oc); } });
+    // recepción: cada sucursal confirma lo suyo; acá se ve el avance y se puede registrar en su nombre
+    let recepBox = null;
+    if (['enviada', 'recibida_parcial', 'recibida'].includes(oc.estado)) {
+      const recs = await api.recepciones(id);
+      const hechas = recs.filter(r => !r.pendiente).length;
+      recepBox = h('section', { class: 'stack recepcion-oc' },
+        h('div', { class: 'block-head' }, h('h3', {}, `Recepción por sucursal · ${hechas} de ${recs.length} confirmaron`),
+          h('small', { class: 'muted' }, 'Cada sucursal controla el remito o la factura contra lo que llegó.')),
+        h('ul', { class: 'rec-list' }, recs.map(r => h('li', { class: `rec-item${r.pendiente ? ' pendiente' : ''}` },
+          h('div', {}, h('strong', {}, r.sucursal), ' ', estadoRecepcion(r),
+            r.recepcion ? h('small', { class: 'muted', style: 'display:block' }, `${fecha(r.recepcion.recibido_at)}${r.recepcion.por ? ` · ${r.recepcion.por}` : ''}`) : null,
+            difsTexto(r).length ? h('small', { class: 'motivo' }, difsTexto(r).join(' · ')) : null,
+            r.recepcion?.observaciones ? h('small', { class: 'muted', style: 'display:block' }, `“${r.recepcion.observaciones}”`) : null),
+          ['compras', 'admin', 'auditor'].includes(me.rol)
+            ? h('button', { class: 'link', onclick: () => abrirRecepcion({ api, r, onDone: refresh }) }, r.pendiente ? 'Registrar por la sucursal' : 'Corregir') : null))));
+    }
 
     modal({ title: `${num} · ${oc.proveedor}`, wide: true, actions: acciones,
       body: h('div', { class: 'stack' },
         h('div', { class: 'oc-status' }, pill(oc.estado), oc.enviada_at ? h('span', { class: 'muted' }, `Enviada a ${oc.enviada_a} el ${fecha(oc.enviada_at)}`) : null),
         op ? h('p', { class: 'notice' }, 'Orden de preparación interna: va a la Droguería para armar el pedido de cada sucursal. No lleva razón social ni se factura.') : null,
         borrador ? h('div', { class: 'grid3' }, field('Fecha de entrega', entrega), op ? null : field('Forma de pago', pago), field('Observaciones', obsI)) : null,
-        precios, reparto, h('p', { class: 'eyebrow' }, 'Vista del documento'), preview) });
-  }
-
-  function recepcion(oc) {
-    const vals = new Map(oc.items.map(i => [i.id, i.cantidad_recibida ?? i.cantidad]));
-    const num = docNum(oc);
-    modal({ title: `${oc.interno ? 'Entrega' : 'Recepción'} ${num}`, actions: [
-      { label: 'Cancelar' },
-      { label: 'Confirmar recepción', kind: 'primary', onClick: async () => {
-        try {
-          const e = await api.recibirOC(oc.id, [...vals].map(([id, c]) => ({ id, cantidad_recibida: c })));
-          toast(e === 'recibida' ? `${num} ${oc.interno ? 'entregada' : 'recibida'} completa` : `${num} ${oc.interno ? 'entregada' : 'recibida'} con faltantes`); refresh();
-        } catch (err) { toast(err.message, 'bad'); return false; }
-      } }],
-      body: h('div', { class: 'stack' }, h('p', { class: 'muted' }, oc.interno ? 'Indicá lo que entregó la Droguería. Se reparte a cada sucursal en proporción a lo aprobado.' : 'Indicá lo que llegó. Lo recibido se reparte a cada sucursal en proporción a lo aprobado.'),
-        h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' },
-          h('thead', {}, h('tr', {}, h('th', {}, 'Insumo'), h('th', { class: 'num' }, 'Pedido'), h('th', { class: 'num' }, oc.interno ? 'Entregado' : 'Recibido'))),
-          h('tbody', {}, oc.items.map(i => h('tr', {}, h('td', {}, i.producto), h('td', { class: 'num' }, n(i.cantidad)),
-            h('td', { class: 'num' }, h('input', { type: 'number', min: 0, id: `rec-${i.id}`, class: 'num-input', value: vals.get(i.id), oninput: e => vals.set(i.id, +e.target.value || 0) })))))))) });
+        recepBox, precios, reparto, h('p', { class: 'eyebrow' }, 'Vista del documento'), preview) });
   }
 
   return h('div', { class: 'view' },

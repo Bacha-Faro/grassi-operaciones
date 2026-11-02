@@ -71,6 +71,15 @@ export async function render({ api, me, cat, refresh }) {
         avisos.push([Math.abs(pct) <= 1 ? 'ok' : 'warn', `Neto facturado ${money(vals.neto)} contra OC ${money(oc.total)} (sin IVA): ${dif === 0 ? 'coincide' : `${dif > 0 ? '+' : ''}${money(dif)} (${pct.toFixed(1)}%)`}.`]);
       }
       if (oc && !(vals.neto > 0)) avisos.push(['muted', `Total de la OC sin IVA: ${money(oc.total)}. Cargá el neto de la factura para comparar.`]);
+      if (oc) {
+        if (oc.total_recibido === null) avisos.push(['warn', 'Ninguna sucursal confirmó todavía la recepción de esta orden.']);
+        else {
+          const completa = ['recibida', 'recibida_parcial'].includes(oc.estado);
+          const igual = Math.abs(oc.total_recibido - oc.total) < 1;
+          avisos.push([completa && igual ? 'ok' : 'warn', `Recibido según las sucursales: ${money(oc.total_recibido)} de ${money(oc.total)}${completa ? '' : ' (faltan sucursales por confirmar)'}${completa && !igual ? '. Hubo diferencias: revisá que no se facture lo que no llegó.' : '.'}`]);
+          if (vals.neto !== '' && Number(vals.neto) > oc.total_recibido + 1) avisos.push(['bad', `El neto facturado (${money(vals.neto)}) supera lo recibido (${money(oc.total_recibido)}).`]);
+        }
+      }
       control.replaceChildren(...avisos.map(([t, txt]) => h('p', { class: `aviso aviso-${t}` }, txt)));
     }
 
