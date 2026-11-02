@@ -26,7 +26,8 @@ function solRow(s) {
 function ocRow(o) {
   const its = o.oc_items || [];
   return { ...o, proveedor: o.proveedores?.nombre, proveedor_email: o.proveedores?.email, interno: !!o.proveedores?.interno, periodo: o.periodos?.nombre,
-    total: its.reduce((a, x) => a + x.cantidad * x.precio_unit, 0), n_items: its.length };
+    total: its.reduce((a, x) => a + x.cantidad * x.precio_unit, 0), n_items: its.length,
+    total_recibido: its.some(x => x.cantidad_recibida !== null && x.cantidad_recibida !== undefined) ? its.reduce((a, x) => a + (Number(x.cantidad_recibida) || 0) * x.precio_unit, 0) : null };
 }
 
 export const api = {
@@ -93,7 +94,7 @@ export const api = {
   },
   async generarOrdenes() { return ok(await sb.rpc('generar_ordenes', {})); },
   async ordenes() {
-    return ok(await sb.from('ordenes_compra').select('*, proveedores(nombre, email, interno), periodos(nombre), oc_items(cantidad, precio_unit)')
+    return ok(await sb.from('ordenes_compra').select('*, proveedores(nombre, email, interno), periodos(nombre), oc_items(cantidad, precio_unit, cantidad_recibida)')
       .order('id', { ascending: false })).map(ocRow);
   },
   async orden(id) {
@@ -122,6 +123,11 @@ export const api = {
     ok(await sb.from('ordenes_compra').update({ estado: 'anulada' }).eq('id', id).eq('estado', 'borrador'));
   },
   async recibirOC(id, items) { return ok(await sb.rpc('recibir_oc', { p_oc: id, p_items: items })); },
+  // recepción por sucursal: sin ocId = las de mi sucursal; con ocId = todas las de esa orden (equipo)
+  async recepciones(ocId = null) { return ok(await sb.rpc('recepciones', { p_oc: ocId })) || []; },
+  async confirmarRecepcion(solicitudId, ocId, items, obs) {
+    return ok(await sb.rpc('confirmar_recepcion', { p_solicitud: solicitudId, p_oc: ocId, p_items: items, p_obs: obs }));
+  },
 
   // ---- facturas ----
   async facturas() {

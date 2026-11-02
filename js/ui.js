@@ -42,7 +42,7 @@ const ESTADOS = {
   aprobado: ['Aprobado', 'ok'], ajustado: ['Ajustado', 'warn'], rechazado: ['Rechazado', 'bad'],
   // OC
   borrador: ['Borrador', 'warn'], enviada: ['Enviada', 'info'],
-  recibida_parcial: ['Recibida parcial', 'warn'], anulada: ['Anulada', 'bad'],
+  recibida_parcial: ['Recibida con diferencias', 'warn'], anulada: ['Anulada', 'bad'],
 };
 export function pill(estado) {
   const [txt, tone] = ESTADOS[estado] || [estado, 'muted'];

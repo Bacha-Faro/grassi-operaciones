@@ -4,7 +4,7 @@ import { h, toast, field, modal } from './ui.js';
 
 const VISTAS = {
   solicitar:         { label: 'Nueva solicitud', mod: () => import('./views/solicitar.js'),   roles: ['solicitante', 'auditor', 'compras', 'admin'] },
-  'mis-solicitudes': { label: 'Mis solicitudes', mod: () => import('./views/solicitudes.js'), roles: ['solicitante'] },
+  'mis-solicitudes': { label: 'Mis solicitudes', mod: () => import('./views/solicitudes.js'), roles: ['solicitante'], badge: 'rec' },
   auditoria:         { label: 'Auditoría',       mod: () => import('./views/auditoria.js'),   roles: ['auditor', 'admin'], badge: 'pend' },
   solicitudes:       { label: 'Solicitudes',     mod: () => import('./views/solicitudes.js'), roles: ['auditor', 'compras', 'admin'] },
   compras:           { label: 'Compras',         mod: () => import('./views/compras.js'),     roles: ['compras', 'admin'], badge: 'oc' },
@@ -29,6 +29,7 @@ async function badges() {
       const [p, o] = await Promise.all([api.pendientesOC(), api.ordenes()]);
       out.oc = new Set(p.map(x => `${x.proveedor_id}|${x.empresa}`)).size + o.filter(x => x.estado === 'borrador').length;
     }
+    if (me.rol === 'solicitante') out.rec = (await api.recepciones()).filter(r => r.pendiente).length;
     if (['auditor', 'compras', 'admin'].includes(me.rol)) out.fc = (await api.facturas()).filter(f => f.estado === 'recibida').length;
   } catch { /* nada */ }
   return out;

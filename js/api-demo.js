@@ -184,7 +184,8 @@ function solRow(s) {
 function ocRow(o) {
   const its = db.oc_items.filter(x => x.oc_id === o.id); const p = prov(o.proveedor_id);
   return { ...o, proveedor: p.nombre, proveedor_email: p.email, interno: !!p.interno, periodo: per(o.periodo_id)?.nombre,
-    total: its.reduce((a, x) => a + x.cantidad * x.precio_unit, 0), n_items: its.length };
+    total: its.reduce((a, x) => a + x.cantidad * x.precio_unit, 0), n_items: its.length,
+    total_recibido: its.some(x => x.cantidad_recibida !== null && x.cantidad_recibida !== undefined) ? its.reduce((a, x) => a + (Number(x.cantidad_recibida) || 0) * x.precio_unit, 0) : null };
 }
 const visible = s => who.rol !== 'solicitante' || s.sucursal_id === who.sucursal_id;
 const tick = v => new Promise(r => setTimeout(() => r(clone(v)), 60));
@@ -281,6 +282,48 @@ export const api = {
     save();
   },
   async recibirOC(id, items) { need('compras', 'admin', 'auditor'); const e = _recibir(id, items); save(); return e; },
+  async recepciones(ocId = null) {
+    db.recepciones ||= [];
+    const pares = new Set(db.solicitud_items.filter(si => si.oc_id).map(si => `${si.solicitud_id}|${si.oc_id}`));
+    const out = [];
+    for (const k of pares) {
+      const [sid, oid] = k.split('|').map(Number); const o = db.ordenes_compra.find(x => x.id === oid); const s = db.solicitudes.find(x => x.id === sid);
+      if (!['enviada', 'recibida_parcial', 'recibida'].includes(o.estado)) continue;
+      if (ocId ? o.id !== ocId : s.sucursal_id !== who.sucursal_id) continue;
+      const rec = db.recepciones.find(r => r.solicitud_id === sid && r.oc_id === oid) || null;
+      if (!rec && o.estado !== 'enviada') continue;   // historial de ejemplo: recibido antes de existir la recepción por sucursal
+      if (!ocId && rec && Date.now() - new Date(rec.recibido_at) > 45 * 864e5) continue;
+      const p = prov(o.proveedor_id);
+      out.push({ solicitud_id: sid, oc_id: oid, proveedor: p.nombre, interno: !!p.interno, oc_estado: o.estado, enviada_at: o.enviada_at,
+        sucursal: suc(s.sucursal_id).nombre, direccion: suc(s.sucursal_id).direccion || null, periodo: per(s.periodo_id)?.nombre, pendiente: !rec,
+        recepcion: rec && { conforme: rec.conforme, observaciones: rec.observaciones, recibido_at: rec.recibido_at, por: rec.por },
+        items: db.solicitud_items.filter(si => si.solicitud_id === sid && si.oc_id === oid).map(si => ({ id: si.id, producto: prod(si.producto_id).nombre,
+          unidad: prod(si.producto_id).unidad, aprobada: si.cantidad_aprobada, recibida: rec ? si.cantidad_recibida : null })) });
+    }
+    return tick(out.sort((a, b) => (b.pendiente - a.pendiente) || String(b.enviada_at).localeCompare(String(a.enviada_at))));
+  },
+  async confirmarRecepcion(sid, oid, items, obs) {
+    db.recepciones ||= [];
+    const s = db.solicitudes.find(x => x.id === sid);
+    if (who.rol === 'solicitante' && s.sucursal_id !== who.sucursal_id) throw new Error('Sin permiso para registrar esta recepción');
+    const sis = db.solicitud_items.filter(si => si.solicitud_id === sid && si.oc_id === oid);
+    for (const si of sis) { const it = items.find(x => x.id === si.id); si.cantidad_recibida = it ? Math.max(0, +it.recibida) : si.cantidad_aprobada; }
+    const conforme = sis.every(si => +si.cantidad_recibida === +si.cantidad_aprobada);
+    if (!conforme && !(obs || '').trim()) throw new Error('Contá qué pasó con las diferencias en Observaciones');
+    db.recepciones = db.recepciones.filter(r => !(r.solicitud_id === sid && r.oc_id === oid));
+    db.recepciones.push({ solicitud_id: sid, oc_id: oid, conforme, observaciones: obs || null, recibido_at: new Date().toISOString(), por: `${who.rol}@grupograssi.com` });
+    const o = db.ordenes_compra.find(x => x.id === oid);
+    for (const oi of db.oc_items.filter(x => x.oc_id === oid)) {
+      const recs = db.solicitud_items.filter(si => si.oc_id === oid && si.producto_id === oi.producto_id && db.recepciones.some(r => r.solicitud_id === si.solicitud_id && r.oc_id === oid));
+      oi.cantidad_recibida = recs.reduce((a, x) => a + +x.cantidad_recibida, 0);
+    }
+    const total = new Set(db.solicitud_items.filter(si => si.oc_id === oid).map(si => si.solicitud_id)).size;
+    const confs = db.recepciones.filter(r => r.oc_id === oid);
+    if (confs.length >= total) o.estado = confs.every(r => r.conforme) ? 'recibida' : 'recibida_parcial';
+    if (db.solicitud_items.filter(si => si.solicitud_id === sid && si.estado !== 'rechazado' && si.cantidad_aprobada > 0)
+      .every(si => db.recepciones.some(r => r.solicitud_id === sid && r.oc_id === si.oc_id))) s.estado = 'recibida';
+    save(); return o.estado;
+  },
 
   // ---- facturas (demo: sin archivos reales) ----
   async facturas() {
