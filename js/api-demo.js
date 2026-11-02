@@ -282,6 +282,14 @@ export const api = {
     save();
   },
   async recibirOC(id, items) { need('compras', 'admin', 'auditor'); const e = _recibir(id, items); save(); return e; },
+  async guardarFotoProducto(id, file) {
+    need('compras', 'admin');
+    const { achicarImagen } = await import('./ui.js');
+    const blob = await achicarImagen(file, 320, 0.7);
+    const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
+    db.productos.find(p => p.id === id).foto_url = url; save(); return url;
+  },
+  async quitarFotoProducto(id) { need('compras', 'admin'); db.productos.find(p => p.id === id).foto_url = null; save(); },
   async recepciones(ocId = null) {
     db.recepciones ||= [];
     const pares = new Set(db.solicitud_items.filter(si => si.oc_id).map(si => `${si.solicitud_id}|${si.oc_id}`));
