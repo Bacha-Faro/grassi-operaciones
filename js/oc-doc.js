@@ -92,7 +92,7 @@ function opPDF(oc) {
   doc.text(`Fecha: ${fecha(oc.fecha)}`, W - M, 22, { align: 'right' });
   if (oc.periodo) doc.text(`Período: ${oc.periodo}`, W - M, 27, { align: 'right' });
   doc.text(`${p.nombre || oc.proveedor} · pedido interno, no se factura`, M, 28);
-  doc.setDrawColor(31, 111, 92); doc.setLineWidth(0.6); doc.line(M, 32, W - M, 32);
+  doc.setDrawColor(0, 85, 184); doc.setLineWidth(0.6); doc.line(M, 32, W - M, 32);
 
   doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.text('TOTAL A PREPARAR', M, 40); doc.setFont('helvetica', 'normal');
   doc.autoTable({
@@ -101,7 +101,7 @@ function opPDF(oc) {
     body: oc.items.map(i => [n(i.cantidad), `${i.producto} (${i.unidad})`, money(i.precio_unit), money(i.cantidad * i.precio_unit)]),
     foot: [['', 'VALOR TOTAL (sin IVA)', '', money(oc.total)]],
     styles: { fontSize: 9, cellPadding: 2.2 },
-    headStyles: { fillColor: [31, 111, 92] }, footStyles: { fillColor: [232, 238, 235], textColor: [20, 30, 28], fontStyle: 'bold' },
+    headStyles: { fillColor: [0, 85, 184] }, footStyles: { fillColor: [230, 238, 248], textColor: [20, 27, 43], fontStyle: 'bold' },
     columnStyles: { 0: { halign: 'right', cellWidth: 22 }, 2: { halign: 'right', cellWidth: 30 }, 3: { halign: 'right', cellWidth: 32 } },
     didParseCell: d => { if (d.section !== 'body' && d.column.index !== 1) d.cell.styles.halign = 'right'; },
   });
@@ -114,7 +114,7 @@ function opPDF(oc) {
       startY: y + 5, margin: { left: M, right: M },
       head: [['Sucursal / área', 'Artículo', 'Cant.', 'Control']],
       body: sucs.flatMap(s => s.items.map((i, k) => [k ? '' : s.sucursal, i.producto, n(i.cantidad), ''])),
-      styles: { fontSize: 8.5, cellPadding: 1.8 }, headStyles: { fillColor: [232, 238, 235], textColor: [20, 30, 28] },
+      styles: { fontSize: 8.5, cellPadding: 1.8 }, headStyles: { fillColor: [230, 238, 248], textColor: [20, 27, 43] },
       columnStyles: { 0: { cellWidth: 52, fontStyle: 'bold' }, 2: { halign: 'right', cellWidth: 16 }, 3: { cellWidth: 18 } },
       didDrawCell: d => { if (d.section === 'body' && d.column.index === 3) doc.rect(d.cell.x + 6, d.cell.y + 1.2, 3.2, 3.2); },
     });
@@ -141,7 +141,7 @@ export function ocPDF(oc) {
   doc.setFont('helvetica', 'normal'); doc.setFontSize(9);
   doc.text(`Fecha: ${fecha(oc.fecha)}`, W - M, 22, { align: 'right' });
   if (oc.periodo) doc.text(`Período: ${oc.periodo}`, W - M, 27, { align: 'right' });
-  doc.setDrawColor(31, 111, 92); doc.setLineWidth(0.6); doc.line(M, 32, W - M, 32);
+  doc.setDrawColor(0, 85, 184); doc.setLineWidth(0.6); doc.line(M, 32, W - M, 32);
 
   const bloque = (x, titulo, lineas) => {
     doc.setFont('helvetica', 'bold'); doc.setFontSize(8); doc.setTextColor(95, 105, 102); doc.text(titulo, x, 40);
@@ -158,7 +158,7 @@ export function ocPDF(oc) {
     body: oc.items.map(i => [n(i.cantidad), `${i.producto} (${i.unidad})`, money(i.precio_unit), money(i.cantidad * i.precio_unit)]),
     foot: [['', 'MONTO TOTAL (sin IVA)', '', money(oc.total)]],
     styles: { fontSize: 9, cellPadding: 2.2 },
-    headStyles: { fillColor: [31, 111, 92] }, footStyles: { fillColor: [232, 238, 235], textColor: [20, 30, 28], fontStyle: 'bold' },
+    headStyles: { fillColor: [0, 85, 184] }, footStyles: { fillColor: [230, 238, 248], textColor: [20, 27, 43], fontStyle: 'bold' },
     columnStyles: { 0: { halign: 'right', cellWidth: 22 }, 2: { halign: 'right', cellWidth: 30 }, 3: { halign: 'right', cellWidth: 32 } },
     didParseCell: d => { if (d.section !== 'body' && d.column.index !== 1) d.cell.styles.halign = 'right'; },
   });
@@ -170,7 +170,7 @@ export function ocPDF(oc) {
       startY: y + 5, margin: { left: M, right: M },
       head: [['Dirección', 'Sucursal / área', 'Artículo', 'Cant.']],
       body: ent.flatMap(en => en.items.map((i, k) => [k ? '' : en.direccion, k ? '' : en.sucursales.join(', '), i.producto, n(i.cantidad)])),
-      styles: { fontSize: 8, cellPadding: 1.6 }, headStyles: { fillColor: [232, 238, 235], textColor: [20, 30, 28] },
+      styles: { fontSize: 8, cellPadding: 1.6 }, headStyles: { fillColor: [230, 238, 248], textColor: [20, 27, 43] },
       columnStyles: { 0: { cellWidth: 42, fontStyle: 'bold' }, 1: { cellWidth: 48 }, 3: { halign: 'right', cellWidth: 16 } },
     });
     y = doc.lastAutoTable.finalY + 8;

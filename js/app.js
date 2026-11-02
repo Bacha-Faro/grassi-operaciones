@@ -15,6 +15,7 @@ const VISTAS = {
 const INICIO = { solicitante: 'solicitar', auditor: 'auditoria', compras: 'compras', admin: 'auditoria' };
 const ROL = { solicitante: 'Sucursal', auditor: 'Auditoría (RRHH)', compras: 'Compras', admin: 'Administrador' };
 
+const logo = cls => [h('img', { class: `${cls} logo-claro`, src: 'img/logo-grassi.png', alt: 'Farmacias Grassi' }), h('img', { class: `${cls} logo-oscuro`, src: 'img/logo-grassi-claro.png', alt: 'Farmacias Grassi' })];
 const app = document.getElementById('app');
 let me = null, ruta = null;
 
@@ -58,7 +59,8 @@ async function pintar() {
     demoBar(),
     h('div', { class: 'shell' },
       h('aside', { class: 'side' },
-        h('div', { class: 'brand' }, h('span', { class: 'brand-mark', 'aria-hidden': 'true' }, 'G'), h('div', {}, h('strong', {}, 'Insumos'), h('small', {}, 'Grupo Grassi'))),
+        h('div', { class: 'brand' }, h('img', { class: 'brand-iso', src: 'img/isotipo.png', alt: 'Farmacias Grassi · Insumos' }),
+          h('div', { class: 'brand-logo' }, logo(''), h('span', { class: 'brand-app' }, 'Insumos'))),
         nav,
         h('div', { class: 'who' }, h('strong', {}, me.sucursal || me.nombre || me.email), h('small', {}, ROL[me.rol]),
           api.modo !== 'demo' ? h('div', { class: 'who-actions' },
@@ -99,13 +101,14 @@ function login() {
     try { await api.login(email.value.trim(), pass.value); await inicio(); }
     catch (err) { toast(err.message === 'Invalid login credentials' ? 'Mail o contraseña incorrectos' : err.message, 'bad'); btn.disabled = false; }
   } },
-    h('div', { class: 'brand' }, h('span', { class: 'brand-mark', 'aria-hidden': 'true' }, 'G'), h('div', {}, h('strong', {}, 'Insumos'), h('small', {}, 'Grupo Grassi'))),
+    h('div', { class: 'login-logo' }, logo(''), h('span', { class: 'brand-app' }, 'Pedidos de insumos')),
     h('p', { class: 'muted' }, 'Ingresá con el mail de tu sucursal o sector.'),
     field('Mail', email), field('Contraseña', pass), btn,
     h('button', { type: 'button', class: 'link', onclick: async () => {
       if (!email.value) return toast('Escribí tu mail primero', 'warn');
       try { await api.recuperar(email.value.trim()); toast('Te mandamos un mail para crear una contraseña nueva'); } catch (e) { toast(e.message, 'bad'); }
-    } }, 'Olvidé mi contraseña'))));
+    } }, 'Olvidé mi contraseña')),
+    h('p', { class: 'creditos' }, h('img', { src: 'img/ganimedes.png', alt: '' }), h('span', {}, 'Desarrollado por ', h('strong', {}, 'Ganímedes Lab')))));
 }
 
 async function inicio() {
