@@ -4,8 +4,10 @@ import { h, money, n, pill, empty, toast, fechaHora, solNum, sum, confirmar } fr
 
 export async function render({ api, me, refresh }) {
   const puedeAuditar = ['auditor', 'admin'].includes(me.rol);
-  const [pend, consumo] = await Promise.all([api.solicitudes({ estado: 'pendiente' }), api.consumo()]);
-  let actual = pend[pend.length - 1]?.id ?? null;      // la más antigua primero
+  const [pend0, consumo] = await Promise.all([api.solicitudes({ estado: 'pendiente' }), api.consumo()]);
+  // orden de la cola (se muestra invertida): urgentes arriba, y dentro de cada grupo la más antigua primero
+  const pend = [...pend0].sort((a, b) => (a.urgente - b.urgente) || String(b.created_at).localeCompare(String(a.created_at)));
+  let actual = pend[pend.length - 1]?.id ?? null;
   const lista = h('ul', { class: 'queue' });
   const panel = h('div', { class: 'audit-panel' });
 
@@ -21,7 +23,7 @@ export async function render({ api, me, refresh }) {
   function pintarLista() {
     lista.replaceChildren(...[...pend].reverse().map(s => h('li', {},
       h('button', { class: `queue-item${s.id === actual ? ' on' : ''}`, onclick: () => { actual = s.id; pintarLista(); pintarPanel(); } },
-        h('span', { class: 'queue-top' }, h('strong', {}, s.sucursal), h('span', { class: 'mono muted' }, solNum(s.id))),
+        h('span', { class: 'queue-top' }, h('strong', {}, s.sucursal, s.urgente ? h('span', { class: 'pill pill-bad tag-urg' }, 'Urgente') : null), h('span', { class: 'mono muted' }, solNum(s.id))),
         h('small', { class: 'muted' }, `${s.n_items} ítems · ${money(s.monto_solicitado)} · ${fechaHora(s.created_at)}`)))));
   }
 
@@ -81,6 +83,7 @@ export async function render({ api, me, refresh }) {
         h('div', {}, h('p', { class: 'eyebrow' }, `${solNum(s.id)} · ${s.periodo}`), h('h2', {}, s.sucursal),
           h('p', { class: 'muted' }, `Pidió ${s.solicitante_nombre} el ${fechaHora(s.created_at)}`)),
         pill(s.estado)),
+      s.urgente ? h('p', { class: 'aviso aviso-bad' }, h('strong', {}, 'Pedido urgente: '), s.motivo_urgencia || 'sin motivo') : null,
       s.observaciones ? h('p', { class: 'note' }, h('strong', {}, 'Observaciones: '), s.observaciones) : null,
       h('div', { class: 'table-wrap' }, h('table', { class: 'tbl audit-tbl' },
         h('thead', {}, h('tr', {}, h('th', {}, 'Insumo'), h('th', { class: 'num' }, 'Pedido'),

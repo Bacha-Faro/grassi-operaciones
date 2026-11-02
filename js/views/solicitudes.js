@@ -39,7 +39,7 @@ export async function render({ api, me, cat, refresh }) {
       return h('li', { class: 'card' },
         h('button', { class: 'card-row', 'aria-expanded': 'false', onclick: e => { detalle(s, box); e.currentTarget.setAttribute('aria-expanded', String(!box.hidden)); } },
           h('span', { class: 'mono strong' }, solNum(s.id)),
-          h('span', { class: 'card-main' }, h('strong', {}, esStaff ? s.sucursal : s.periodo), h('small', { class: 'muted' }, `${s.solicitante_nombre} · ${fechaHora(s.created_at)}${esStaff ? ` · ${s.periodo}` : ''}`)),
+          h('span', { class: 'card-main' }, h('strong', {}, esStaff ? s.sucursal : s.periodo, s.urgente ? h('span', { class: 'pill pill-bad tag-urg' }, 'Urgente') : null), h('small', { class: 'muted' }, `${s.solicitante_nombre} · ${fechaHora(s.created_at)}${esStaff ? ` · ${s.periodo}` : ''}`)),
           h('span', { class: 'mono muted hide-sm' }, `${s.n_items} ítems`),
           h('span', { class: 'mono hide-sm' }, money(s.estado === 'pendiente' ? s.monto_solicitado : s.monto_aprobado)),
           pill(s.estado)),
