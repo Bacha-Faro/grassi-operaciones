@@ -113,3 +113,20 @@ for (const m of ['replaceChildren', 'append']) {
   const orig = Element.prototype[m];
   Element.prototype[m] = function (...k) { return orig.apply(this, k.filter(x => x !== null && x !== undefined && x !== false)); };
 }
+
+// Achica una foto (de la cámara o de la compu) a máx. `max` px y la pasa a JPEG, para que pese poco
+export async function achicarImagen(file, max = 640, calidad = 0.82) {
+  let bmp;
+  try { bmp = await createImageBitmap(file, { imageOrientation: 'from-image' }); }
+  catch { throw new Error('No se pudo leer la imagen. Probá con una foto JPG o PNG.'); }
+  const k = Math.min(1, max / Math.max(bmp.width, bmp.height));
+  const c = document.createElement('canvas'); c.width = Math.round(bmp.width * k); c.height = Math.round(bmp.height * k);
+  const ctx = c.getContext('2d'); ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height); ctx.drawImage(bmp, 0, 0, c.width, c.height);
+  return await new Promise(res => c.toBlob(res, 'image/jpeg', calidad));
+}
+
+// Foto grande de un insumo
+export function verFoto(p) {
+  modal({ title: p.nombre, body: h('div', { class: 'foto-grande' }, h('img', { src: p.foto_url, alt: p.nombre }),
+    h('p', { class: 'muted' }, [p.unidad, p.precio_ref ? `ref. ${money(p.precio_ref)}` : null].filter(Boolean).join(' · '))) });
+}

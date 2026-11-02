@@ -54,13 +54,12 @@ export const api = {
       sb.from('productos').select('*').order('nombre')].map(p => p.then(ok)));
     return { empresas, sucursales, categorias, proveedores, productos };
   },
-  async periodoActual() {
-    return ok(await sb.from('periodos').select('*').eq('estado', 'abierto').order('desde', { ascending: false }).limit(1))[0] || null;
-  },
+  // el período del mes en curso se crea solo (pedidos abiertos todo el mes)
+  async periodoActual() { return ok(await sb.rpc('periodo_actual')) || null; },
   async periodos() { return ok(await sb.from('periodos').select('*').order('desde')); },
 
-  async crearSolicitud({ periodo_id, sucursal_id, solicitante_nombre, observaciones, items }) {
-    const s = ok(await sb.from('solicitudes').insert({ periodo_id, sucursal_id, solicitante_nombre, observaciones,
+  async crearSolicitud({ periodo_id, sucursal_id, solicitante_nombre, observaciones, urgente = false, motivo_urgencia = null, items }) {
+    const s = ok(await sb.from('solicitudes').insert({ periodo_id, sucursal_id, solicitante_nombre, observaciones, urgente, motivo_urgencia,
       solicitante_id: perfil?.id }).select('id').single());
     ok(await sb.from('solicitud_items').insert(items.map(i => ({ solicitud_id: s.id, producto_id: i.producto_id, cantidad_solicitada: i.cantidad }))));
     return s.id;
@@ -99,10 +98,10 @@ export const api = {
       .order('id', { ascending: false })).map(ocRow);
   },
   async orden(id) {
-    const o = ok(await sb.from('ordenes_compra').select('*, proveedores(*), periodos(nombre), empresas(*), oc_items(*, productos(nombre, unidad))').eq('id', id).single());
+    const o = ok(await sb.from('ordenes_compra').select('*, proveedores(*), periodos(nombre), empresas(*), oc_items(*, productos(nombre, unidad, link_compra))').eq('id', id).single());
     const dist = ok(await sb.from('solicitud_items').select('cantidad_aprobada, solicitud_id, productos(nombre), solicitudes(sucursales(nombre, direccion))').eq('oc_id', id));
     return { ...ocRow(o), proveedorObj: o.proveedores, empresaObj: o.empresas,
-      items: o.oc_items.map(x => ({ ...x, cantidad: +x.cantidad, precio_unit: +x.precio_unit, producto: x.productos.nombre, unidad: x.productos.unidad, subtotal: x.cantidad * x.precio_unit })),
+      items: o.oc_items.map(x => ({ ...x, cantidad: +x.cantidad, precio_unit: +x.precio_unit, producto: x.productos.nombre, unidad: x.productos.unidad, link_compra: x.productos.link_compra, subtotal: x.cantidad * x.precio_unit })),
       distribucion: dist.map(d => ({ sucursal: d.solicitudes.sucursales.nombre, direccion: d.solicitudes.sucursales.direccion, producto: d.productos.nombre, cantidad: +d.cantidad_aprobada, solicitud_id: d.solicitud_id })) };
   },
   async guardarOC(id, campos, items) {
@@ -115,6 +114,11 @@ export const api = {
     if (error) throw new Error(error.message);
     if (data?.error) throw new Error(data.error);
     return data;
+  },
+  // compra hecha por otro medio (Mercado Libre, WhatsApp, teléfono): queda como enviada sin mandar mail
+  async registrarCompraSinMail(id, nota) {
+    ok(await sb.from('ordenes_compra').update({ estado: 'enviada', enviada_at: new Date().toISOString(), enviada_a: nota || 'Comprada por otro medio' })
+      .eq('id', id).eq('estado', 'borrador'));
   },
   async anularOC(id) {
     const oc = ok(await sb.from('ordenes_compra').select('estado').eq('id', id).single());
@@ -159,6 +163,7 @@ export const api = {
 
   async guardarProducto(p) {
     const { id, ...campos } = p;
+    if ('link_compra' in campos) campos.link_compra = (campos.link_compra || '').trim() || null;
     if (id) {
       const prev = ok(await sb.from('productos').select('precio_ref').eq('id', id).single());
       ok(await sb.from('productos').update(campos).eq('id', id));

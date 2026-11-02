@@ -15,9 +15,9 @@ function load() {
 const nextId = t => (db.seq[t] = (db.seq[t] || 0) + 1);
 
 // ---------- reglas (espejo de las funciones SQL) ----------
-function _crearSolicitud(u, { periodo_id, sucursal_id, solicitante_nombre, observaciones, items }, at) {
+function _crearSolicitud(u, { periodo_id, sucursal_id, solicitante_nombre, observaciones, urgente = false, motivo_urgencia = null, items }, at) {
   const id = nextId('solicitudes');
-  db.solicitudes.push({ id, periodo_id, sucursal_id, solicitante_nombre, observaciones: observaciones || null,
+  db.solicitudes.push({ id, periodo_id, sucursal_id, solicitante_nombre, observaciones: observaciones || null, urgente, motivo_urgencia,
     estado: 'pendiente', created_at: at || new Date().toISOString(), auditada_at: null, comentario_auditoria: null });
   for (const it of items) db.solicitud_items.push({ id: nextId('solicitud_items'), solicitud_id: id,
     producto_id: it.producto_id, cantidad_solicitada: it.cantidad, cantidad_aprobada: null, estado: 'pendiente',
@@ -251,7 +251,7 @@ export const api = {
   async ordenes() { return tick(db.ordenes_compra.map(ocRow).sort((a, b) => b.id - a.id)); },
   async orden(id) {
     const o = db.ordenes_compra.find(x => x.id === id); if (!o) return null;
-    const items = db.oc_items.filter(x => x.oc_id === id).map(oi => ({ ...oi, producto: prod(oi.producto_id).nombre, unidad: prod(oi.producto_id).unidad, subtotal: oi.cantidad * oi.precio_unit }));
+    const items = db.oc_items.filter(x => x.oc_id === id).map(oi => ({ ...oi, producto: prod(oi.producto_id).nombre, unidad: prod(oi.producto_id).unidad, link_compra: prod(oi.producto_id).link_compra || null, subtotal: oi.cantidad * oi.precio_unit }));
     const distribucion = db.solicitud_items.filter(x => x.oc_id === id).map(si => {
       const s = db.solicitudes.find(x => x.id === si.solicitud_id);
       return { sucursal: suc(s.sucursal_id).nombre, direccion: suc(s.sucursal_id).direccion || null, producto: prod(si.producto_id).nombre, cantidad: si.cantidad_aprobada, solicitud_id: s.id };
@@ -272,6 +272,11 @@ export const api = {
     if (!p.email) throw new Error(`El proveedor ${p.nombre} no tiene mail cargado`);
     _enviar(o, p.email); save();
     return { simulado: true, a: p.email };
+  },
+  async registrarCompraSinMail(id, nota) {
+    need('compras', 'admin'); const o = db.ordenes_compra.find(x => x.id === id);
+    if (o.estado !== 'borrador') throw new Error('Solo se puede registrar una orden en borrador');
+    _enviar(o, nota || 'Comprada por otro medio'); save();
   },
   async anularOC(id) {
     need('compras', 'admin');
