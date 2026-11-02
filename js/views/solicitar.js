@@ -1,5 +1,5 @@
 // Nueva solicitud: catálogo por categoría, cantidades, pedido sugerido según consumo.
-import { h, money, n, toast, field, empty, groupBy, sum, fechaHora } from '../ui.js';
+import { h, money, n, toast, field, empty, groupBy, sum, fechaHora, verFoto } from '../ui.js';
 
 export async function render({ api, me, cat, go }) {
   const periodo = await api.periodoActual();
@@ -39,7 +39,10 @@ export async function render({ api, me, cat, go }) {
       oninput: e => { const v = Math.max(0, Math.floor(+e.target.value || 0)); v ? qty.set(p.id, v) : qty.delete(p.id); row.classList.toggle('on', !!v); pintarResumen(); } });
     const bump = d => { inp.value = Math.max(0, (+inp.value || 0) + d); inp.dispatchEvent(new Event('input')); };
     const row = h('div', { class: `prod${qty.get(p.id) ? ' on' : ''}` },
-      h('div', { class: 'prod-name' }, h('span', {}, p.nombre), h('small', {}, p.unidad, p.precio_ref ? ` · ref. ${money(p.precio_ref)}` : '')),
+      h('div', { class: 'prod-info' },
+        p.foto_url ? h('button', { type: 'button', class: 'thumb', 'aria-label': `Ver foto de ${p.nombre}`, onclick: () => verFoto(p) }, h('img', { src: p.foto_url, alt: '', loading: 'lazy' }))
+          : h('span', { class: 'thumb vacia', 'aria-hidden': 'true' }),
+        h('div', { class: 'prod-name' }, h('span', {}, p.nombre), h('small', {}, p.unidad, p.precio_ref ? ` · ref. ${money(p.precio_ref)}` : ''))),
       h('div', { class: 'stepper' },
         h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Restar', onclick: () => bump(-1) }, '−'), inp,
         h('button', { type: 'button', class: 'icon-btn', 'aria-label': 'Sumar', onclick: () => bump(1) }, '+')));

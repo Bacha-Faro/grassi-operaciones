@@ -1,5 +1,5 @@
 // Catálogo: insumos, proveedores y sucursales. Cambiar un precio lo registra en el historial.
-import { h, money, empty, toast, modal, field, tabs } from '../ui.js';
+import { h, money, empty, toast, modal, field, tabs, verFoto } from '../ui.js';
 
 export async function render({ api, me, cat, refresh }) {
   const puede = ['compras', 'admin'].includes(me.rol);
@@ -29,6 +29,32 @@ export async function render({ api, me, cat, refresh }) {
       } }] });
   }
 
+  // ---- foto del insumo: sacar con el celular o elegir un archivo ----
+  function foto(p) {
+    let cambio = false;
+    const prev = h('div', { class: 'foto-prev' }, p.foto_url ? h('img', { src: p.foto_url, alt: p.nombre }) : h('span', { class: 'muted' }, 'Sin foto'));
+    const subir = async f => {
+      if (!f) return;
+      prev.replaceChildren(h('span', { class: 'muted' }, 'Subiendo…'));
+      try { const url = await api.guardarFotoProducto(p.id, f); p.foto_url = url; prev.replaceChildren(h('img', { src: url, alt: p.nombre })); toast('Foto guardada'); cambio = true; }
+      catch (err) { toast(err.message, 'bad'); prev.replaceChildren(p.foto_url ? h('img', { src: p.foto_url, alt: p.nombre }) : h('span', { class: 'muted' }, 'Sin foto')); }
+    };
+    const inp = h('input', { type: 'file', id: 'foto-file', accept: 'image/*', hidden: true, onchange: e => subir(e.target.files?.[0]) });
+    const cam = h('input', { type: 'file', id: 'foto-cam', accept: 'image/*', capture: 'environment', hidden: true, onchange: e => subir(e.target.files?.[0]) });
+    modal({ title: `Foto · ${p.nombre}`, body: h('div', { class: 'stack' }, prev,
+      h('p', { class: 'muted' }, 'Una foto clara del producto, de frente y con fondo liso. La app la achica sola.'),
+      h('div', { class: 'foto-acciones' }, inp, cam,
+        h('button', { class: 'btn primary', onclick: () => cam.click() }, 'Sacar foto'),
+        h('button', { class: 'btn', onclick: () => inp.click() }, 'Elegir archivo'),
+        p.foto_url ? h('button', { class: 'btn ghost-bad', onclick: async () => {
+          try { await api.quitarFotoProducto(p.id); p.foto_url = null; prev.replaceChildren(h('span', { class: 'muted' }, 'Sin foto')); toast('Foto quitada'); cambio = true; } catch (err) { toast(err.message, 'bad'); }
+        } }, 'Quitar foto') : null)),
+      actions: [{ label: 'Listo', kind: 'primary', onClick: () => { if (cambio) refresh(); } }] });
+  }
+  const miniatura = p => h('button', { class: `thumb${p.foto_url ? '' : ' vacia'}`, title: p.foto_url ? 'Cambiar foto' : 'Agregar foto', 'aria-label': `Foto de ${p.nombre}`,
+    onclick: e => { e.stopPropagation(); puede ? foto(p) : p.foto_url && verFoto(p); } },
+    p.foto_url ? h('img', { src: p.foto_url, alt: '', loading: 'lazy' }) : h('span', { 'aria-hidden': 'true' }, '+'));
+
   const F_PROD = [
     { k: 'nombre', label: 'Nombre', req: true }, { k: 'categoria_id', label: 'Categoría', opts: cat.categorias, req: true },
     { k: 'unidad', label: 'Unidad', hint: 'Ej.: caja, bidón, resma' }, { k: 'proveedor_id', label: 'Proveedor habitual', opts: cat.proveedores, empty: 'Sin asignar' },
@@ -53,7 +79,7 @@ export async function render({ api, me, cat, refresh }) {
     let head, rows, nuevo;
     if (tab === 'productos') {
       head = ['Insumo', 'Categoría', 'Proveedor', 'Precio ref.', ''];
-      rows = cat.productos.filter(p => like(p.nombre)).map(p => [h('span', { class: p.activo === false ? 'muted' : '' }, p.nombre, h('small', { class: 'muted' }, ` · ${p.unidad || ''}`)), catN(p.categoria_id), prov(p.proveedor_id) || h('span', { class: 'flag' }, 'Sin proveedor'), h('span', { class: 'mono' }, p.precio_ref ? money(p.precio_ref) : '—'), p]);
+      rows = cat.productos.filter(p => like(p.nombre)).map(p => [h('span', { class: `prod-cell${p.activo === false ? ' muted' : ''}` }, miniatura(p), h('span', {}, p.nombre, h('small', { class: 'muted' }, ` · ${p.unidad || ''}`))), catN(p.categoria_id), prov(p.proveedor_id) || h('span', { class: 'flag' }, 'Sin proveedor'), h('span', { class: 'mono' }, p.precio_ref ? money(p.precio_ref) : '—'), p]);
       nuevo = () => form(F_PROD, { activo: true, categoria_id: cat.categorias[0].id }, v => api.guardarProducto(v), 'Nuevo insumo');
     } else if (tab === 'proveedores') {
       head = ['Proveedor', 'Mail', 'Condición', 'Insumos', ''];
@@ -87,6 +113,6 @@ export async function render({ api, me, cat, refresh }) {
 
   return h('div', { class: 'view' },
     h('header', { class: 'view-head' }, h('div', {}, h('p', { class: 'eyebrow' }, 'Configuración'), h('h1', {}, 'Catálogo'),
-      h('p', { class: 'muted' }, 'Los proveedores vienen con nombres genéricos: cargá los reales y su mail para que las órdenes salgan solas.'))),
+      h('p', { class: 'muted' }, `${cat.productos.filter(p => p.foto_url).length} de ${cat.productos.length} insumos con foto. Tocá el cuadradito al lado de cada insumo para sacarle una foto o subirla.`))),
     bar, cont);
 }
