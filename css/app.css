@@ -276,8 +276,8 @@ input:disabled { background: var(--sunk); color: var(--muted); }
 .login-logo img { width: 190px; max-width: 70%; height: auto; }
 .login-logo .brand-app { font-size: 0.78rem; }
 .login-logo::after { content: ''; width: 44px; height: 3px; border-radius: 2px; background: var(--brand-green); margin-top: 2px; }
-.creditos { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.78rem; }
-.creditos img { width: 22px; height: 22px; }
+.creditos { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 0.85rem; }
+.creditos img { width: 40px; height: 40px; }
 .creditos strong { color: var(--fg); font-weight: 600; }
 /* animación de entrada: el logo aparece y después el formulario */
 .login-logo { animation: logo-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
@@ -335,3 +335,22 @@ button.thumb.vacia:hover { border-color: var(--accent); color: var(--accent); }
 .foto-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
 .foto-grande img { width: 100%; max-height: 60vh; object-fit: contain; background: #fff; border-radius: var(--r); }
 .foto-grande { display: flex; flex-direction: column; gap: 8px; }
+
+/* pedido urgente */
+.urgente-box { border: 1px dashed var(--line); border-radius: var(--r); padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.urgente-box.on { border-style: solid; border-color: var(--bad); background: var(--bad-soft); }
+.urgente-box .check { display: flex; align-items: center; gap: 8px; cursor: pointer; }
+.urgente-box .check input { flex: none; accent-color: var(--bad); }
+.tag-urg { margin-left: 8px; font-size: 0.68rem; vertical-align: middle; }
+
+/* selector de tema */
+.tema-sel { display: inline-flex; gap: 2px; padding: 2px; margin: 8px 0 2px; border: 1px solid var(--line); border-radius: 8px; background: var(--sunk); align-self: flex-start; }
+.tema-sel button { border: 0; background: transparent; color: var(--muted); font: 600 0.74rem var(--f-body); padding: 4px 9px; border-radius: 6px; cursor: pointer; }
+.tema-sel button.on { background: var(--surface); color: var(--fg); box-shadow: 0 1px 2px rgb(0 0 0 / 0.12); }
+
+/* links de compra (Mercado Libre, etc.) */
+.link-compra { color: var(--accent); font-weight: 600; font-size: 0.78rem; text-decoration: none; white-space: nowrap; }
+.link-compra:hover { text-decoration: underline; }
+.links-compra { border: 1px solid var(--line); border-left: 4px solid #ffe600; border-radius: var(--r); padding: 10px 14px; }
+.links-compra ul { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.links-compra li { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; font-size: 0.9rem; }
