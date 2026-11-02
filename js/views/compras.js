@@ -1,7 +1,7 @@
 // Compras: consolida lo aprobado en órdenes por proveedor y razón social,
 // permite ajustar precios, enviar la OC por mail y registrar la recepción.
-import { h, money, n, pill, empty, toast, fecha, docNum, sum, groupBy, modal, confirmar, tabs, field } from '../ui.js';
-import { ocHTML, ocPDF, pdfBase64 } from '../oc-doc.js';
+import { h, money, n, pill, empty, toast, fecha, docNum, sum, groupBy, modal, confirmar, tabs, field, linkCompra } from '../ui.js';
+import { ocHTML, ocPDF, pdfBase64, logoListo } from '../oc-doc.js';
 import { abrirRecepcion, estadoRecepcion, difsTexto } from './recepcion.js';
 
 export async function render({ api, me, refresh }) {
@@ -66,6 +66,11 @@ export async function render({ api, me, refresh }) {
         h('td', { class: 'num' }, h('input', { type: 'number', min: 0, step: 1, id: `oc-c-${i.id}`, value: i.cantidad, class: 'num-input', oninput: e => { edits.get(i.id).cantidad = +e.target.value || 0; repintar(); } })),
         h('td', { class: 'num' }, h('input', { type: 'number', min: 0, step: 0.01, id: `oc-p-${i.id}`, value: i.precio_unit, class: 'num-input', oninput: e => { edits.get(i.id).precio_unit = +e.target.value || 0; repintar(); } }))))))) : null;
 
+    // insumos con link de compra (Mercado Libre, etc.): a mano para quien hace la compra
+    const conLink = oc.items.filter(i => i.link_compra);
+    const links = conLink.length ? h('section', { class: 'links-compra' },
+      h('p', { class: 'eyebrow' }, 'Comprar online'),
+      h('ul', {}, conLink.map(i => h('li', {}, h('span', {}, h('strong', {}, n(i.cantidad)), ` × ${i.producto}`), linkCompra(i.link_compra))))) : null;
     const distrib = groupBy(oc.distribucion, d => d.sucursal);
     const reparto = h('details', { class: 'reparto' }, h('summary', {}, `Reparto por sucursal (${Object.keys(distrib).length})`),
       h('div', { class: 'reparto-grid' }, Object.entries(distrib).map(([s, ds]) => h('div', {}, h('strong', {}, s), ds[0].direccion ? h('small', { class: 'muted', style: 'display:block' }, ds[0].direccion) : null,
@@ -74,11 +79,24 @@ export async function render({ api, me, refresh }) {
     repintar();
     const guardar = async () => { await api.guardarOC(id, { fecha_entrega: entrega.value || null, forma_pago: pago.value, observaciones: obsI.value || null }, [...edits.values()]); };
     const acciones = [];
-    acciones.push({ label: 'Descargar PDF', onClick: () => { try { ocPDF(vista()).save(`${num}.pdf`); } catch { toast('No se pudo descargar en esta vista previa', 'warn'); } return false; } });
+    acciones.push({ label: 'Descargar PDF', onClick: async () => { await logoListo; try { ocPDF(vista()).save(`${num}.pdf`); } catch { toast('No se pudo descargar en esta vista previa', 'warn'); } return false; } });
     if (borrador) {
       acciones.push({ label: 'Anular', kind: 'ghost-bad', onClick: async () => {
         if (!await confirmar('Anular orden', `${num} se anula y sus ítems vuelven a "listo para ordenar".`, 'Anular', 'danger')) return false;
         await api.anularOC(id); toast(`${num} anulada`); refresh();
+      } });
+      acciones.push({ label: 'Registrar compra sin mail', onClick: async () => {
+        if (vista().items.some(i => !i.precio_unit)) { toast('Hay ítems sin precio. Completalos antes de registrar la compra.', 'bad'); return false; }
+        const ml = oc.items.some(i => /mercadoli(b|v)re/i.test(i.link_compra || ''));
+        const medio = h('input', { id: 'oc-medio', type: 'text', value: ml ? 'Mercado Libre' : '', placeholder: 'Ej.: Mercado Libre, WhatsApp, teléfono' });
+        let ok = false;
+        await new Promise(res => modal({ title: `Registrar ${num} como comprada`, body: h('div', { class: 'stack' },
+          h('p', { class: 'muted' }, 'Para compras hechas por otro medio. No se manda mail; la orden queda como enviada y las sucursales van a poder confirmar la recepción.'),
+          field('¿Dónde se compró?', medio)),
+          actions: [{ label: 'Cancelar', onClick: () => res() }, { label: 'Registrar', kind: 'primary', onClick: () => { ok = true; res(); } }] }));
+        if (!ok) return false;
+        try { await guardar(); await api.registrarCompraSinMail(id, `Comprada por ${medio.value.trim() || 'otro medio'}`); toast(`${num} registrada como comprada`); refresh(); }
+        catch (e) { toast(e.message, 'bad'); return false; }
       } });
       acciones.push({ label: 'Guardar borrador', onClick: async () => { try { await guardar(); toast('Borrador guardado'); refresh(); } catch (e) { toast(e.message, 'bad'); return false; } } });
       acciones.push({ label: op ? 'Enviar a Droguería' : 'Enviar al proveedor', kind: 'primary', onClick: async () => {
@@ -89,6 +107,7 @@ export async function render({ api, me, refresh }) {
           op ? `Se envía ${num} en PDF a ${mail} con lo que hay que preparar para cada sucursal.` : `Se envía ${num} en PDF a ${mail} y los precios quedan registrados en el historial.`, 'Enviar')) return false;
         try {
           await guardar();
+          await logoListo;
           const r = await api.enviarOC(id, pdfBase64(vista()));
           toast(r?.simulado ? `Modo demo: ${num} marcada como enviada (no se mandó mail)` : `${num} enviada a ${mail}`);
           refresh();
@@ -114,10 +133,10 @@ export async function render({ api, me, refresh }) {
 
     modal({ title: `${num} · ${oc.proveedor}`, wide: true, actions: acciones,
       body: h('div', { class: 'stack' },
-        h('div', { class: 'oc-status' }, pill(oc.estado), oc.enviada_at ? h('span', { class: 'muted' }, `Enviada a ${oc.enviada_a} el ${fecha(oc.enviada_at)}`) : null),
+        h('div', { class: 'oc-status' }, pill(oc.estado), oc.enviada_at ? h('span', { class: 'muted' }, String(oc.enviada_a || '').includes('@') ? `Enviada a ${oc.enviada_a} el ${fecha(oc.enviada_at)}` : `${oc.enviada_a || 'Registrada'} el ${fecha(oc.enviada_at)}`) : null),
         op ? h('p', { class: 'notice' }, 'Orden de preparación interna: va a la Droguería para armar el pedido de cada sucursal. No lleva razón social ni se factura.') : null,
         borrador ? h('div', { class: 'grid3' }, field('Fecha de entrega', entrega), op ? null : field('Forma de pago', pago), field('Observaciones', obsI)) : null,
-        recepBox, precios, reparto, h('p', { class: 'eyebrow' }, 'Vista del documento'), preview) });
+        recepBox, links, precios, reparto, h('p', { class: 'eyebrow' }, 'Vista del documento'), preview) });
   }
 
   return h('div', { class: 'view' },

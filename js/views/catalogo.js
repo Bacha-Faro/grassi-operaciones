@@ -1,5 +1,5 @@
 // Catálogo: insumos, proveedores y sucursales. Cambiar un precio lo registra en el historial.
-import { h, money, empty, toast, modal, field, tabs, verFoto } from '../ui.js';
+import { h, money, empty, toast, modal, field, tabs, verFoto, linkCompra } from '../ui.js';
 
 export async function render({ api, me, cat, refresh }) {
   const puede = ['compras', 'admin'].includes(me.rol);
@@ -60,6 +60,7 @@ export async function render({ api, me, cat, refresh }) {
     { k: 'unidad', label: 'Unidad', hint: 'Ej.: caja, bidón, resma' }, { k: 'proveedor_id', label: 'Proveedor habitual', opts: cat.proveedores, empty: 'Sin asignar' },
     { k: 'precio_ref', label: 'Precio de referencia (sin IVA)', type: 'number', hint: 'Si cambia, queda en el historial de precios' },
     { k: 'tope_mensual', label: 'Tope por sucursal y mes', type: 'number', hint: 'Opcional. Genera alerta en auditoría' },
+    { k: 'link_compra', label: 'Link de compra', type: 'url', hint: 'Opcional. Ej.: la publicación de Mercado Libre del vendedor habitual. Solo lo ve el equipo de compras' },
     { k: 'activo', label: 'Visible para pedir', type: 'check' }];
   const F_PROV = [
     { k: 'nombre', label: 'Razón social / nombre', req: true }, { k: 'cuit', label: 'CUIT' }, { k: 'email', label: 'Mail para órdenes de compra', type: 'email' },
@@ -79,7 +80,7 @@ export async function render({ api, me, cat, refresh }) {
     let head, rows, nuevo;
     if (tab === 'productos') {
       head = ['Insumo', 'Categoría', 'Proveedor', 'Precio ref.', ''];
-      rows = cat.productos.filter(p => like(p.nombre)).map(p => [h('span', { class: `prod-cell${p.activo === false ? ' muted' : ''}` }, miniatura(p), h('span', {}, p.nombre, h('small', { class: 'muted' }, ` · ${p.unidad || ''}`))), catN(p.categoria_id), prov(p.proveedor_id) || h('span', { class: 'flag' }, 'Sin proveedor'), h('span', { class: 'mono' }, p.precio_ref ? money(p.precio_ref) : '—'), p]);
+      rows = cat.productos.filter(p => like(p.nombre)).map(p => [h('span', { class: `prod-cell${p.activo === false ? ' muted' : ''}` }, miniatura(p), h('span', {}, p.nombre, h('small', { class: 'muted' }, ` · ${p.unidad || ''}`), p.link_compra ? h('small', { style: 'display:block' }, linkCompra(p.link_compra, true)) : null)), catN(p.categoria_id), prov(p.proveedor_id) || h('span', { class: 'flag' }, 'Sin proveedor'), h('span', { class: 'mono' }, p.precio_ref ? money(p.precio_ref) : '—'), p]);
       nuevo = () => form(F_PROD, { activo: true, categoria_id: cat.categorias[0].id }, v => api.guardarProducto(v), 'Nuevo insumo');
     } else if (tab === 'proveedores') {
       head = ['Proveedor', 'Mail', 'Condición', 'Insumos', ''];
