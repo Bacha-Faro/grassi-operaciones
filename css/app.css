@@ -299,3 +299,15 @@ input:disabled { background: var(--sunk); color: var(--muted); }
 .aviso-bad { background: var(--bad-soft); border-color: var(--bad); } .aviso-muted { background: var(--sunk); border-color: var(--line); color: var(--muted); }
 .archivo { font-family: var(--f-mono); font-size: 0.8rem; color: var(--muted); word-break: break-all; }
 @media (max-width: 860px) { .factura-layout { grid-template-columns: minmax(0, 1fr); } .visor iframe { height: 50vh; } }
+
+/* recepción por sucursal */
+.recepcion-block { border: 1px solid var(--line); border-left: 4px solid var(--brand-green); border-radius: var(--r); background: var(--surface); padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+.recepcion-block .block-head { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
+.rec-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.rec-item { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; border: 1px solid var(--line); border-radius: var(--r); padding: 10px 12px; background: var(--surface); }
+.rec-item.pendiente { background: var(--warn-soft); border-color: color-mix(in srgb, var(--warn) 30%, var(--line)); }
+.rec-item > div { min-width: 0; flex: 1 1 260px; }
+.rec-hechas summary { cursor: pointer; color: var(--muted); font-size: 0.9rem; margin-bottom: 8px; }
+.recepcion-oc { border-top: 1px solid var(--line); padding-top: 12px; }
+.recepcion-oc .block-head { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
+tr.fila-dif td { background: var(--warn-soft); }
