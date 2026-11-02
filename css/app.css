@@ -221,8 +221,18 @@ input:disabled { background: var(--sunk); color: var(--muted); }
 .reparto li { display: flex; justify-content: space-between; gap: 8px; border-bottom: 1px dotted var(--line); padding: 2px 0; }
 
 .ocdoc { border: 1px solid var(--line); border-radius: var(--r); padding: 20px; display: flex; flex-direction: column; gap: 16px; background: var(--surface); }
-.ocdoc-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 16px; border-bottom: 2px solid var(--accent); padding-bottom: 14px; }
+.ocdoc-head { position: relative; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px; border-bottom: 2px solid var(--accent); padding-bottom: 14px; }
+.ocdoc-head::after { content: ''; position: absolute; left: 0; bottom: -3px; width: 64px; height: 4px; border-radius: 2px; background: var(--brand-green); }
 .ocdoc-head h3 { font-size: 1.2rem; }
+.ocdoc-logo img { width: 150px; height: auto; display: block; }
+.ocdoc-titulo { text-align: right; display: flex; flex-direction: column; gap: 1px; }
+.ocdoc-tipo { font: 700 1.05rem var(--f-display); color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em; }
+.ocdoc-num { font-size: 1.05rem; font-weight: 600; }
+.ocdoc-titulo .muted { font-size: 0.85rem; }
+.ocdoc-sub { font-size: 0.9rem; color: var(--muted); }
+.ocdoc-sub strong { color: var(--fg); }
+.ocdoc .tbl thead th { background: var(--accent); color: var(--accent-ink); }
+.ocdoc .eyebrow { color: var(--accent); }
 .ocdoc-meta { display: grid; grid-template-columns: auto auto; gap: 2px 14px; margin: 0; font-size: 0.88rem; }
 .ocdoc-meta dt, .ocdoc-foot dt { color: var(--muted); }
 .ocdoc-meta dd, .ocdoc-foot dd { margin: 0; }
@@ -280,7 +290,7 @@ input:disabled { background: var(--sunk); color: var(--muted); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 
 /* OC: facturar a y entregas por dirección */
-.ocdoc-facturar { background: var(--accent-soft); border-radius: 6px; padding: 10px 12px; }
+.ocdoc-facturar { background: var(--accent-soft); border-radius: 6px; padding: 10px 12px; border-left: 3px solid var(--accent); }
 .ocdoc-entregas { display: flex; flex-direction: column; gap: 8px; }
 .entregas-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; }
 .entrega { border: 1px solid var(--line); border-radius: 6px; padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; font-size: 0.88rem; }
@@ -311,3 +321,17 @@ input:disabled { background: var(--sunk); color: var(--muted); }
 .recepcion-oc { border-top: 1px solid var(--line); padding-top: 12px; }
 .recepcion-oc .block-head { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; text-align: left; }
 tr.fila-dif td { background: var(--warn-soft); }
+
+/* fotos de insumos */
+.thumb { flex: none; width: 40px; height: 40px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); padding: 0; overflow: hidden; display: grid; place-items: center; cursor: pointer; color: var(--muted); font-size: 1.1rem; }
+.thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.thumb.vacia { background: var(--sunk); border-style: dashed; cursor: default; }
+button.thumb.vacia { cursor: pointer; }
+button.thumb.vacia:hover { border-color: var(--accent); color: var(--accent); }
+.prod-info { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.prod-cell { display: inline-flex; align-items: center; gap: 10px; }
+.foto-prev { width: 100%; aspect-ratio: 4 / 3; max-height: 320px; border: 1px solid var(--line); border-radius: var(--r); background: var(--sunk); display: grid; place-items: center; overflow: hidden; }
+.foto-prev img { width: 100%; height: 100%; object-fit: contain; background: #fff; }
+.foto-acciones { display: flex; flex-wrap: wrap; gap: 8px; }
+.foto-grande img { width: 100%; max-height: 60vh; object-fit: contain; background: #fff; border-radius: var(--r); }
+.foto-grande { display: flex; flex-direction: column; gap: 8px; }
