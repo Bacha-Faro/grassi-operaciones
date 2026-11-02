@@ -1,6 +1,7 @@
 // Adaptador Supabase: misma interfaz que api-demo.js.
 // Requiere el script UMD de supabase-js cargado en index.html (window.supabase).
 import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js';
+import { achicarImagen } from './ui.js';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const ok = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
@@ -164,6 +165,25 @@ export const api = {
       if (campos.precio_ref && +campos.precio_ref !== +prev.precio_ref && campos.proveedor_id)
         ok(await sb.from('precios').insert({ producto_id: id, proveedor_id: campos.proveedor_id, precio: campos.precio_ref, fuente: 'cotizacion' }));
     } else ok(await sb.from('productos').insert(campos));
+  },
+  // fotos de insumos: se achican en el navegador y van al bucket público "productos"
+  async guardarFotoProducto(id, file) {
+    const blob = await achicarImagen(file);
+    const path = `${id}/${Date.now()}.jpg`;
+    const up = await sb.storage.from('productos').upload(path, blob, { contentType: 'image/jpeg', cacheControl: '31536000' });
+    if (up.error) throw new Error(up.error.message);
+    const url = sb.storage.from('productos').getPublicUrl(path).data.publicUrl;
+    const prev = ok(await sb.from('productos').select('foto_url').eq('id', id).single()).foto_url;
+    ok(await sb.from('productos').update({ foto_url: url }).eq('id', id));
+    const viejo = prev?.split('/productos/')[1];
+    if (viejo) sb.storage.from('productos').remove([viejo]).catch(() => {});
+    return url;
+  },
+  async quitarFotoProducto(id) {
+    const prev = ok(await sb.from('productos').select('foto_url').eq('id', id).single()).foto_url;
+    ok(await sb.from('productos').update({ foto_url: null }).eq('id', id));
+    const viejo = prev?.split('/productos/')[1];
+    if (viejo) sb.storage.from('productos').remove([viejo]).catch(() => {});
   },
   async guardarProveedor(p) { const { id, ...c } = p; ok(id ? await sb.from('proveedores').update(c).eq('id', id) : await sb.from('proveedores').insert(c)); },
   async guardarSucursal(s) { const { id, ...c } = s; ok(id ? await sb.from('sucursales').update(c).eq('id', id) : await sb.from('sucursales').insert(c)); },
