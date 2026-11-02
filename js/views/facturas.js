@@ -54,7 +54,7 @@ export async function render({ api, me, cat, refresh }) {
 
     const ocSel = h('select', { id: 'fc-oc', onchange: e => { vals.oc_id = e.target.value ? +e.target.value : null; pintarControl(); } });
     const pintarOcs = () => {
-      const ocs = ordenes.filter(o => o.estado !== 'anulada' && (!vals.proveedor_id || o.proveedor_id === +vals.proveedor_id));
+      const ocs = ordenes.filter(o => !o.interno && o.estado !== 'anulada' && (!vals.proveedor_id || o.proveedor_id === +vals.proveedor_id));
       ocSel.replaceChildren(h('option', { value: '' }, 'Sin vincular'), ocs.map(o =>
         h('option', { value: o.id, selected: o.id === vals.oc_id }, `${ocNum(o.id)} · ${o.empresa} · ${o.periodo || ''} · ${money(o.total)}`)));
     };

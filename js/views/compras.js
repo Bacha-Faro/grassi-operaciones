@@ -1,6 +1,6 @@
 // Compras: consolida lo aprobado en órdenes por proveedor y razón social,
 // permite ajustar precios, enviar la OC por mail y registrar la recepción.
-import { h, money, n, pill, empty, toast, fecha, ocNum, sum, groupBy, modal, confirmar, tabs, field } from '../ui.js';
+import { h, money, n, pill, empty, toast, fecha, docNum, sum, groupBy, modal, confirmar, tabs, field } from '../ui.js';
 import { ocHTML, ocPDF, pdfBase64 } from '../oc-doc.js';
 
 export async function render({ api, me, refresh }) {
@@ -9,14 +9,15 @@ export async function render({ api, me, refresh }) {
   let filtro = 'abiertas';
 
   // ---- listo para ordenar ----
-  const grupos = Object.entries(groupBy(pend, i => `${i.proveedor || 'Sin proveedor asignado'}|${i.empresa}`));
+  // externos: por proveedor + razón social · interno (Droguería): una sola orden de preparación
+  const grupos = Object.entries(groupBy(pend, i => `${i.proveedor || 'Sin proveedor asignado'}|${i.interno ? 'Preparación interna' : i.empresa}`));
   const sinProv = pend.filter(i => !i.proveedor_id);
   const listo = h('section', { class: 'block' },
     h('div', { class: 'block-head' }, h('h2', {}, 'Aprobado, listo para ordenar'),
       puede && pend.length ? h('button', { class: 'btn primary', onclick: async () => {
-        try { const k = await api.generarOrdenes(); toast(`${k} orden${k === 1 ? '' : 'es'} de compra generada${k === 1 ? '' : 's'} en borrador`); refresh(); }
+        try { const k = await api.generarOrdenes(); toast(`${k} orden${k === 1 ? '' : 'es'} generada${k === 1 ? '' : 's'} en borrador`); refresh(); }
         catch (e) { toast(e.message, 'bad'); }
-      } }, 'Generar órdenes de compra') : null),
+      } }, 'Generar órdenes') : null),
     pend.length ? h('div', { class: 'cards-grid' }, grupos.map(([k, its]) => {
       const [prov, emp] = k.split('|');
       const prods = groupBy(its, i => i.producto);
@@ -37,7 +38,7 @@ export async function render({ api, me, refresh }) {
     tabla.replaceChildren(rows.length ? h('div', { class: 'table-wrap' }, h('table', { class: 'tbl hover' },
       h('thead', {}, h('tr', {}, h('th', {}, 'N°'), h('th', {}, 'Proveedor'), h('th', {}, 'Empresa'), h('th', { class: 'hide-sm' }, 'Período'), h('th', { class: 'num' }, 'Total'), h('th', {}, 'Estado'))),
       h('tbody', {}, rows.map(o => h('tr', { tabindex: 0, onclick: () => abrir(o.id), onkeydown: e => e.key === 'Enter' && abrir(o.id) },
-        h('td', { class: 'mono' }, ocNum(o.id)), h('td', {}, o.proveedor), h('td', {}, o.empresa), h('td', { class: 'hide-sm' }, o.periodo || '—'),
+        h('td', { class: 'mono' }, docNum(o)), h('td', {}, o.proveedor), h('td', {}, o.interno ? h('span', { class: 'muted' }, 'Interna') : o.empresa), h('td', { class: 'hide-sm' }, o.periodo || '—'),
         h('td', { class: 'num' }, money(o.total)), h('td', {}, pill(o.estado))))))) : empty('No hay órdenes en esta vista'));
   }
   pintar();
@@ -45,6 +46,7 @@ export async function render({ api, me, refresh }) {
   // ---- detalle de OC ----
   async function abrir(id) {
     const oc = await api.orden(id);
+    const num = docNum(oc), op = oc.interno;
     const borrador = oc.estado === 'borrador' && puede;
     const edits = new Map(oc.items.map(i => [i.id, { id: i.id, cantidad: i.cantidad, precio_unit: i.precio_unit }]));
     const preview = h('div');
@@ -71,56 +73,59 @@ export async function render({ api, me, refresh }) {
     repintar();
     const guardar = async () => { await api.guardarOC(id, { fecha_entrega: entrega.value || null, forma_pago: pago.value, observaciones: obsI.value || null }, [...edits.values()]); };
     const acciones = [];
-    acciones.push({ label: 'Descargar PDF', onClick: () => { try { ocPDF(vista()).save(`${ocNum(id)}.pdf`); } catch { toast('No se pudo descargar en esta vista previa', 'warn'); } return false; } });
+    acciones.push({ label: 'Descargar PDF', onClick: () => { try { ocPDF(vista()).save(`${num}.pdf`); } catch { toast('No se pudo descargar en esta vista previa', 'warn'); } return false; } });
     if (borrador) {
       acciones.push({ label: 'Anular', kind: 'ghost-bad', onClick: async () => {
-        if (!await confirmar('Anular orden', `${ocNum(id)} se anula y sus ítems vuelven a "listo para ordenar".`, 'Anular', 'danger')) return false;
-        await api.anularOC(id); toast(`${ocNum(id)} anulada`); refresh();
+        if (!await confirmar('Anular orden', `${num} se anula y sus ítems vuelven a "listo para ordenar".`, 'Anular', 'danger')) return false;
+        await api.anularOC(id); toast(`${num} anulada`); refresh();
       } });
       acciones.push({ label: 'Guardar borrador', onClick: async () => { try { await guardar(); toast('Borrador guardado'); refresh(); } catch (e) { toast(e.message, 'bad'); return false; } } });
-      acciones.push({ label: 'Enviar al proveedor', kind: 'primary', onClick: async () => {
+      acciones.push({ label: op ? 'Enviar a Droguería' : 'Enviar al proveedor', kind: 'primary', onClick: async () => {
         const mail = oc.proveedorObj?.email;
         if (!mail) { toast(`Cargá el mail de ${oc.proveedor} en Catálogo para poder enviar`, 'bad'); return false; }
         if (vista().items.some(i => !i.precio_unit)) { toast('Hay ítems sin precio. Completalos antes de enviar.', 'bad'); return false; }
-        if (!await confirmar('Enviar orden de compra', `Se envía ${ocNum(id)} en PDF a ${mail} y los precios quedan registrados en el historial.`, 'Enviar')) return false;
+        if (!await confirmar(op ? 'Enviar orden de preparación' : 'Enviar orden de compra',
+          op ? `Se envía ${num} en PDF a ${mail} con lo que hay que preparar para cada sucursal.` : `Se envía ${num} en PDF a ${mail} y los precios quedan registrados en el historial.`, 'Enviar')) return false;
         try {
           await guardar();
           const r = await api.enviarOC(id, pdfBase64(vista()));
-          toast(r?.simulado ? `Modo demo: ${ocNum(id)} marcada como enviada (no se mandó mail)` : `${ocNum(id)} enviada a ${mail}`);
+          toast(r?.simulado ? `Modo demo: ${num} marcada como enviada (no se mandó mail)` : `${num} enviada a ${mail}`);
           refresh();
         } catch (e) { toast(e.message, 'bad'); return false; }
       } });
     }
     if (['enviada', 'recibida_parcial'].includes(oc.estado) && ['compras', 'admin', 'auditor'].includes(me.rol))
-      acciones.push({ label: 'Registrar recepción', kind: 'primary', onClick: () => { recepcion(oc); } });
+      acciones.push({ label: op ? 'Registrar entrega' : 'Registrar recepción', kind: 'primary', onClick: () => { recepcion(oc); } });
 
-    modal({ title: `${ocNum(id)} · ${oc.proveedor}`, wide: true, actions: acciones,
+    modal({ title: `${num} · ${oc.proveedor}`, wide: true, actions: acciones,
       body: h('div', { class: 'stack' },
         h('div', { class: 'oc-status' }, pill(oc.estado), oc.enviada_at ? h('span', { class: 'muted' }, `Enviada a ${oc.enviada_a} el ${fecha(oc.enviada_at)}`) : null),
-        borrador ? h('div', { class: 'grid3' }, field('Fecha de entrega', entrega), field('Forma de pago', pago), field('Observaciones', obsI)) : null,
+        op ? h('p', { class: 'notice' }, 'Orden de preparación interna: va a la Droguería para armar el pedido de cada sucursal. No lleva razón social ni se factura.') : null,
+        borrador ? h('div', { class: 'grid3' }, field('Fecha de entrega', entrega), op ? null : field('Forma de pago', pago), field('Observaciones', obsI)) : null,
         precios, reparto, h('p', { class: 'eyebrow' }, 'Vista del documento'), preview) });
   }
 
   function recepcion(oc) {
     const vals = new Map(oc.items.map(i => [i.id, i.cantidad_recibida ?? i.cantidad]));
-    modal({ title: `Recepción ${ocNum(oc.id)}`, actions: [
+    const num = docNum(oc);
+    modal({ title: `${oc.interno ? 'Entrega' : 'Recepción'} ${num}`, actions: [
       { label: 'Cancelar' },
       { label: 'Confirmar recepción', kind: 'primary', onClick: async () => {
         try {
           const e = await api.recibirOC(oc.id, [...vals].map(([id, c]) => ({ id, cantidad_recibida: c })));
-          toast(e === 'recibida' ? `${ocNum(oc.id)} recibida completa` : `${ocNum(oc.id)} recibida con faltantes`); refresh();
+          toast(e === 'recibida' ? `${num} ${oc.interno ? 'entregada' : 'recibida'} completa` : `${num} ${oc.interno ? 'entregada' : 'recibida'} con faltantes`); refresh();
         } catch (err) { toast(err.message, 'bad'); return false; }
       } }],
-      body: h('div', { class: 'stack' }, h('p', { class: 'muted' }, 'Indicá lo que llegó. Lo recibido se reparte a cada sucursal en proporción a lo aprobado.'),
+      body: h('div', { class: 'stack' }, h('p', { class: 'muted' }, oc.interno ? 'Indicá lo que entregó la Droguería. Se reparte a cada sucursal en proporción a lo aprobado.' : 'Indicá lo que llegó. Lo recibido se reparte a cada sucursal en proporción a lo aprobado.'),
         h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' },
-          h('thead', {}, h('tr', {}, h('th', {}, 'Insumo'), h('th', { class: 'num' }, 'Pedido'), h('th', { class: 'num' }, 'Recibido'))),
+          h('thead', {}, h('tr', {}, h('th', {}, 'Insumo'), h('th', { class: 'num' }, 'Pedido'), h('th', { class: 'num' }, oc.interno ? 'Entregado' : 'Recibido'))),
           h('tbody', {}, oc.items.map(i => h('tr', {}, h('td', {}, i.producto), h('td', { class: 'num' }, n(i.cantidad)),
             h('td', { class: 'num' }, h('input', { type: 'number', min: 0, id: `rec-${i.id}`, class: 'num-input', value: vals.get(i.id), oninput: e => vals.set(i.id, +e.target.value || 0) })))))))) });
   }
 
   return h('div', { class: 'view' },
     h('header', { class: 'view-head' }, h('div', {}, h('p', { class: 'eyebrow' }, 'Compras'), h('h1', {}, 'Órdenes de compra'),
-      h('p', { class: 'muted' }, 'Se arma una orden por proveedor y por razón social (SSG / FG), con lo aprobado de todas las sucursales.'))),
+      h('p', { class: 'muted' }, 'Se arma una orden por proveedor y por razón social (SSG / FG), con lo aprobado de todas las sucursales. Lo que provee la Droguería va en una orden de preparación interna por mes.'))),
     listo,
     h('section', { class: 'block' }, h('div', { class: 'block-head' }, h('h2', {}, 'Órdenes'), tabBar), tabla));
 }
