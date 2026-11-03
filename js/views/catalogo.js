@@ -1,5 +1,5 @@
 // Catálogo: insumos, proveedores y sucursales. Cambiar un precio lo registra en el historial.
-import { h, money, empty, toast, modal, field, tabs, verFoto, linkCompra } from '../ui.js?v=20261102-1650';
+import { h, money, empty, toast, modal, field, tabs, verFoto, linkCompra } from '../ui.js?v=20261103-1608';
 
 export async function render({ api, me, cat, refresh }) {
   const puede = ['compras', 'admin'].includes(me.rol);

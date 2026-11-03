@@ -138,3 +138,15 @@ export function linkCompra(url, corto = false) {
   try { const host = new URL(url).hostname; sitio = /mercadoli(b|v)re/.test(host) ? 'Mercado Libre' : host.replace(/^www\./, ''); } catch { /* url rara */ }
   return h('a', { class: 'link-compra', href: url, target: '_blank', rel: 'noopener noreferrer', onclick: e => e.stopPropagation(), title: url }, corto ? `${sitio} ↗` : `Comprar en ${sitio} ↗`);
 }
+
+// Carrito de súper (dibujo propio, toma el color del texto). Decorativo.
+const CARRITO_SVG = `<svg viewBox="0 0 64 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+<rect class="c-caja1" x="20" y="5" width="12" height="13" rx="2" fill="#71A850"/>
+<rect class="c-caja2" x="33.5" y="1" width="9" height="17" rx="2" fill="#0055B8" fill-opacity=".85"/>
+<circle class="c-fruta" cx="47.5" cy="12.5" r="5" fill="#F2B632"/>
+<path d="M4 6h7l6.2 30H51" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M13 16h43l-5 16H16.2z" fill="currentColor" fill-opacity=".12" stroke="currentColor" stroke-width="3.5" stroke-linejoin="round"/>
+<path d="M25 17l1.4 14M36 17v14M47 17l-2 14" stroke="currentColor" stroke-width="2" stroke-opacity=".45"/>
+<g class="c-ruedas"><circle cx="21" cy="45" r="4.5" fill="currentColor"/><circle cx="46" cy="45" r="4.5" fill="currentColor"/></g>
+</svg>`;
+export const carrito = (cls = '') => h('span', { class: `carrito ${cls}`.trim(), 'aria-hidden': 'true', html: CARRITO_SVG });

@@ -1,6 +1,6 @@
 // Documento de Orden de Compra: vista HTML y PDF (mismos campos que la planilla
 // "ORDEN DE COMPRA ARTICULOS INSUMOS": comprador, proveedor, ítems, forma de pago, entrega, firma).
-import { h, money, n, fecha, ocNum, docNum, groupBy } from './ui.js?v=20261102-1650';
+import { h, money, n, fecha, ocNum, docNum, groupBy } from './ui.js?v=20261103-1608';
 
 // Agrupa lo que hay que entregar por dirección: [{ direccion, sucursales, items: [{producto, cantidad}] }]
 export function entregas(oc) {

@@ -1,16 +1,16 @@
 // Shell de la app: sesión, navegación por rol y enrutado por #vista.
-import { api } from './api.js?v=20261102-1650';
-import { h, toast, field, modal } from './ui.js?v=20261102-1650';
+import { api } from './api.js?v=20261103-1608';
+import { h, toast, field, modal, carrito } from './ui.js?v=20261103-1608';
 
 const VISTAS = {
-  solicitar:         { label: 'Nueva solicitud', mod: () => import('./views/solicitar.js?v=20261102-1650'),   roles: ['solicitante', 'auditor', 'compras', 'admin'] },
-  'mis-solicitudes': { label: 'Mis solicitudes', mod: () => import('./views/solicitudes.js?v=20261102-1650'), roles: ['solicitante'], badge: 'rec' },
-  auditoria:         { label: 'Auditoría',       mod: () => import('./views/auditoria.js?v=20261102-1650'),   roles: ['auditor', 'admin'], badge: 'pend' },
-  solicitudes:       { label: 'Solicitudes',     mod: () => import('./views/solicitudes.js?v=20261102-1650'), roles: ['auditor', 'compras', 'admin'] },
-  compras:           { label: 'Compras',         mod: () => import('./views/compras.js?v=20261102-1650'),     roles: ['compras', 'admin'], badge: 'oc' },
-  facturas:          { label: 'Facturas',        mod: () => import('./views/facturas.js?v=20261102-1650'),    roles: ['auditor', 'compras', 'admin'], badge: 'fc' },
-  indicadores:       { label: 'Indicadores',     mod: () => import('./views/indicadores.js?v=20261102-1650'), roles: ['auditor', 'compras', 'admin'] },
-  catalogo:          { label: 'Catálogo',        mod: () => import('./views/catalogo.js?v=20261102-1650'),    roles: ['compras', 'admin'] },
+  solicitar:         { label: 'Nueva solicitud', mod: () => import('./views/solicitar.js?v=20261103-1608'),   roles: ['solicitante', 'auditor', 'compras', 'admin'] },
+  'mis-solicitudes': { label: 'Mis solicitudes', mod: () => import('./views/solicitudes.js?v=20261103-1608'), roles: ['solicitante'], badge: 'rec' },
+  auditoria:         { label: 'Auditoría',       mod: () => import('./views/auditoria.js?v=20261103-1608'),   roles: ['auditor', 'admin'], badge: 'pend' },
+  solicitudes:       { label: 'Solicitudes',     mod: () => import('./views/solicitudes.js?v=20261103-1608'), roles: ['auditor', 'compras', 'admin'] },
+  compras:           { label: 'Compras',         mod: () => import('./views/compras.js?v=20261103-1608'),     roles: ['compras', 'admin'], badge: 'oc' },
+  facturas:          { label: 'Facturas',        mod: () => import('./views/facturas.js?v=20261103-1608'),    roles: ['auditor', 'compras', 'admin'], badge: 'fc' },
+  indicadores:       { label: 'Indicadores',     mod: () => import('./views/indicadores.js?v=20261103-1608'), roles: ['auditor', 'compras', 'admin'] },
+  catalogo:          { label: 'Catálogo',        mod: () => import('./views/catalogo.js?v=20261103-1608'),    roles: ['compras', 'admin'] },
 };
 const INICIO = { solicitante: 'solicitar', auditor: 'auditoria', compras: 'compras', admin: 'auditoria' };
 const ROL = { solicitante: 'Sucursal', auditor: 'Auditoría (RRHH)', compras: 'Compras', admin: 'Administrador' };
@@ -74,8 +74,8 @@ async function pintar() {
     demoBar(),
     h('div', { class: 'shell' },
       h('aside', { class: 'side' },
-        h('div', { class: 'brand' }, h('img', { class: 'brand-iso', src: 'img/isotipo.png', alt: 'Farmacias Grassi · Insumos' }),
-          h('div', { class: 'brand-logo' }, logo(''), h('span', { class: 'brand-app' }, 'Insumos'))),
+        h('div', { class: 'brand' }, h('img', { class: 'brand-iso', src: 'img/isotipo.png', alt: 'Farmacias Grassi · Insumos' }), carrito('mini solo-movil'),
+          h('div', { class: 'brand-logo' }, logo(''), h('span', { class: 'brand-app' }, carrito('mini'), 'Insumos'))),
         nav,
         h('div', { class: 'who' }, h('strong', {}, me.sucursal || me.nombre || me.email), h('small', {}, ROL[me.rol]),
           selectorTema(),
@@ -117,7 +117,7 @@ function login() {
     try { await api.login(email.value.trim(), pass.value); await inicio(); }
     catch (err) { toast(err.message === 'Invalid login credentials' ? 'Mail o contraseña incorrectos' : err.message, 'bad'); btn.disabled = false; }
   } },
-    h('div', { class: 'login-logo' }, logo(''), h('span', { class: 'brand-app' }, 'Pedidos de insumos')),
+    h('div', { class: 'login-logo' }, logo(''), h('span', { class: 'brand-app login-sub' }, carrito('llega'), 'Pedidos de insumos')),
     h('p', { class: 'muted' }, 'Ingresá con el mail de tu sucursal o sector.'),
     field('Mail', email), field('Contraseña', pass), btn,
     h('button', { type: 'button', class: 'link', onclick: async () => {

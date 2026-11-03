@@ -1,5 +1,5 @@
 // Indicadores: gasto y consumo por período, sucursal, categoría e insumo; precios por proveedor.
-import { h, money, n, pct, empty, groupBy, sum } from '../ui.js?v=20261102-1650';
+import { h, money, n, pct, empty, groupBy, sum } from '../ui.js?v=20261103-1608';
 
 const charts = [];
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
