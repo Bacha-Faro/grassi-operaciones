@@ -1,5 +1,5 @@
 // Facturas recibidas en comprobantes@ (o cargadas a mano). Registro + auditoría manual contra la OC.
-import { h, money, n, empty, toast, modal, field, tabs, fecha, fechaHora, ocNum, sum } from '../ui.js?v=20261103-1608';
+import { h, money, n, empty, toast, modal, field, tabs, fecha, fechaHora, ocNum, sum } from '../ui.js?v=20261103-1713';
 
 const ESTADOS = {
   recibida:   ['Sin auditar', 'warn'],

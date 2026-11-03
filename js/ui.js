@@ -150,3 +150,14 @@ const CARRITO_SVG = `<svg viewBox="0 0 64 52" fill="none" xmlns="http://www.w3.o
 <g class="c-ruedas"><circle cx="21" cy="45" r="4.5" fill="currentColor"/><circle cx="46" cy="45" r="4.5" fill="currentColor"/></g>
 </svg>`;
 export const carrito = (cls = '') => h('span', { class: `carrito ${cls}`.trim(), 'aria-hidden': 'true', html: CARRITO_SVG });
+
+// Carga una librería pesada (gráficos, PDF) solo cuando hace falta, una sola vez.
+const libs = new Map();
+export function cargarScript(src) {
+  if (!libs.has(src)) libs.set(src, new Promise((ok, mal) => {
+    const s = document.createElement('script'); s.src = src; s.async = true;
+    s.onload = () => ok(); s.onerror = () => { libs.delete(src); mal(new Error('No se pudo cargar una librería de la app. Revisá la conexión.')); };
+    document.head.append(s);
+  }));
+  return libs.get(src);
+}

@@ -1,5 +1,5 @@
 // Indicadores: gasto y consumo por período, sucursal, categoría e insumo; precios por proveedor.
-import { h, money, n, pct, empty, groupBy, sum } from '../ui.js?v=20261103-1608';
+import { h, money, n, pct, empty, groupBy, sum, cargarScript } from '../ui.js?v=20261103-1713';
 
 const charts = [];
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
@@ -29,7 +29,8 @@ function chart(canvas, cfg) {
 
 export async function render({ api, cat }) {
   charts.splice(0).forEach(c => c.destroy());
-  const [rows, precios, tiempos, periodos] = await Promise.all([api.consumo(), api.precios(), api.tiempos(), api.periodos()]);
+  const [rows, precios, tiempos, periodos] = await Promise.all([api.consumo(), api.precios(), api.tiempos(), api.periodos(),
+    cargarScript('vendor/chart.umd.js').catch(() => null)]);
   if (!rows.length) return empty('Todavía no hay datos', 'Los indicadores se arman a medida que se auditan solicitudes.');
 
   const pers = periodos.filter(p => rows.some(r => r.periodo === p.nombre)).sort((a, b) => a.desde.localeCompare(b.desde));

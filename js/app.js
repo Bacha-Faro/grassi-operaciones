@@ -1,16 +1,16 @@
 // Shell de la app: sesión, navegación por rol y enrutado por #vista.
-import { api } from './api.js?v=20261103-1608';
-import { h, toast, field, modal, carrito } from './ui.js?v=20261103-1608';
+import { api } from './api.js?v=20261103-1713';
+import { h, toast, field, modal, carrito } from './ui.js?v=20261103-1713';
 
 const VISTAS = {
-  solicitar:         { label: 'Nueva solicitud', mod: () => import('./views/solicitar.js?v=20261103-1608'),   roles: ['solicitante', 'auditor', 'compras', 'admin'] },
-  'mis-solicitudes': { label: 'Mis solicitudes', mod: () => import('./views/solicitudes.js?v=20261103-1608'), roles: ['solicitante'], badge: 'rec' },
-  auditoria:         { label: 'Auditoría',       mod: () => import('./views/auditoria.js?v=20261103-1608'),   roles: ['auditor', 'admin'], badge: 'pend' },
-  solicitudes:       { label: 'Solicitudes',     mod: () => import('./views/solicitudes.js?v=20261103-1608'), roles: ['auditor', 'compras', 'admin'] },
-  compras:           { label: 'Compras',         mod: () => import('./views/compras.js?v=20261103-1608'),     roles: ['compras', 'admin'], badge: 'oc' },
-  facturas:          { label: 'Facturas',        mod: () => import('./views/facturas.js?v=20261103-1608'),    roles: ['auditor', 'compras', 'admin'], badge: 'fc' },
-  indicadores:       { label: 'Indicadores',     mod: () => import('./views/indicadores.js?v=20261103-1608'), roles: ['auditor', 'compras', 'admin'] },
-  catalogo:          { label: 'Catálogo',        mod: () => import('./views/catalogo.js?v=20261103-1608'),    roles: ['compras', 'admin'] },
+  solicitar:         { label: 'Nueva solicitud', mod: () => import('./views/solicitar.js?v=20261103-1713'),   roles: ['solicitante', 'auditor', 'compras', 'admin'] },
+  'mis-solicitudes': { label: 'Mis solicitudes', mod: () => import('./views/solicitudes.js?v=20261103-1713'), roles: ['solicitante'], badge: 'rec' },
+  auditoria:         { label: 'Auditoría',       mod: () => import('./views/auditoria.js?v=20261103-1713'),   roles: ['auditor', 'admin'], badge: 'pend' },
+  solicitudes:       { label: 'Solicitudes',     mod: () => import('./views/solicitudes.js?v=20261103-1713'), roles: ['auditor', 'compras', 'admin'] },
+  compras:           { label: 'Compras',         mod: () => import('./views/compras.js?v=20261103-1713'),     roles: ['compras', 'admin'], badge: 'oc' },
+  facturas:          { label: 'Facturas',        mod: () => import('./views/facturas.js?v=20261103-1713'),    roles: ['auditor', 'compras', 'admin'], badge: 'fc' },
+  indicadores:       { label: 'Indicadores',     mod: () => import('./views/indicadores.js?v=20261103-1713'), roles: ['auditor', 'compras', 'admin'] },
+  catalogo:          { label: 'Catálogo',        mod: () => import('./views/catalogo.js?v=20261103-1713'),    roles: ['compras', 'admin'] },
 };
 const INICIO = { solicitante: 'solicitar', auditor: 'auditoria', compras: 'compras', admin: 'auditoria' };
 const ROL = { solicitante: 'Sucursal', auditor: 'Auditoría (RRHH)', compras: 'Compras', admin: 'Administrador' };
@@ -31,21 +31,24 @@ function selectorTema() {
   pintar(); return box;
 }
 const app = document.getElementById('app');
-let me = null, ruta = null;
+let me = null, ruta = null, catCache = null, turno = 0;
+// El catálogo casi no cambia: se trae una vez y se reutiliza al navegar (se refresca en Catálogo y con refresh)
+async function catalogo(fresco) { if (fresco || !catCache) catCache = await api.catalogo(); return catCache; }
 
 function irA(v) { ruta = v; try { history.replaceState(null, '', `#${v}`); } catch { /* sin history */ } pintar(); }
 
+// Contadores del menú: se piden todos juntos y se completan cuando llegan, sin frenar la pantalla
 async function badges() {
-  const out = {};
-  try {
-    if (['auditor', 'admin'].includes(me.rol)) out.pend = (await api.solicitudes({ estado: 'pendiente' })).length;
-    if (['compras', 'admin'].includes(me.rol)) {
-      const [p, o] = await Promise.all([api.pendientesOC(), api.ordenes()]);
-      out.oc = new Set(p.map(x => `${x.proveedor_id}|${x.empresa}`)).size + o.filter(x => x.estado === 'borrador').length;
-    }
-    if (me.rol === 'solicitante') out.rec = (await api.recepciones()).filter(r => r.pendiente).length;
-    if (['auditor', 'compras', 'admin'].includes(me.rol)) out.fc = (await api.facturas()).filter(f => f.estado === 'recibida').length;
-  } catch { /* nada */ }
+  const out = {}, tareas = [];
+  const t = (k, f) => tareas.push(f().then(v => { out[k] = v; }).catch(() => {}));
+  if (['auditor', 'admin'].includes(me.rol)) t('pend', async () => (await api.solicitudes({ estado: 'pendiente' })).length);
+  if (['compras', 'admin'].includes(me.rol)) t('oc', async () => {
+    const [p, o] = await Promise.all([api.pendientesOC(), api.ordenes()]);
+    return new Set(p.map(x => `${x.proveedor_id}|${x.empresa}`)).size + o.filter(x => x.estado === 'borrador').length;
+  });
+  if (me.rol === 'solicitante') t('rec', async () => (await api.recepciones()).filter(r => r.pendiente).length);
+  if (['auditor', 'compras', 'admin'].includes(me.rol)) t('fc', async () => (await api.facturas()).filter(f => f.estado === 'recibida').length);
+  await Promise.all(tareas);
   return out;
 }
 
@@ -58,16 +61,18 @@ function demoBar() {
     h('label', { class: 'demo-who' }, h('span', {}, 'Ver como'),
       h('select', { id: 'demo-user', onchange: async e => { await api.cambiarUsuario(us.find(u => u.key === e.target.value)); me = await api.me(); irA(INICIO[me.rol]); } },
         us.map(u => h('option', { value: u.key, selected: u.key === actual }, u.label)))),
-    h('button', { class: 'link', onclick: async () => { await api.reset(); me = await api.me(); toast('Datos de ejemplo restaurados'); irA(INICIO[me.rol]); } }, 'Reiniciar datos'));
+    h('button', { class: 'link', onclick: async () => { await api.reset(); catCache = null; me = await api.me(); toast('Datos de ejemplo restaurados'); irA(INICIO[me.rol]); } }, 'Reiniciar datos'));
 }
 
-async function pintar() {
+async function pintar(fresco = false) {
+  const mio = ++turno;   // si se navega rápido, solo la última pantalla pedida se dibuja
   const permitidas = Object.entries(VISTAS).filter(([, v]) => v.roles.includes(me.rol));
   if (!permitidas.some(([k]) => k === ruta)) ruta = INICIO[me.rol];
-  const b = await badges();
+  const cupos = {};
   const nav = h('nav', { class: 'nav', 'aria-label': 'Secciones' }, permitidas.map(([k, v]) =>
     h('a', { href: `#${k}`, class: `nav-item${k === ruta ? ' on' : ''}`, 'aria-current': k === ruta ? 'page' : null, onclick: e => { e.preventDefault(); irA(k); } },
-      h('span', {}, v.label), v.badge && b[v.badge] ? h('span', { class: 'badge' }, b[v.badge]) : null)));
+      h('span', {}, v.label), v.badge ? (cupos[v.badge] = h('span', { class: 'badge', hidden: true })) : null)));
+  badges().then(b => { for (const [k, el] of Object.entries(cupos)) if (b[k]) { el.textContent = b[k]; el.hidden = false; } });
   const main = h('main', { class: 'main', id: 'main' }, h('div', { class: 'loading' }, 'Cargando…'));
 
   app.replaceChildren(
@@ -85,10 +90,9 @@ async function pintar() {
       main));
 
   try {
-    const cat = await api.catalogo();
-    const { render } = await VISTAS[ruta].mod();
-    const el = await render({ api, me, cat, go: irA, refresh: () => pintar() });
-    main.replaceChildren(el);
+    const [cat, { render }] = await Promise.all([catalogo(fresco || ruta === 'catalogo'), VISTAS[ruta].mod()]);
+    const el = await render({ api, me, cat, go: irA, refresh: () => pintar(true) });
+    if (mio === turno) main.replaceChildren(el);
   } catch (e) {
     console.error(e);
     main.replaceChildren(h('div', { class: 'empty' }, h('strong', {}, 'No se pudo cargar esta sección'), h('p', {}, e.message)));

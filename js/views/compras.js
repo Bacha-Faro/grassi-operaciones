@@ -1,11 +1,12 @@
 // Compras: consolida lo aprobado en órdenes por proveedor y razón social,
 // permite ajustar precios, enviar la OC por mail y registrar la recepción.
-import { h, money, n, pill, empty, toast, fecha, docNum, sum, groupBy, modal, confirmar, tabs, field, linkCompra } from '../ui.js?v=20261103-1608';
-import { ocHTML, ocPDF, pdfBase64, logoListo } from '../oc-doc.js?v=20261103-1608';
-import { abrirRecepcion, estadoRecepcion, difsTexto } from './recepcion.js?v=20261103-1608';
+import { h, money, n, pill, empty, toast, fecha, docNum, sum, groupBy, modal, confirmar, tabs, field, linkCompra } from '../ui.js?v=20261103-1713';
+import { ocHTML, ocPDF, pdfBase64, logoListo, pdfListo } from '../oc-doc.js?v=20261103-1713';
+import { abrirRecepcion, estadoRecepcion, difsTexto } from './recepcion.js?v=20261103-1713';
 
 export async function render({ api, me, refresh }) {
   const puede = ['compras', 'admin'].includes(me.rol);
+  if (puede) pdfListo().catch(() => {});   // se va bajando mientras se mira la lista
   const [pend, ordenes] = await Promise.all([api.pendientesOC(), api.ordenes()]);
   let filtro = 'abiertas';
 
@@ -79,7 +80,7 @@ export async function render({ api, me, refresh }) {
     repintar();
     const guardar = async () => { await api.guardarOC(id, { fecha_entrega: entrega.value || null, forma_pago: pago.value, observaciones: obsI.value || null }, [...edits.values()]); };
     const acciones = [];
-    acciones.push({ label: 'Descargar PDF', onClick: async () => { await logoListo; try { ocPDF(vista()).save(`${num}.pdf`); } catch { toast('No se pudo descargar en esta vista previa', 'warn'); } return false; } });
+    acciones.push({ label: 'Descargar PDF', onClick: async () => { await logoListo; try { await pdfListo(); ocPDF(vista()).save(`${num}.pdf`); } catch { toast('No se pudo descargar en esta vista previa', 'warn'); } return false; } });
     if (borrador) {
       acciones.push({ label: 'Anular', kind: 'ghost-bad', onClick: async () => {
         if (!await confirmar('Anular orden', `${num} se anula y sus ítems vuelven a "listo para ordenar".`, 'Anular', 'danger')) return false;
@@ -107,7 +108,7 @@ export async function render({ api, me, refresh }) {
           op ? `Se envía ${num} en PDF a ${mail} con lo que hay que preparar para cada sucursal.` : `Se envía ${num} en PDF a ${mail} y los precios quedan registrados en el historial.`, 'Enviar')) return false;
         try {
           await guardar();
-          await logoListo;
+          await logoListo; await pdfListo();
           const r = await api.enviarOC(id, pdfBase64(vista()));
           toast(r?.simulado ? `Modo demo: ${num} marcada como enviada (no se mandó mail)` : `${num} enviada a ${mail}`);
           refresh();

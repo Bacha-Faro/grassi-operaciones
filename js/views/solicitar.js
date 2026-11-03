@@ -1,6 +1,6 @@
 // Nueva solicitud, en modo "súper": cada categoría es una góndola (pasillo), los insumos son
 // productos en el estante y el pedido es el carrito. Incluye pedido sugerido según consumo.
-import { h, money, n, toast, field, empty, groupBy, sum, verFoto, carrito } from '../ui.js?v=20261103-1608';
+import { h, money, n, toast, field, empty, groupBy, sum, verFoto, carrito } from '../ui.js?v=20261103-1713';
 
 // Pasillos: ícono y color por categoría (por nombre; si aparece una nueva, toma un color de la lista)
 const PASILLOS = [
@@ -47,8 +47,8 @@ export async function render({ api, me, cat, go }) {
   const porCat = groupBy(productos, p => p.categoria_id);
   const categorias = cat.categorias.filter(c => (porCat[c.id] || []).length).map((c, i) => ({ ...c, ...pasillo(c, i), num: i + 1 }));
   const catDe = Object.fromEntries(categorias.map(c => [c.id, c]));
-  const consumo = await api.consumo();
-  const previas = (await api.solicitudes({ periodo_id: periodo.id })).filter(s => s.sucursal_id === sucursalId);
+  const [consumo, delMes] = await Promise.all([api.consumo(), api.solicitudes({ periodo_id: periodo.id })]);
+  const previas = delMes.filter(s => s.sucursal_id === sucursalId);
 
   // Pedido sugerido: promedio aprobado de los últimos 3 períodos de esta sucursal
   function sugerido() {

@@ -1,7 +1,7 @@
 // Adaptador Supabase: misma interfaz que api-demo.js.
 // Requiere el script UMD de supabase-js cargado en index.html (window.supabase).
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261103-1608';
-import { achicarImagen } from './ui.js?v=20261103-1608';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261103-1713';
+import { achicarImagen } from './ui.js?v=20261103-1713';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const ok = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
@@ -127,7 +127,6 @@ export const api = {
     ok(await sb.from('solicitudes').update({ estado: 'aprobada' }).in('id', [...new Set(sols.map(x => x.solicitud_id))]));
     ok(await sb.from('ordenes_compra').update({ estado: 'anulada' }).eq('id', id).eq('estado', 'borrador'));
   },
-  async recibirOC(id, items) { return ok(await sb.rpc('recibir_oc', { p_oc: id, p_items: items })); },
   // recepción por sucursal: sin ocId = las de mi sucursal; con ocId = todas las de esa orden (equipo)
   async recepciones(ocId = null) { return ok(await sb.rpc('recepciones', { p_oc: ocId })) || []; },
   async confirmarRecepcion(solicitudId, ocId, items, obs) {

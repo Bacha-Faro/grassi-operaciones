@@ -1,6 +1,6 @@
 // Documento de Orden de Compra: vista HTML y PDF (mismos campos que la planilla
 // "ORDEN DE COMPRA ARTICULOS INSUMOS": comprador, proveedor, ítems, forma de pago, entrega, firma).
-import { h, money, n, fecha, ocNum, docNum, groupBy } from './ui.js?v=20261103-1608';
+import { h, money, n, fecha, ocNum, docNum, groupBy, cargarScript } from './ui.js?v=20261103-1713';
 
 // Agrupa lo que hay que entregar por dirección: [{ direccion, sucursales, items: [{producto, cantidad}] }]
 export function entregas(oc) {
@@ -119,6 +119,9 @@ export function ocHTML(oc) {
       h('div', {}, h('dt', {}, 'Fecha de entrega'), h('dd', {}, fecha(oc.fecha_entrega))),
       oc.observaciones ? h('div', {}, h('dt', {}, 'Observaciones'), h('dd', {}, oc.observaciones)) : null));
 }
+
+// Librería de PDF: se baja recién cuando se va a generar uno (o al abrir Compras)
+export const pdfListo = () => cargarScript('vendor/jspdf.umd.min.js').then(() => cargarScript('vendor/jspdf.plugin.autotable.min.js'));
 
 // Devuelve el jsPDF listo; .save() para descargar, .output('datauristring') para adjuntar.
 function opPDF(oc) {

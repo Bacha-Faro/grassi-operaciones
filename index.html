@@ -2,6 +2,8 @@
 <html lang="es">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data: blob: https://fpplrgdyjmvbcwsfuudm.supabase.co; connect-src 'self' https://fpplrgdyjmvbcwsfuudm.supabase.co wss://fpplrgdyjmvbcwsfuudm.supabase.co; frame-src 'self' blob: https://fpplrgdyjmvbcwsfuudm.supabase.co; object-src 'none'; base-uri 'self'; form-action 'self'">
+<meta name="referrer" content="strict-origin-when-cross-origin">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Insumos · Farmacias Grassi</title>
 <link rel="icon" type="image/png" href="img/favicon.png">
@@ -11,14 +13,16 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=IBM+Plex+Mono:wght@400;600&family=Public+Sans:wght@400;500;600;700&display=swap">
-<link rel="stylesheet" href="css/app.css?v=20261103-1608">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.1/dist/umd/supabase.js"></script>
+<link rel="stylesheet" href="css/app.css?v=20261103-1713">
+<script src="vendor/supabase.js" defer></script>
+<link rel="modulepreload" href="js/app.js?v=20261103-1713">
+<link rel="modulepreload" href="js/ui.js?v=20261103-1713">
+<link rel="modulepreload" href="js/api.js?v=20261103-1713">
+<link rel="modulepreload" href="js/config.js?v=20261103-1713">
+<link rel="modulepreload" href="js/api-supabase.js?v=20261103-1713">
 </head>
 <body>
 <div id="app"><p style="padding:24px">Cargando…</p></div>
-<script type="module" src="js/app.js?v=20261103-1608"></script>
+<script type="module" src="js/app.js?v=20261103-1713"></script>
 </body>
 </html>

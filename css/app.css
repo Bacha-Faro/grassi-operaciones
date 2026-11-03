@@ -456,3 +456,4 @@ button.thumb.vacia:hover { border-color: var(--accent); color: var(--accent); }
   .producto::after { left: -7px; right: -7px; }
   .super-cartel { padding-inline: 14px; }
 }
+.badge[hidden] { display: none; }
