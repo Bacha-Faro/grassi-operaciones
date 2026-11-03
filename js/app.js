@@ -1,21 +1,35 @@
 // Shell de la app: sesión, navegación por rol y enrutado por #vista.
-import { api } from './api.js';
-import { h, toast, field, modal } from './ui.js';
+import { api } from './api.js?v=20261102-1650';
+import { h, toast, field, modal } from './ui.js?v=20261102-1650';
 
 const VISTAS = {
-  solicitar:         { label: 'Nueva solicitud', mod: () => import('./views/solicitar.js'),   roles: ['solicitante', 'auditor', 'compras', 'admin'] },
-  'mis-solicitudes': { label: 'Mis solicitudes', mod: () => import('./views/solicitudes.js'), roles: ['solicitante'], badge: 'rec' },
-  auditoria:         { label: 'Auditoría',       mod: () => import('./views/auditoria.js'),   roles: ['auditor', 'admin'], badge: 'pend' },
-  solicitudes:       { label: 'Solicitudes',     mod: () => import('./views/solicitudes.js'), roles: ['auditor', 'compras', 'admin'] },
-  compras:           { label: 'Compras',         mod: () => import('./views/compras.js'),     roles: ['compras', 'admin'], badge: 'oc' },
-  facturas:          { label: 'Facturas',        mod: () => import('./views/facturas.js'),    roles: ['auditor', 'compras', 'admin'], badge: 'fc' },
-  indicadores:       { label: 'Indicadores',     mod: () => import('./views/indicadores.js'), roles: ['auditor', 'compras', 'admin'] },
-  catalogo:          { label: 'Catálogo',        mod: () => import('./views/catalogo.js'),    roles: ['compras', 'admin'] },
+  solicitar:         { label: 'Nueva solicitud', mod: () => import('./views/solicitar.js?v=20261102-1650'),   roles: ['solicitante', 'auditor', 'compras', 'admin'] },
+  'mis-solicitudes': { label: 'Mis solicitudes', mod: () => import('./views/solicitudes.js?v=20261102-1650'), roles: ['solicitante'], badge: 'rec' },
+  auditoria:         { label: 'Auditoría',       mod: () => import('./views/auditoria.js?v=20261102-1650'),   roles: ['auditor', 'admin'], badge: 'pend' },
+  solicitudes:       { label: 'Solicitudes',     mod: () => import('./views/solicitudes.js?v=20261102-1650'), roles: ['auditor', 'compras', 'admin'] },
+  compras:           { label: 'Compras',         mod: () => import('./views/compras.js?v=20261102-1650'),     roles: ['compras', 'admin'], badge: 'oc' },
+  facturas:          { label: 'Facturas',        mod: () => import('./views/facturas.js?v=20261102-1650'),    roles: ['auditor', 'compras', 'admin'], badge: 'fc' },
+  indicadores:       { label: 'Indicadores',     mod: () => import('./views/indicadores.js?v=20261102-1650'), roles: ['auditor', 'compras', 'admin'] },
+  catalogo:          { label: 'Catálogo',        mod: () => import('./views/catalogo.js?v=20261102-1650'),    roles: ['compras', 'admin'] },
 };
 const INICIO = { solicitante: 'solicitar', auditor: 'auditoria', compras: 'compras', admin: 'auditoria' };
 const ROL = { solicitante: 'Sucursal', auditor: 'Auditoría (RRHH)', compras: 'Compras', admin: 'Administrador' };
 
 const logo = cls => [h('img', { class: `${cls} logo-claro`, src: 'img/logo-grassi.png', alt: 'Farmacias Grassi' }), h('img', { class: `${cls} logo-oscuro`, src: 'img/logo-grassi-claro.png', alt: 'Farmacias Grassi' })];
+// Tema: claro, oscuro o automático (sigue al sistema). Se recuerda en este navegador.
+const TEMAS = [['claro', 'Claro'], ['oscuro', 'Oscuro'], ['auto', 'Auto']];
+const leerTema = () => { try { return localStorage.getItem('insumos-tema') || 'auto'; } catch { return 'auto'; } };
+function aplicarTema(t) {
+  const r = document.documentElement;
+  if (t === 'claro') r.dataset.theme = 'light'; else if (t === 'oscuro') r.dataset.theme = 'dark'; else delete r.dataset.theme;
+}
+aplicarTema(leerTema());
+function selectorTema() {
+  const box = h('div', { class: 'tema-sel', role: 'radiogroup', 'aria-label': 'Tema de la app' });
+  const pintar = () => box.replaceChildren(...TEMAS.map(([k, l]) => h('button', { type: 'button', role: 'radio', 'aria-checked': String(leerTema() === k), class: leerTema() === k ? 'on' : '',
+    onclick: () => { try { localStorage.setItem('insumos-tema', k); } catch { /* sin storage */ } aplicarTema(k); pintar(); } }, l)));
+  pintar(); return box;
+}
 const app = document.getElementById('app');
 let me = null, ruta = null;
 
@@ -64,6 +78,7 @@ async function pintar() {
           h('div', { class: 'brand-logo' }, logo(''), h('span', { class: 'brand-app' }, 'Insumos'))),
         nav,
         h('div', { class: 'who' }, h('strong', {}, me.sucursal || me.nombre || me.email), h('small', {}, ROL[me.rol]),
+          selectorTema(),
           api.modo !== 'demo' ? h('div', { class: 'who-actions' },
             h('button', { class: 'link', onclick: () => cambiarClave() }, 'Cambiar contraseña'),
             h('button', { class: 'link', onclick: async () => { await api.logout(); inicio(); } }, 'Salir')) : null)),

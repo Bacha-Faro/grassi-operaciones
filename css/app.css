@@ -61,7 +61,7 @@ input:disabled { background: var(--sunk); color: var(--muted); }
 
 /* shell */
 .shell { display: grid; grid-template-columns: 228px minmax(0, 1fr); min-height: calc(100% - 38px); }
-.side { position: sticky; top: 0; align-self: start; height: 100vh; display: flex; flex-direction: column; gap: 22px; padding: 22px 14px; border-right: 1px solid var(--line); background: var(--surface); }
+.side { position: sticky; top: 0; align-self: start; height: 100vh; overflow-y: auto; display: flex; flex-direction: column; gap: 18px; padding: 20px 14px 14px; border-right: 1px solid var(--line); background: var(--surface); }
 .brand { display: flex; align-items: center; gap: 10px; }
 .brand-iso { width: 34px; height: 34px; border-radius: 8px; display: none; }
 .brand-logo { display: flex; flex-direction: column; gap: 6px; padding: 2px 8px 0; }
@@ -78,14 +78,14 @@ input:disabled { background: var(--sunk); color: var(--muted); }
 .badge { min-width: 22px; text-align: center; font: 600 0.75rem var(--f-mono); background: var(--accent); color: var(--accent-ink); border-radius: 10px; padding: 1px 6px; }
 .who { margin-top: auto; display: flex; flex-direction: column; gap: 2px; padding: 12px 10px 0; border-top: 1px solid var(--line); }
 .who small { color: var(--muted); }
-.who-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; margin-top: 4px; }
+.who-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; margin-top: 4px; font-size: 0.85rem; }
 .main { min-width: 0; padding-block: 28px 64px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
 .main > * { max-width: 1180px; margin-inline: auto; }
 .loading { color: var(--muted); padding: 40px 0; }
 
 @media (max-width: 860px) {
   .shell { grid-template-columns: minmax(0, 1fr); }
-  .side { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; height: auto; flex-direction: row; align-items: center; gap: 12px; padding: 10px 0 10px max(16px, env(safe-area-inset-left, 0px)); border-right: 0; border-bottom: 1px solid var(--line); }
+  .side { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 5; height: auto; overflow: visible; flex-direction: row; align-items: center; gap: 12px; padding: 10px 0 10px max(16px, env(safe-area-inset-left, 0px)); border-right: 0; border-bottom: 1px solid var(--line); }
   .brand-logo, .who { display: none; }
   .brand-iso { display: block; }
   .nav { flex-direction: row; overflow-x: auto; scrollbar-width: none; padding-right: 16px; }

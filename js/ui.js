@@ -130,3 +130,11 @@ export function verFoto(p) {
   modal({ title: p.nombre, body: h('div', { class: 'foto-grande' }, h('img', { src: p.foto_url, alt: p.nombre }),
     h('p', { class: 'muted' }, [p.unidad, p.precio_ref ? `ref. ${money(p.precio_ref)}` : null].filter(Boolean).join(' · '))) });
 }
+
+// Link de compra de un insumo (Mercado Libre u otra tienda): abre en otra pestaña
+export function linkCompra(url, corto = false) {
+  if (!url) return null;
+  let sitio = 'Comprar online';
+  try { const host = new URL(url).hostname; sitio = /mercadoli(b|v)re/.test(host) ? 'Mercado Libre' : host.replace(/^www\./, ''); } catch { /* url rara */ }
+  return h('a', { class: 'link-compra', href: url, target: '_blank', rel: 'noopener noreferrer', onclick: e => e.stopPropagation(), title: url }, corto ? `${sitio} ↗` : `Comprar en ${sitio} ↗`);
+}

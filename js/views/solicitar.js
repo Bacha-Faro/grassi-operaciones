@@ -1,9 +1,9 @@
 // Nueva solicitud: catálogo por categoría, cantidades, pedido sugerido según consumo.
-import { h, money, n, toast, field, empty, groupBy, sum, fechaHora, verFoto } from '../ui.js';
+import { h, money, n, toast, field, empty, groupBy, sum, fechaHora, verFoto } from '../ui.js?v=20261102-1650';
 
 export async function render({ api, me, cat, go }) {
   const periodo = await api.periodoActual();
-  if (!periodo) return empty('No hay un período abierto', 'Compras todavía no abrió el período de pedidos del mes.');
+  if (!periodo) return empty('No se pudo cargar el mes en curso', 'Recargá la página. Si sigue, avisá a IT.');
 
   const esStaff = me.rol !== 'solicitante';
   const sucursales = cat.sucursales.filter(s => s.activo !== false);
@@ -30,6 +30,10 @@ export async function render({ api, me, cat, go }) {
   const nombre = h('input', { id: 'sol-nombre', type: 'text', required: true, autocomplete: 'name', placeholder: 'Nombre y apellido' });
   try { nombre.value = esStaff ? '' : (localStorage.getItem('insumos-nombre') || ''); } catch { /* sin storage */ }
   const obs = h('textarea', { id: 'sol-obs', rows: 3, placeholder: 'Ej.: el dispenser de toallas del baño está roto' });
+  // pedido urgente: imprevistos que no pueden esperar a la compra del mes
+  const motivoUrg = h('input', { id: 'sol-urg-motivo', type: 'text', placeholder: '¿Por qué es urgente? Ej.: se terminó el papel del baño', hidden: true });
+  const urgente = h('input', { id: 'sol-urgente', type: 'checkbox', onchange: e => { motivoUrg.hidden = !e.target.checked; urgBox.classList.toggle('on', e.target.checked); if (e.target.checked) motivoUrg.focus(); } });
+  const urgBox = h('div', { class: 'urgente-box' }, h('label', { class: 'check' }, urgente, h('span', {}, h('strong', {}, 'Es urgente'), h('small', { class: 'muted' }, ' · imprevistos que no pueden esperar'))), motivoUrg);
   const buscar = h('input', { id: 'sol-buscar', type: 'search', placeholder: 'Buscar insumo…', oninput: e => { filtro = e.target.value.toLowerCase(); pintarLista(); } });
   const lista = h('div', { class: 'catalogo' });
   const resumen = h('div', { class: 'resumen-body' });
@@ -79,34 +83,34 @@ export async function render({ api, me, cat, go }) {
     e.preventDefault();
     if (!nombre.value.trim()) { nombre.focus(); return toast('Indicá tu nombre y apellido', 'bad'); }
     if (!qty.size) return toast('Elegí al menos un insumo', 'bad');
+    if (urgente.checked && !motivoUrg.value.trim()) { motivoUrg.focus(); return toast('Contá por qué es urgente', 'bad'); }
     btn.disabled = true;
     try {
       const id = await api.crearSolicitud({ periodo_id: periodo.id, sucursal_id: sucursalId, solicitante_nombre: nombre.value.trim(),
-        observaciones: obs.value.trim() || null, items: [...qty].map(([producto_id, cantidad]) => ({ producto_id, cantidad })) });
+        observaciones: obs.value.trim() || null, urgente: urgente.checked, motivo_urgencia: urgente.checked ? motivoUrg.value.trim() : null, items: [...qty].map(([producto_id, cantidad]) => ({ producto_id, cantidad })) });
       try { localStorage.setItem('insumos-nombre', nombre.value.trim()); } catch { /* sin storage */ }
-      toast(`Solicitud S-${String(id).padStart(4, '0')} enviada a auditoría`);
+      toast(`Solicitud S-${String(id).padStart(4, '0')} enviada a auditoría${urgente.checked ? ' como urgente' : ''}`);
       go(esStaff ? 'auditoria' : 'mis-solicitudes');
     } catch (err) { toast(err.message, 'bad'); btn.disabled = false; }
   }
   const btn = h('button', { class: 'btn primary block', type: 'submit' }, 'Enviar solicitud');
 
   pintarLista(); pintarResumen();
-  const cierre = periodo.cierre ? `Se reciben pedidos hasta el ${fechaHora(periodo.cierre)}` : '';
 
   return h('form', { class: 'view', onsubmit: enviar },
     h('header', { class: 'view-head' },
       h('div', {}, h('p', { class: 'eyebrow' }, `Período ${periodo.nombre}`), h('h1', {}, 'Nueva solicitud de insumos'),
-        h('p', { class: 'muted' }, `Indicá lo que necesita tu sucursal para el mes. ${cierre}`)),
+        h('p', { class: 'muted' }, 'Indicá lo que necesita tu sucursal. Podés pedir en cualquier momento del mes; si es un imprevisto, marcalo como urgente.')),
       h('button', { type: 'button', class: 'btn', onclick: () => {
         const s = sugerido();
         if (!s.items.length) return toast('No hay consumo previo para sugerir', 'warn');
         qty.clear(); s.items.forEach(([id, v]) => qty.set(id, v)); pintarLista(); pintarResumen();
         toast(`Cargado el promedio de los últimos ${s.meses} meses. Ajustá lo que haga falta.`);
       } }, 'Cargar pedido sugerido')),
-    previas.length ? h('div', { class: 'notice' }, `Esta sucursal ya envió ${previas.length} solicitud${previas.length > 1 ? 'es' : ''} este período. Si mandás otra, se audita por separado.`) : null,
+    previas.length ? h('div', { class: 'notice' }, `Esta sucursal ya envió ${previas.length} solicitud${previas.length > 1 ? 'es' : ''} este mes. Si mandás otra, se audita por separado.`) : null,
     h('div', { class: 'split' },
       h('div', { class: 'split-main' },
         h('div', { class: 'grid2' }, field('Sucursal / área', sucSelect), field('Nombre y apellido', nombre)),
         buscar, lista),
-      h('aside', { class: 'resumen' }, h('h2', {}, 'Tu pedido'), resumen, field('Observaciones', obs), btn)));
+      h('aside', { class: 'resumen' }, h('h2', {}, 'Tu pedido'), resumen, field('Observaciones', obs), urgBox, btn)));
 }
