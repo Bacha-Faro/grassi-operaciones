@@ -457,3 +457,18 @@ button.thumb.vacia:hover { border-color: var(--accent); color: var(--accent); }
   .super-cartel { padding-inline: 14px; }
 }
 .badge[hidden] { display: none; }
+
+/* botón de cuenta en el celular (tema, contraseña, salir) */
+.cuenta-movil { display: none; }
+@media (max-width: 860px) {
+  .nav { flex: 1; min-width: 0; }
+  .cuenta-movil { display: grid; place-items: center; flex: none; width: 36px; height: 36px; margin-right: max(16px, env(safe-area-inset-right, 0px));
+    border-radius: 50%; border: 1px solid var(--line); background: var(--accent-soft); color: var(--accent); font: 700 0.95rem var(--f-display); cursor: pointer; }
+  .cuenta-body .tema-sel { align-self: flex-start; }
+}
+
+/* ayuda de ingreso (contraseñas las maneja IT), app embebida, aviso fuera de fecha */
+.login-ayuda { font-size: 0.86rem; margin: 0; }
+.login-ayuda a { color: var(--accent); font-weight: 600; white-space: nowrap; }
+.abrir-fuera { margin: 6px 0 2px; font-size: 0.82rem; }
+.urgente-aviso { background: var(--bad-soft); border-left-color: var(--bad); }

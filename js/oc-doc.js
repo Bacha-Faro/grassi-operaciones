@@ -1,6 +1,6 @@
 // Documento de Orden de Compra: vista HTML y PDF (mismos campos que la planilla
 // "ORDEN DE COMPRA ARTICULOS INSUMOS": comprador, proveedor, ítems, forma de pago, entrega, firma).
-import { h, money, n, fecha, ocNum, docNum, groupBy, cargarScript } from './ui.js?v=20261103-1713';
+import { h, money, n, fecha, ocNum, docNum, groupBy, cargarScript } from './ui.js?v=20261104-1250';
 
 // Agrupa lo que hay que entregar por dirección: [{ direccion, sucursales, items: [{producto, cantidad}] }]
 export function entregas(oc) {
@@ -80,8 +80,8 @@ function opHTML(oc) {
       h('thead', {}, h('tr', {}, h('th', { class: 'num' }, 'Cantidad'), h('th', {}, 'Artículo'), h('th', { class: 'num' }, 'Precio unit.'), h('th', { class: 'num' }, 'Total'))),
       h('tbody', {}, oc.items.map(i => h('tr', {},
         h('td', { class: 'num' }, n(i.cantidad)), h('td', {}, i.producto, h('span', { class: 'muted' }, ` · ${i.unidad}`)),
-        h('td', { class: 'num' }, money(i.precio_unit)), h('td', { class: 'num' }, money(i.cantidad * i.precio_unit))))),
-      h('tfoot', {}, h('tr', {}, h('td', { colspan: 3 }, 'Valor total (sin IVA)'), h('td', { class: 'num' }, money(oc.total)))))),
+        h('td', { class: 'num' }, pu(i)), h('td', { class: 'num' }, sub(i))))),
+      h('tfoot', {}, h('tr', {}, h('td', { colspan: 3 }, totalTxt(oc, 'Valor total (sin IVA)')), h('td', { class: 'num' }, money(oc.total)))))),
     sucs.length ? h('section', { class: 'ocdoc-entregas' }, h('p', { class: 'eyebrow' }, 'Preparar por sucursal'),
       h('div', { class: 'entregas-grid' }, sucs.map(s => h('div', { class: 'entrega' },
         h('strong', {}, s.sucursal), s.direccion ? h('small', { class: 'muted' }, s.direccion) : null,
@@ -108,8 +108,8 @@ export function ocHTML(oc) {
       h('thead', {}, h('tr', {}, h('th', { class: 'num' }, 'Cantidad'), h('th', {}, 'Artículo'), h('th', { class: 'num' }, 'Precio unit.'), h('th', { class: 'num' }, 'Total'))),
       h('tbody', {}, oc.items.map(i => h('tr', {},
         h('td', { class: 'num' }, n(i.cantidad)), h('td', {}, i.producto, h('span', { class: 'muted' }, ` · ${i.unidad}`)),
-        h('td', { class: 'num' }, money(i.precio_unit)), h('td', { class: 'num' }, money(i.cantidad * i.precio_unit))))),
-      h('tfoot', {}, h('tr', {}, h('td', { colspan: 3 }, 'Monto total (sin IVA)'), h('td', { class: 'num' }, money(oc.total)))))),
+        h('td', { class: 'num' }, pu(i)), h('td', { class: 'num' }, sub(i))))),
+      h('tfoot', {}, h('tr', {}, h('td', { colspan: 3 }, totalTxt(oc, 'Monto total (sin IVA)')), h('td', { class: 'num' }, money(oc.total)))))),
     entregas(oc).length ? h('section', { class: 'ocdoc-entregas' }, h('p', { class: 'eyebrow' }, 'Entregar en'),
       h('div', { class: 'entregas-grid' }, entregas(oc).map(en => h('div', { class: 'entrega' },
         h('strong', {}, en.direccion), h('small', { class: 'muted' }, en.sucursales.join(' · ')),
@@ -119,6 +119,12 @@ export function ocHTML(oc) {
       h('div', {}, h('dt', {}, 'Fecha de entrega'), h('dd', {}, fecha(oc.fecha_entrega))),
       oc.observaciones ? h('div', {}, h('dt', {}, 'Observaciones'), h('dd', {}, oc.observaciones)) : null));
 }
+
+// Precios opcionales: si un insumo no tiene precio, el documento dice "A confirmar" y el total lo aclara
+const pu = i => (+i.precio_unit > 0 ? money(i.precio_unit) : 'A confirmar');
+const sub = i => (+i.precio_unit > 0 ? money(i.cantidad * i.precio_unit) : '—');
+const faltan = oc => oc.items.some(i => !(+i.precio_unit > 0));
+const totalTxt = (oc, base) => `${base}${faltan(oc) ? ' · sin los ítems a confirmar' : ''}`;
 
 // Librería de PDF: se baja recién cuando se va a generar uno (o al abrir Compras)
 export const pdfListo = () => cargarScript('vendor/jspdf.umd.min.js').then(() => cargarScript('vendor/jspdf.plugin.autotable.min.js'));
@@ -138,8 +144,8 @@ function opPDF(oc) {
   tituloSeccion(doc, 'TOTAL A PREPARAR', y);
   doc.autoTable({ ...tablaBase, startY: y + 3,
     head: [['Cantidad', 'Artículo', 'Precio unit.', 'Total']],
-    body: oc.items.map(i => [n(i.cantidad), `${i.producto} (${i.unidad})`, money(i.precio_unit), money(i.cantidad * i.precio_unit)]),
-    foot: [['', 'VALOR TOTAL (sin IVA)', '', money(oc.total)]],
+    body: oc.items.map(i => [n(i.cantidad), `${i.producto} (${i.unidad})`, pu(i), sub(i)]),
+    foot: [['', totalTxt(oc, 'VALOR TOTAL (sin IVA)'), '', money(oc.total)]],
     columnStyles: { 0: { halign: 'right', cellWidth: 22 }, 2: { halign: 'right', cellWidth: 30 }, 3: { halign: 'right', cellWidth: 32 } },
     didParseCell: d => { if (d.section !== 'body' && d.column.index !== 1) d.cell.styles.halign = 'right'; },
   });
@@ -191,8 +197,8 @@ export function ocPDF(oc) {
   tituloSeccion(doc, 'DETALLE', y0 + 36);
   doc.autoTable({ ...tablaBase, startY: y0 + 39,
     head: [['Cantidad', 'Detalle de artículo', 'Precio unit.', 'Total']],
-    body: oc.items.map(i => [n(i.cantidad), `${i.producto} (${i.unidad})`, money(i.precio_unit), money(i.cantidad * i.precio_unit)]),
-    foot: [['', 'MONTO TOTAL (sin IVA)', '', money(oc.total)]],
+    body: oc.items.map(i => [n(i.cantidad), `${i.producto} (${i.unidad})`, pu(i), sub(i)]),
+    foot: [['', totalTxt(oc, 'MONTO TOTAL (sin IVA)'), '', money(oc.total)]],
     columnStyles: { 0: { halign: 'right', cellWidth: 22 }, 2: { halign: 'right', cellWidth: 30 }, 3: { halign: 'right', cellWidth: 32 } },
     didParseCell: d => { if (d.section !== 'body' && d.column.index !== 1) d.cell.styles.halign = 'right'; },
   });

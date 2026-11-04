@@ -1,21 +1,23 @@
 // Shell de la app: sesión, navegación por rol y enrutado por #vista.
-import { api } from './api.js?v=20261103-1713';
-import { h, toast, field, modal, carrito } from './ui.js?v=20261103-1713';
+import { api } from './api.js?v=20261104-1250';
+import { h, toast, field, modal, carrito } from './ui.js?v=20261104-1250';
 
 const VISTAS = {
-  solicitar:         { label: 'Nueva solicitud', mod: () => import('./views/solicitar.js?v=20261103-1713'),   roles: ['solicitante', 'auditor', 'compras', 'admin'] },
-  'mis-solicitudes': { label: 'Mis solicitudes', mod: () => import('./views/solicitudes.js?v=20261103-1713'), roles: ['solicitante'], badge: 'rec' },
-  auditoria:         { label: 'Auditoría',       mod: () => import('./views/auditoria.js?v=20261103-1713'),   roles: ['auditor', 'admin'], badge: 'pend' },
-  solicitudes:       { label: 'Solicitudes',     mod: () => import('./views/solicitudes.js?v=20261103-1713'), roles: ['auditor', 'compras', 'admin'] },
-  compras:           { label: 'Compras',         mod: () => import('./views/compras.js?v=20261103-1713'),     roles: ['compras', 'admin'], badge: 'oc' },
-  facturas:          { label: 'Facturas',        mod: () => import('./views/facturas.js?v=20261103-1713'),    roles: ['auditor', 'compras', 'admin'], badge: 'fc' },
-  indicadores:       { label: 'Indicadores',     mod: () => import('./views/indicadores.js?v=20261103-1713'), roles: ['auditor', 'compras', 'admin'] },
-  catalogo:          { label: 'Catálogo',        mod: () => import('./views/catalogo.js?v=20261103-1713'),    roles: ['compras', 'admin'] },
+  solicitar:         { label: 'Nueva solicitud', mod: () => import('./views/solicitar.js?v=20261104-1250'),   roles: ['solicitante', 'auditor', 'compras', 'admin'] },
+  'mis-solicitudes': { label: 'Mis solicitudes', mod: () => import('./views/solicitudes.js?v=20261104-1250'), roles: ['solicitante'], badge: 'rec' },
+  auditoria:         { label: 'Auditoría',       mod: () => import('./views/auditoria.js?v=20261104-1250'),   roles: ['auditor', 'admin'], badge: 'pend' },
+  solicitudes:       { label: 'Solicitudes',     mod: () => import('./views/solicitudes.js?v=20261104-1250'), roles: ['auditor', 'compras', 'admin'] },
+  compras:           { label: 'Compras',         mod: () => import('./views/compras.js?v=20261104-1250'),     roles: ['compras', 'admin'], badge: 'oc' },
+  facturas:          { label: 'Facturas',        mod: () => import('./views/facturas.js?v=20261104-1250'),    roles: ['auditor', 'compras', 'admin'], badge: 'fc' },
+  indicadores:       { label: 'Indicadores',     mod: () => import('./views/indicadores.js?v=20261104-1250'), roles: ['auditor', 'compras', 'admin'] },
+  catalogo:          { label: 'Catálogo',        mod: () => import('./views/catalogo.js?v=20261104-1250'),    roles: ['compras', 'admin'] },
+  usuarios:          { label: 'Usuarios',        mod: () => import('./views/usuarios.js?v=20261104-1250'),    roles: ['admin'], soporte: true },
 };
 const INICIO = { solicitante: 'solicitar', auditor: 'auditoria', compras: 'compras', admin: 'auditoria' };
 const ROL = { solicitante: 'Sucursal', auditor: 'Auditoría (RRHH)', compras: 'Compras', admin: 'Administrador' };
 
-const logo = cls => [h('img', { class: `${cls} logo-claro`, src: 'img/logo-grassi.png', alt: 'Farmacias Grassi' }), h('img', { class: `${cls} logo-oscuro`, src: 'img/logo-grassi-claro.png', alt: 'Farmacias Grassi' })];
+// Logo de la app: "de compras" + grassi (las OC, PDF y mails a proveedores siguen con el logo oficial logo-grassi.png)
+const logo = cls => [h('img', { class: `${cls} logo-claro`, src: 'img/logo-compras.png', alt: 'Grassi de compras' }), h('img', { class: `${cls} logo-oscuro`, src: 'img/logo-compras-claro.png', alt: 'Grassi de compras' })];
 // Tema: claro, oscuro o automático (sigue al sistema). Se recuerda en este navegador.
 const TEMAS = [['claro', 'Claro'], ['oscuro', 'Oscuro'], ['auto', 'Auto']];
 const leerTema = () => { try { return localStorage.getItem('insumos-tema') || 'auto'; } catch { return 'auto'; } };
@@ -31,6 +33,9 @@ function selectorTema() {
   pintar(); return box;
 }
 const app = document.getElementById('app');
+// Contacto de soporte (IT) y si la app está embebida (GrassiNet, Google Sites)
+const IT_TEL = '358 4164 187';
+const enIframe = (() => { try { return window.self !== window.top; } catch { return true; } })();
 let me = null, ruta = null, catCache = null, turno = 0;
 // El catálogo casi no cambia: se trae una vez y se reutiliza al navegar (se refresca en Catálogo y con refresh)
 async function catalogo(fresco) { if (fresco || !catCache) catCache = await api.catalogo(); return catCache; }
@@ -66,7 +71,7 @@ function demoBar() {
 
 async function pintar(fresco = false) {
   const mio = ++turno;   // si se navega rápido, solo la última pantalla pedida se dibuja
-  const permitidas = Object.entries(VISTAS).filter(([, v]) => v.roles.includes(me.rol));
+  const permitidas = Object.entries(VISTAS).filter(([, v]) => v.roles.includes(me.rol) && (!v.soporte || me.soporte));
   if (!permitidas.some(([k]) => k === ruta)) ruta = INICIO[me.rol];
   const cupos = {};
   const nav = h('nav', { class: 'nav', 'aria-label': 'Secciones' }, permitidas.map(([k, v]) =>
@@ -82,10 +87,13 @@ async function pintar(fresco = false) {
         h('div', { class: 'brand' }, h('img', { class: 'brand-iso', src: 'img/isotipo.png', alt: 'Farmacias Grassi · Insumos' }), carrito('mini solo-movil'),
           h('div', { class: 'brand-logo' }, logo(''), h('span', { class: 'brand-app' }, carrito('mini'), 'Insumos'))),
         nav,
+        h('button', { type: 'button', class: 'cuenta-movil', 'aria-label': 'Mi cuenta: tema, contraseña y salir', onclick: () => cuentaMovil() },
+          h('span', { 'aria-hidden': 'true', html: ICONO_CUENTA })),
         h('div', { class: 'who' }, h('strong', {}, me.sucursal || me.nombre || me.email), h('small', {}, ROL[me.rol]),
           selectorTema(),
+          enIframe ? h('a', { class: 'link abrir-fuera', href: location.href, target: '_blank', rel: 'noopener' }, 'Abrir en pestaña nueva ↗') : null,
           api.modo !== 'demo' ? h('div', { class: 'who-actions' },
-            h('button', { class: 'link', onclick: () => cambiarClave() }, 'Cambiar contraseña'),
+            me.soporte ? h('button', { class: 'link', onclick: () => cambiarClave() }, 'Cambiar contraseña') : null,
             h('button', { class: 'link', onclick: async () => { await api.logout(); inicio(); } }, 'Salir')) : null)),
       main));
 
@@ -97,6 +105,21 @@ async function pintar(fresco = false) {
     console.error(e);
     main.replaceChildren(h('div', { class: 'empty' }, h('strong', {}, 'No se pudo cargar esta sección'), h('p', {}, e.message)));
   }
+}
+
+// En el celular la barra lateral no entra: la cuenta (tema, contraseña, salir) se abre desde un botón arriba a la derecha
+const ICONO_CUENTA = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>';
+function cuentaMovil() {
+  const m = modal({ title: 'Mi cuenta',
+    body: h('div', { class: 'stack cuenta-body' },
+      h('div', {}, h('strong', {}, me.sucursal || me.nombre || me.email), h('small', { class: 'muted', style: 'display:block' }, `${ROL[me.rol]} · ${me.email}`)),
+      h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Tema de la pantalla'), selectorTema()),
+      enIframe ? h('a', { class: 'link', href: location.href, target: '_blank', rel: 'noopener' }, 'Abrir la app en pestaña nueva ↗') : null,
+      me.soporte ? null : h('small', { class: 'muted' }, `¿Problemas con la contraseña? Llamá a IT: ${IT_TEL}.`)),
+    actions: api.modo !== 'demo' ? [
+      me.soporte ? { label: 'Cambiar contraseña', onClick: () => { setTimeout(() => cambiarClave(), 0); } } : null,
+      { label: 'Salir', kind: 'primary', onClick: async () => { await api.logout(); inicio(); } }].filter(Boolean) : [{ label: 'Cerrar' }] });
+  return m;
 }
 
 function cambiarClave(recuperacion = false) {
@@ -124,10 +147,7 @@ function login() {
     h('div', { class: 'login-logo' }, logo(''), h('span', { class: 'brand-app login-sub' }, carrito('llega'), 'Pedidos de insumos')),
     h('p', { class: 'muted' }, 'Ingresá con el mail de tu sucursal o sector.'),
     field('Mail', email), field('Contraseña', pass), btn,
-    h('button', { type: 'button', class: 'link', onclick: async () => {
-      if (!email.value) return toast('Escribí tu mail primero', 'warn');
-      try { await api.recuperar(email.value.trim()); toast('Te mandamos un mail para crear una contraseña nueva'); } catch (e) { toast(e.message, 'bad'); }
-    } }, 'Olvidé mi contraseña')),
+    h('p', { class: 'muted login-ayuda' }, '¿Olvidaste la contraseña o no podés entrar? Llamá a IT: ', h('a', { href: `tel:+54${IT_TEL.replace(/\D/g, '')}` }, IT_TEL), '.')),
     h('p', { class: 'creditos' }, h('img', { src: 'img/ganimedes.png', alt: '' }), h('span', {}, 'Desarrollado por ', h('strong', {}, 'Ganímedes Lab')))));
 }
 

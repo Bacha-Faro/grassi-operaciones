@@ -1,5 +1,5 @@
 // Catálogo: insumos, proveedores y sucursales. Cambiar un precio lo registra en el historial.
-import { h, money, empty, toast, modal, field, tabs, verFoto, linkCompra } from '../ui.js?v=20261103-1713';
+import { h, money, fecha, empty, toast, modal, field, tabs, verFoto, linkCompra } from '../ui.js?v=20261104-1250';
 
 export async function render({ api, me, cat, refresh }) {
   const puede = ['compras', 'admin'].includes(me.rol);
@@ -18,7 +18,7 @@ export async function render({ api, me, cat, refresh }) {
       if (f.list) return h('input', { id, type: 'text', value: (vals[f.k] || []).join(', '), oninput: e => { vals[f.k] = e.target.value.split(/[,;\s]+/).map(x => x.trim().toLowerCase()).filter(Boolean); } });
       if (f.type === 'check') return h('input', { id, type: 'checkbox', checked: vals[f.k] !== false, onchange: e => { vals[f.k] = e.target.checked; } });
       return h('input', { id, type: f.type || 'text', value: vals[f.k] ?? '', step: f.type === 'number' ? 'any' : null, required: f.req,
-        oninput: e => { vals[f.k] = f.type === 'number' ? (e.target.value === '' ? null : +e.target.value) : e.target.value; } });
+        oninput: e => { vals[f.k] = f.type === 'number' ? (e.target.value === '' ? null : +e.target.value) : f.type === 'date' ? (e.target.value || null) : e.target.value; } });
     };
     modal({ title, body: h('div', { class: 'grid2' }, fields.map(f => field(f.label, ctl(f), f.hint))), actions: [
       { label: 'Cancelar' },
@@ -58,7 +58,8 @@ export async function render({ api, me, cat, refresh }) {
   const F_PROD = [
     { k: 'nombre', label: 'Nombre', req: true }, { k: 'categoria_id', label: 'Categoría', opts: cat.categorias, req: true },
     { k: 'unidad', label: 'Unidad', hint: 'Ej.: caja, bidón, resma' }, { k: 'proveedor_id', label: 'Proveedor habitual', opts: cat.proveedores, empty: 'Sin asignar' },
-    { k: 'precio_ref', label: 'Precio de referencia (sin IVA)', type: 'number', hint: 'Si cambia, queda en el historial de precios' },
+    { k: 'precio_ref', label: 'Precio de lista (sin IVA)', type: 'number', hint: 'Solo de una lista o presupuesto del proveedor. Vacío = "a confirmar"' },
+    { k: 'precio_fuente', label: 'De qué lista sale el precio', hint: 'Ej.: Gaso · presupuesto 0001-00042254' }, { k: 'precio_fecha', label: 'Fecha de la lista', type: 'date' },
     { k: 'tope_mensual', label: 'Tope por sucursal y mes', type: 'number', hint: 'Opcional. Genera alerta en auditoría' },
     { k: 'link_compra', label: 'Link de compra', type: 'url', hint: 'Opcional. Ej.: la publicación de Mercado Libre del vendedor habitual. Solo lo ve el equipo de compras' },
     { k: 'activo', label: 'Visible para pedir', type: 'check' }];
@@ -80,7 +81,7 @@ export async function render({ api, me, cat, refresh }) {
     let head, rows, nuevo;
     if (tab === 'productos') {
       head = ['Insumo', 'Categoría', 'Proveedor', 'Precio ref.', ''];
-      rows = cat.productos.filter(p => like(p.nombre)).map(p => [h('span', { class: `prod-cell${p.activo === false ? ' muted' : ''}` }, miniatura(p), h('span', {}, p.nombre, h('small', { class: 'muted' }, ` · ${p.unidad || ''}`), p.link_compra ? h('small', { style: 'display:block' }, linkCompra(p.link_compra, true)) : null)), catN(p.categoria_id), prov(p.proveedor_id) || h('span', { class: 'flag' }, 'Sin proveedor'), h('span', { class: 'mono' }, p.precio_ref ? money(p.precio_ref) : '—'), p]);
+      rows = cat.productos.filter(p => like(p.nombre)).map(p => [h('span', { class: `prod-cell${p.activo === false ? ' muted' : ''}` }, miniatura(p), h('span', {}, p.nombre, h('small', { class: 'muted' }, ` · ${p.unidad || ''}`), p.link_compra ? h('small', { style: 'display:block' }, linkCompra(p.link_compra, true)) : null)), catN(p.categoria_id), prov(p.proveedor_id) || h('span', { class: 'flag' }, 'Sin proveedor'), h('span', { class: 'mono', title: p.precio_fuente ? `${p.precio_fuente}${p.precio_fecha ? ' · ' + fecha(p.precio_fecha) : ''}` : '' }, p.precio_ref ? money(p.precio_ref) : h('span', { class: 'muted' }, 'a confirmar')), p]);
       nuevo = () => form(F_PROD, { activo: true, categoria_id: cat.categorias[0].id }, v => api.guardarProducto(v), 'Nuevo insumo');
     } else if (tab === 'proveedores') {
       head = ['Proveedor', 'Mail', 'Condición', 'Insumos', ''];

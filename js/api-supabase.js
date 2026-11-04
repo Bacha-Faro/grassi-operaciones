@@ -1,7 +1,7 @@
 // Adaptador Supabase: misma interfaz que api-demo.js.
 // Requiere el script UMD de supabase-js cargado en index.html (window.supabase).
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261103-1713';
-import { achicarImagen } from './ui.js?v=20261103-1713';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261104-1250';
+import { achicarImagen } from './ui.js?v=20261104-1250';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const ok = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
@@ -107,6 +107,17 @@ export const api = {
   async guardarOC(id, campos, items) {
     if (campos && Object.keys(campos).length) ok(await sb.from('ordenes_compra').update(campos).eq('id', id).eq('estado', 'borrador'));
     for (const it of items || []) ok(await sb.from('oc_items').update({ precio_unit: Number(it.precio_unit) || 0, cantidad: Number(it.cantidad) }).eq('id', it.id));
+  },
+  // Usuarios (solo IT los ve) y contraseña nueva vía Edge Function "admin-usuarios"
+  async usuarios() {
+    return ok(await sb.from('perfiles').select('id, email, rol, soporte, sucursales(nombre)').order('email'))
+      .map(u => ({ ...u, sucursal: u.sucursales?.nombre || null }));
+  },
+  async ponerClave(usuario_id, clave) {
+    const { data, error } = await sb.functions.invoke('admin-usuarios', { body: { accion: 'clave', usuario_id, clave } });
+    if (error) { let m = error.message; try { m = (await error.context.json()).error || m; } catch { /* sin detalle */ } throw new Error(m); }
+    if (data?.error) throw new Error(data.error);
+    return data;
   },
   // Envía la OC por mail (Edge Function "enviar-mail") y la marca como enviada.
   async enviarOC(id, pdfBase64) {
