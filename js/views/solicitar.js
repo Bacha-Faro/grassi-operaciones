@@ -1,6 +1,6 @@
 // Nueva solicitud, en modo "súper": cada categoría es una góndola (pasillo), los insumos son
 // productos en el estante y el pedido es el carrito. Incluye pedido sugerido según consumo.
-import { h, money, n, toast, field, empty, groupBy, sum, verFoto, carrito } from '../ui.js?v=20261104-1250';
+import { h, money, n, toast, field, empty, groupBy, sum, verFoto, carrito } from '../ui.js?v=20261105-1741';
 
 // Pasillos: ícono y color por categoría (por nombre; si aparece una nueva, toma un color de la lista)
 const PASILLOS = [
@@ -128,7 +128,7 @@ export async function render({ api, me, cat, go }) {
       pack,
       h('div', { class: 'producto-nombre' }, h('strong', {}, p.nombre), h('small', {}, p.unidad)),
       accion,
-      h('div', { class: 'etiqueta-precio', title: 'Precio de referencia, sin IVA' }, p.precio_ref ? money(p.precio_ref) : 'precio a confirmar'));
+      esStaff ? h('div', { class: 'etiqueta-precio', title: 'Precio de lista, sin IVA (solo lo ve el equipo)' }, p.precio_ref ? money(p.precio_ref) : 'a confirmar') : null);
 
     function pintar() {
       const q = qty.get(p.id) || 0;
@@ -191,10 +191,10 @@ export async function render({ api, me, cat, go }) {
         : h('p', { class: 'muted carrito-vacio' }, 'Tu carrito está vacío. Recorré los pasillos o cargá el pedido sugerido.'),
       h('div', { class: 'ticket-total' },
         h('span', {}, `${n(items.length)} producto${items.length === 1 ? '' : 's'} · ${n(unidades)} u.`),
-        h('strong', { class: 'mono' }, money(total))),
-      h('small', { class: 'hint' }, 'Total estimado con precios de referencia, sin IVA. Los insumos con precio a confirmar no suman.'));
+        esStaff ? h('strong', { class: 'mono' }, money(total)) : null),
+      esStaff ? h('small', { class: 'hint' }, 'Total estimado con precios de lista, sin IVA. Los insumos con precio a confirmar no suman.') : null);
     barra.hidden = !items.length;
-    barra.replaceChildren(carrito('mini'), h('span', { class: 'mono' }, `${n(items.length)} · ${money(total)}`),
+    barra.replaceChildren(carrito('mini'), h('span', { class: 'mono' }, esStaff ? `${n(items.length)} · ${money(total)}` : `${n(items.length)} producto${items.length === 1 ? '' : 's'}`),
       h('button', { type: 'button', class: 'btn primary', onclick: () => aside.scrollIntoView({ behavior: animar ? 'smooth' : 'auto' }) }, 'Ver carrito'));
   }
 

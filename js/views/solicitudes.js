@@ -1,6 +1,6 @@
 // Seguimiento de solicitudes: la sucursal ve las suyas; el equipo ve todas.
-import { h, money, n, pill, empty, fecha, fechaHora, solNum, tabs, docNum } from '../ui.js?v=20261104-1250';
-import { abrirRecepcion, estadoRecepcion, difsTexto } from './recepcion.js?v=20261104-1250';
+import { h, money, n, pill, empty, fecha, fechaHora, solNum, tabs, docNum } from '../ui.js?v=20261105-1741';
+import { abrirRecepcion, estadoRecepcion, difsTexto } from './recepcion.js?v=20261105-1741';
 
 const GRUPOS = [
   ['activas', 'En curso', ['pendiente', 'aprobada', 'aprobada_parcial', 'en_compra']],
@@ -41,7 +41,7 @@ export async function render({ api, me, cat, refresh }) {
           h('span', { class: 'mono strong' }, solNum(s.id)),
           h('span', { class: 'card-main' }, h('strong', {}, esStaff ? s.sucursal : s.periodo, s.urgente ? h('span', { class: 'pill pill-bad tag-urg' }, 'Urgente') : null), h('small', { class: 'muted' }, `${s.solicitante_nombre} · ${fechaHora(s.created_at)}${esStaff ? ` · ${s.periodo}` : ''}`)),
           h('span', { class: 'mono muted hide-sm' }, `${s.n_items} ítems`),
-          h('span', { class: 'mono hide-sm' }, money(s.estado === 'pendiente' ? s.monto_solicitado : s.monto_aprobado)),
+          esStaff ? h('span', { class: 'mono hide-sm' }, money(s.estado === 'pendiente' ? s.monto_solicitado : s.monto_aprobado)) : null,
           pill(s.estado)),
         box);
     })) : empty(grupo === 'activas' ? 'No hay solicitudes en curso' : 'No hay solicitudes cerradas', esStaff ? null : 'Cuando envíes una solicitud vas a poder seguir su estado acá.'));

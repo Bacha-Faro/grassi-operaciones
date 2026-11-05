@@ -1,7 +1,7 @@
 // Adaptador Supabase: misma interfaz que api-demo.js.
 // Requiere el script UMD de supabase-js cargado en index.html (window.supabase).
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261104-1250';
-import { achicarImagen } from './ui.js?v=20261104-1250';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261105-1741';
+import { achicarImagen } from './ui.js?v=20261105-1741';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const ok = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
@@ -9,14 +9,17 @@ let perfil = null;
 
 const SOL_SELECT = `*, periodos(nombre), sucursales(nombre, empresa),
   solicitud_items(id, producto_id, cantidad_solicitada, cantidad_aprobada, estado, motivo, oc_id, cantidad_recibida,
-    productos(nombre, unidad, precio_ref, tope_mensual, categorias(nombre)), ordenes_compra:oc_id(oc_items(producto_id, precio_unit)))`;
+    productos(nombre, unidad, tope_mensual, categorias(nombre), precios_lista(precio)), ordenes_compra:oc_id(oc_items(producto_id, precio_unit)))`;
+
+// Precio de lista: está en la tabla precios_lista, que solo puede leer el equipo (para una sucursal llega vacío)
+const lista = prod => { const v = prod?.precios_lista; const r = Array.isArray(v) ? v[0] : v; return r?.precio != null ? +r.precio : null; };
 
 function solRow(s) {
   const its = s.solicitud_items || [];
-  const pu = x => (x.ordenes_compra?.oc_items?.find(o => o.producto_id === x.producto_id)?.precio_unit) ?? x.productos?.precio_ref ?? 0;
+  const pu = x => (x.ordenes_compra?.oc_items?.find(o => o.producto_id === x.producto_id)?.precio_unit) ?? lista(x.productos) ?? 0;
   const { solicitud_items, periodos, sucursales, ...base } = s;
   return { ...base, periodo: periodos?.nombre, sucursal: sucursales?.nombre, empresa: sucursales?.empresa, n_items: its.length,
-    monto_solicitado: its.reduce((a, x) => a + x.cantidad_solicitada * (x.productos?.precio_ref || 0), 0),
+    monto_solicitado: its.reduce((a, x) => a + x.cantidad_solicitada * (lista(x.productos) || 0), 0),
     monto_aprobado: its.reduce((a, x) => a + (x.cantidad_aprobada || 0) * pu(x), 0),
     _items: its.map(x => ({ id: x.id, solicitud_id: s.id, producto_id: x.producto_id, cantidad_solicitada: +x.cantidad_solicitada,
       cantidad_aprobada: x.cantidad_aprobada === null ? null : +x.cantidad_aprobada, estado: x.estado, motivo: x.motivo, oc_id: x.oc_id,
@@ -48,12 +51,18 @@ export const api = {
   alRecuperar(cb) { sb.auth.onAuthStateChange(ev => { if (ev === 'PASSWORD_RECOVERY') cb(); }); },
 
   async catalogo() {
-    const [empresas, sucursales, categorias, proveedores, productos] = await Promise.all([
+    const staff = ['auditor', 'compras', 'admin'].includes(perfil?.rol);
+    const [empresas, sucursales, categorias, proveedores, productos, precios] = await Promise.all([
       sb.from('empresas').select('*'), sb.from('sucursales').select('*').order('id'),
       sb.from('categorias').select('*').order('orden'), sb.from('proveedores').select('*').order('nombre'),
-      sb.from('productos').select('*').order('nombre')].map(p => p.then(ok)));
+      sb.from('productos').select('*').order('nombre'),
+      staff ? sb.from('precios_lista').select('*') : Promise.resolve({ data: [] })].map(p => p.then(ok)));
+    // el equipo ve el precio de lista; a una sucursal no le llega
+    const pl = new Map(precios.map(x => [x.producto_id, x]));
+    for (const p of productos) { const x = pl.get(p.id); p.precio_ref = x ? +x.precio : null; p.precio_fuente = x?.fuente || null; p.precio_fecha = x?.fecha || null; }
     return { empresas, sucursales, categorias, proveedores, productos };
   },
+
   // el período del mes en curso se crea solo (pedidos abiertos todo el mes)
   async periodoActual() { return ok(await sb.rpc('periodo_actual')) || null; },
   async periodos() { return ok(await sb.from('periodos').select('*').order('desde')); },
@@ -85,11 +94,11 @@ export const api = {
 
   async pendientesOC() {
     const rows = ok(await sb.from('solicitud_items')
-      .select('*, solicitudes!inner(sucursal_id, estado, sucursales(nombre, empresa)), productos(nombre, unidad, precio_ref, proveedor_id, proveedores(nombre, interno))')
+      .select('*, solicitudes!inner(sucursal_id, estado, sucursales(nombre, empresa)), productos(nombre, unidad, proveedor_id, proveedores(nombre, interno), precios_lista(precio))')
       .in('solicitudes.estado', ['aprobada', 'aprobada_parcial', 'en_compra'])   // el histórico importado queda afuera
       .is('oc_id', null).in('estado', ['aprobado', 'ajustado']).gt('cantidad_aprobada', 0));
     return rows.map(si => ({ ...si, cantidad_aprobada: +si.cantidad_aprobada, sucursal: si.solicitudes.sucursales.nombre, empresa: si.solicitudes.sucursales.empresa,
-      producto: si.productos.nombre, unidad: si.productos.unidad, precio_ref: si.productos.precio_ref,
+      producto: si.productos.nombre, unidad: si.productos.unidad, precio_ref: lista(si.productos),
       proveedor_id: si.productos.proveedor_id, proveedor: si.productos.proveedores?.nombre || null, interno: !!si.productos.proveedores?.interno }));
   },
   async generarOrdenes() { return ok(await sb.rpc('generar_ordenes', {})); },
@@ -172,14 +181,19 @@ export const api = {
   async tiempos() { return ok(await sb.from('v_tiempos').select('*')); },
 
   async guardarProducto(p) {
-    const { id, ...campos } = p;
+    // el precio va aparte (tabla precios_lista, solo equipo); el resto del insumo, en productos
+    const { id, precio_ref, precio_fuente, precio_fecha, ...campos } = p;
+    delete campos.precios_lista;
     if ('link_compra' in campos) campos.link_compra = (campos.link_compra || '').trim() || null;
-    if (id) {
-      const prev = ok(await sb.from('productos').select('precio_ref').eq('id', id).single());
-      ok(await sb.from('productos').update(campos).eq('id', id));
-      if (campos.precio_ref && +campos.precio_ref !== +prev.precio_ref && campos.proveedor_id)
-        ok(await sb.from('precios').insert({ producto_id: id, proveedor_id: campos.proveedor_id, precio: campos.precio_ref, fuente: 'cotizacion' }));
-    } else ok(await sb.from('productos').insert(campos));
+    let pid = id;
+    if (id) ok(await sb.from('productos').update(campos).eq('id', id));
+    else pid = ok(await sb.from('productos').insert(campos).select('id').single()).id;
+    const prev = ok(await sb.from('precios_lista').select('precio').eq('producto_id', pid).maybeSingle());
+    if (+precio_ref > 0) {
+      ok(await sb.from('precios_lista').upsert({ producto_id: pid, precio: +precio_ref, fuente: precio_fuente || null, fecha: precio_fecha || null }));
+      if (+precio_ref !== +(prev?.precio || 0) && campos.proveedor_id)
+        ok(await sb.from('precios').insert({ producto_id: pid, proveedor_id: campos.proveedor_id, precio: +precio_ref, fuente: 'cotizacion', fecha: precio_fecha || undefined }));
+    } else if (prev) ok(await sb.from('precios_lista').delete().eq('producto_id', pid));
   },
   // fotos de insumos: se achican en el navegador y van al bucket público "productos"
   async guardarFotoProducto(id, file) {

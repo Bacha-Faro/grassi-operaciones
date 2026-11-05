@@ -1,8 +1,8 @@
 // Compras: consolida lo aprobado en órdenes por proveedor y razón social,
 // permite ajustar precios, enviar la OC por mail y registrar la recepción.
-import { h, money, n, pill, empty, toast, fecha, docNum, sum, groupBy, modal, confirmar, tabs, field, linkCompra } from '../ui.js?v=20261104-1250';
-import { ocHTML, ocPDF, pdfBase64, logoListo, pdfListo } from '../oc-doc.js?v=20261104-1250';
-import { abrirRecepcion, estadoRecepcion, difsTexto } from './recepcion.js?v=20261104-1250';
+import { h, money, n, pill, empty, toast, fecha, docNum, sum, groupBy, modal, confirmar, tabs, field, linkCompra } from '../ui.js?v=20261105-1741';
+import { ocHTML, ocPDF, pdfBase64, logoListo, pdfListo } from '../oc-doc.js?v=20261105-1741';
+import { abrirRecepcion, estadoRecepcion, difsTexto } from './recepcion.js?v=20261105-1741';
 
 export async function render({ api, me, cat, refresh }) {
   const puede = ['compras', 'admin'].includes(me.rol);
