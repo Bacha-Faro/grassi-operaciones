@@ -1,17 +1,17 @@
 // Shell de la app: sesión, navegación por rol y enrutado por #vista.
-import { api } from './api.js?v=20261105-1741';
-import { h, toast, field, modal, carrito } from './ui.js?v=20261105-1741';
+import { api } from './api.js?v=20261106-1324';
+import { h, toast, field, modal, carrito } from './ui.js?v=20261106-1324';
 
 const VISTAS = {
-  solicitar:         { label: 'Nueva solicitud', mod: () => import('./views/solicitar.js?v=20261105-1741'),   roles: ['solicitante', 'auditor', 'compras', 'admin'] },
-  'mis-solicitudes': { label: 'Mis solicitudes', mod: () => import('./views/solicitudes.js?v=20261105-1741'), roles: ['solicitante'], badge: 'rec' },
-  auditoria:         { label: 'Auditoría',       mod: () => import('./views/auditoria.js?v=20261105-1741'),   roles: ['auditor', 'admin'], badge: 'pend' },
-  solicitudes:       { label: 'Solicitudes',     mod: () => import('./views/solicitudes.js?v=20261105-1741'), roles: ['auditor', 'compras', 'admin'] },
-  compras:           { label: 'Compras',         mod: () => import('./views/compras.js?v=20261105-1741'),     roles: ['compras', 'admin'], badge: 'oc' },
-  facturas:          { label: 'Facturas',        mod: () => import('./views/facturas.js?v=20261105-1741'),    roles: ['auditor', 'compras', 'admin'], badge: 'fc' },
-  indicadores:       { label: 'Indicadores',     mod: () => import('./views/indicadores.js?v=20261105-1741'), roles: ['auditor', 'compras', 'admin'] },
-  catalogo:          { label: 'Catálogo',        mod: () => import('./views/catalogo.js?v=20261105-1741'),    roles: ['compras', 'admin'] },
-  usuarios:          { label: 'Usuarios',        mod: () => import('./views/usuarios.js?v=20261105-1741'),    roles: ['admin'], soporte: true },
+  solicitar:         { label: 'Nueva solicitud', mod: () => import('./views/solicitar.js?v=20261106-1324'),   roles: ['solicitante', 'auditor', 'compras', 'admin'] },
+  'mis-solicitudes': { label: 'Mis solicitudes', mod: () => import('./views/solicitudes.js?v=20261106-1324'), roles: ['solicitante'], badge: 'rec' },
+  auditoria:         { label: 'Auditoría',       mod: () => import('./views/auditoria.js?v=20261106-1324'),   roles: ['auditor', 'admin'], badge: 'pend' },
+  solicitudes:       { label: 'Solicitudes',     mod: () => import('./views/solicitudes.js?v=20261106-1324'), roles: ['auditor', 'compras', 'admin'] },
+  compras:           { label: 'Compras',         mod: () => import('./views/compras.js?v=20261106-1324'),     roles: ['compras', 'admin'], badge: 'oc' },
+  facturas:          { label: 'Facturas',        mod: () => import('./views/facturas.js?v=20261106-1324'),    roles: ['auditor', 'compras', 'admin'], badge: 'fc' },
+  indicadores:       { label: 'Indicadores',     mod: () => import('./views/indicadores.js?v=20261106-1324'), roles: ['auditor', 'compras', 'admin'] },
+  catalogo:          { label: 'Catálogo',        mod: () => import('./views/catalogo.js?v=20261106-1324'),    roles: ['compras', 'admin'] },
+  usuarios:          { label: 'Usuarios',        mod: () => import('./views/usuarios.js?v=20261106-1324'),    roles: ['admin'], soporte: true },
 };
 const INICIO = { solicitante: 'solicitar', auditor: 'auditoria', compras: 'compras', admin: 'auditoria' };
 const ROL = { solicitante: 'Sucursal', auditor: 'Auditoría (RRHH)', compras: 'Compras', admin: 'Administrador' };
@@ -64,7 +64,7 @@ function demoBar() {
   return h('div', { class: 'demo-bar' },
     h('span', { class: 'demo-tag' }, 'Demo'),
     h('label', { class: 'demo-who' }, h('span', {}, 'Ver como'),
-      h('select', { id: 'demo-user', onchange: async e => { await api.cambiarUsuario(us.find(u => u.key === e.target.value)); me = await api.me(); irA(INICIO[me.rol]); } },
+      h('select', { id: 'demo-user', onchange: async e => { await api.cambiarUsuario(us.find(u => u.key === e.target.value)); catCache = null; me = await api.me(); irA(INICIO[me.rol]); } },
         us.map(u => h('option', { value: u.key, selected: u.key === actual }, u.label)))),
     h('button', { class: 'link', onclick: async () => { await api.reset(); catCache = null; me = await api.me(); toast('Datos de ejemplo restaurados'); irA(INICIO[me.rol]); } }, 'Reiniciar datos'));
 }
@@ -152,6 +152,7 @@ function login() {
 }
 
 async function inicio() {
+  catCache = null;   // otro usuario: el catálogo (con o sin precios) se vuelve a pedir
   await api.init();
   me = await api.me();
   if (!me) return login();

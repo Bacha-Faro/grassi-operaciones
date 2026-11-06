@@ -1,6 +1,6 @@
 // Nueva solicitud, en modo "súper": cada categoría es una góndola (pasillo), los insumos son
 // productos en el estante y el pedido es el carrito. Incluye pedido sugerido según consumo.
-import { h, money, n, toast, field, empty, groupBy, sum, verFoto, carrito } from '../ui.js?v=20261105-1741';
+import { h, money, n, toast, field, empty, groupBy, sum, verFoto, carrito } from '../ui.js?v=20261106-1324';
 
 // Pasillos: ícono y color por categoría (por nombre; si aparece una nueva, toma un color de la lista)
 const PASILLOS = [
@@ -27,11 +27,11 @@ const ENVASES = [
   [/cuaderno/i, '📒'], [/folio/i, '📁'], [/lapicera|bic/i, '🖊️'], [/l[aá]piz/i, '✏️'], [/fibr[oó]n|resaltador|marcador/i, '🖍️'],
   [/goma|corrector/i, '🩹'], [/pegamento|voligoma/i, '🧴'], [/trincheta|tijera/i, '✂️'], [/resma|hoja/i, '📄'],
   [/rollo|ticket/i, '🧾'], [/t[oó]ner/i, '🖨️'],
-  [/gel refrig|hielo/i, '🧊'], [/t[eé]rmica|conservadora/i, '👜'], [/vale|aviso/i, '🎫'],
+  [/bolsa de residuo|residuo/i, '🗑️'], [/gel refrig|hielo/i, '🧊'], [/t[eé]rmica|conservadora/i, '👜'], [/vale|aviso/i, '🎫'],
 ];
 const envase = (p, def) => (ENVASES.find(([re]) => re.test(p.nombre)) || [null, def])[1];
 
-const DIA_LIMITE = 5;   // también controlado en la base (política de alta de solicitudes)
+const DIA_DESDE = 20, DIA_HASTA = 25;   // también controlado en la base (política de alta de solicitudes)
 const animar = !matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 export async function render({ api, me, cat, go }) {
@@ -69,9 +69,9 @@ export async function render({ api, me, cat, go }) {
   const motivoUrg = h('input', { id: 'sol-urg-motivo', type: 'text', placeholder: '¿Por qué es urgente? Ej.: se terminó el papel del baño', hidden: true });
   const urgente = h('input', { id: 'sol-urgente', type: 'checkbox', onchange: e => { motivoUrg.hidden = !e.target.checked; urgBox.classList.toggle('on', e.target.checked); if (e.target.checked) motivoUrg.focus(); } });
   const urgBox = h('div', { class: 'urgente-box' }, h('label', { class: 'check' }, urgente, h('span', {}, h('strong', {}, 'Es urgente'), h('small', { class: 'muted' }, ' · imprevistos que no pueden esperar'))), motivoUrg);
-  // Pedidos del mes: del 1 al 5. Fuera de esas fechas la sucursal solo puede mandar pedidos urgentes (RRHH, sin restricción).
+  // Pedidos del mes: del 20 al 25. Fuera de esas fechas la sucursal solo puede mandar pedidos urgentes (RRHH, sin restricción).
   const diaHoy = +new Intl.DateTimeFormat('es-AR', { day: 'numeric', timeZone: 'America/Argentina/Buenos_Aires' }).format(new Date());
-  const fueraDeFecha = !esStaff && diaHoy > DIA_LIMITE;
+  const fueraDeFecha = !esStaff && (diaHoy < DIA_DESDE || diaHoy > DIA_HASTA);
   if (fueraDeFecha) { urgente.checked = true; urgente.disabled = true; motivoUrg.hidden = false; urgBox.classList.add('on'); }
   const buscar = h('input', { id: 'sol-buscar', type: 'search', placeholder: '¿Qué estás buscando? Ej.: lavandina', 'aria-label': 'Buscar insumo',
     oninput: e => { filtro = e.target.value.toLowerCase().trim(); pintarGondolas(); } });
@@ -206,7 +206,7 @@ export async function render({ api, me, cat, go }) {
     e.preventDefault();
     if (!nombre.value.trim()) { nombre.focus(); return toast('Indicá tu nombre y apellido', 'bad'); }
     if (!qty.size) return toast('Tu carrito está vacío', 'bad');
-    if (fueraDeFecha && !urgente.checked) return toast(`Los pedidos del mes se hacen del 1 al ${DIA_LIMITE}. Hoy solo se pueden enviar urgentes.`, 'bad');
+    if (fueraDeFecha && !urgente.checked) return toast(`Los pedidos del mes se hacen del ${DIA_DESDE} al ${DIA_HASTA}. Hoy solo se pueden enviar urgentes.`, 'bad');
     if (urgente.checked && !motivoUrg.value.trim()) { motivoUrg.focus(); return toast('Contá por qué es urgente', 'bad'); }
     btn.disabled = true;
     try {
@@ -231,14 +231,14 @@ export async function render({ api, me, cat, go }) {
       h('div', { class: 'super-cartel' },
         h('div', {}, h('p', { class: 'eyebrow' }, `Período ${periodo.nombre}`),
           h('h1', {}, 'Súper Insumos Grassi'),
-          h('p', { class: 'muted' }, `Recorré los pasillos y llená el carrito con lo que necesita tu sucursal. Los pedidos del mes se hacen del 1 al ${DIA_LIMITE}; si surge un imprevisto, podés mandar un pedido urgente en cualquier momento.`)),
+          h('p', { class: 'muted' }, `Recorré los pasillos y llená el carrito con lo que necesita tu sucursal. Los pedidos del mes se hacen del ${DIA_DESDE} al ${DIA_HASTA}; si surge un imprevisto, podés mandar un pedido urgente en cualquier momento.`)),
         h('button', { type: 'button', class: 'btn', onclick: () => {
           const s = sugerido();
           if (!s.items.length) return toast('No hay consumo previo para sugerir', 'warn');
           qty.clear(); s.items.forEach(([id, v]) => qty.set(id, v)); pintarGondolas(); pintarResumen(); pintarPasillos(); rebotar();
           toast(`Cargado el promedio de los últimos ${s.meses} meses. Ajustá lo que haga falta.`);
         } }, '📝 Cargar pedido sugerido'))),
-    fueraDeFecha ? h('div', { class: 'notice urgente-aviso' }, h('strong', {}, `Los pedidos del mes se hacen del 1 al ${DIA_LIMITE}. `), 'Hoy solo podés enviar un pedido urgente: contá el motivo en el carrito. Lo demás, pedilo a principio del mes que viene.') : null,
+    fueraDeFecha ? h('div', { class: 'notice urgente-aviso' }, h('strong', {}, `Los pedidos del mes se hacen del ${DIA_DESDE} al ${DIA_HASTA}. `), `Hoy solo podés enviar un pedido urgente: contá el motivo en el carrito. Lo demás, pedilo entre el ${DIA_DESDE} y el ${DIA_HASTA}.`) : null,
     previas.length ? h('div', { class: 'notice' }, `Esta sucursal ya envió ${previas.length} solicitud${previas.length > 1 ? 'es' : ''} este mes. Si mandás otra, se audita por separado.`) : null,
     h('div', { class: 'split' },
       h('div', { class: 'split-main' },

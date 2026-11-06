@@ -1,7 +1,7 @@
 // Adaptador Supabase: misma interfaz que api-demo.js.
 // Requiere el script UMD de supabase-js cargado en index.html (window.supabase).
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261105-1741';
-import { achicarImagen } from './ui.js?v=20261105-1741';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261106-1324';
+import { achicarImagen } from './ui.js?v=20261106-1324';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const ok = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
@@ -71,6 +71,8 @@ export const api = {
     const s = ok(await sb.from('solicitudes').insert({ periodo_id, sucursal_id, solicitante_nombre, observaciones, urgente, motivo_urgencia,
       solicitante_id: perfil?.id }).select('id').single());
     ok(await sb.from('solicitud_items').insert(items.map(i => ({ solicitud_id: s.id, producto_id: i.producto_id, cantidad_solicitada: i.cantidad }))));
+    // aviso por mail a RRHH de cada pedido nuevo: si falla, el pedido ya quedó guardado igual
+    sb.functions.invoke('enviar-mail', { body: { tipo: 'nueva_solicitud', solicitud_id: s.id } }).catch(() => {});
     return s.id;
   },
   async solicitudes(f = {}) {
