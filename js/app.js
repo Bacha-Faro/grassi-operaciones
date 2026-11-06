@@ -1,23 +1,57 @@
-// Shell de la app: sesión, navegación por rol y enrutado por #vista.
-import { api } from './api.js?v=20261106-1324';
-import { h, toast, field, modal, carrito } from './ui.js?v=20261106-1324';
+// Shell de Grassi Operaciones: sesión, módulos (De compras · IT · Droguería), navegación por rol y enrutado por #vista.
+// Escritorio: barra angosta de módulos + menú del módulo + contenido. Celular: barra arriba, pestañas del módulo y barra de módulos abajo.
+import { api } from './api.js?v=20261106-1827';
+import { h, toast, field, modal } from './ui.js?v=20261106-1827';
 
 const VISTAS = {
-  solicitar:         { label: 'Nueva solicitud', mod: () => import('./views/solicitar.js?v=20261106-1324'),   roles: ['solicitante', 'auditor', 'compras', 'admin'] },
-  'mis-solicitudes': { label: 'Mis solicitudes', mod: () => import('./views/solicitudes.js?v=20261106-1324'), roles: ['solicitante'], badge: 'rec' },
-  auditoria:         { label: 'Auditoría',       mod: () => import('./views/auditoria.js?v=20261106-1324'),   roles: ['auditor', 'admin'], badge: 'pend' },
-  solicitudes:       { label: 'Solicitudes',     mod: () => import('./views/solicitudes.js?v=20261106-1324'), roles: ['auditor', 'compras', 'admin'] },
-  compras:           { label: 'Compras',         mod: () => import('./views/compras.js?v=20261106-1324'),     roles: ['compras', 'admin'], badge: 'oc' },
-  facturas:          { label: 'Facturas',        mod: () => import('./views/facturas.js?v=20261106-1324'),    roles: ['auditor', 'compras', 'admin'], badge: 'fc' },
-  indicadores:       { label: 'Indicadores',     mod: () => import('./views/indicadores.js?v=20261106-1324'), roles: ['auditor', 'compras', 'admin'] },
-  catalogo:          { label: 'Catálogo',        mod: () => import('./views/catalogo.js?v=20261106-1324'),    roles: ['compras', 'admin'] },
-  usuarios:          { label: 'Usuarios',        mod: () => import('./views/usuarios.js?v=20261106-1324'),    roles: ['admin'], soporte: true },
+  inicio:            { label: 'Inicio',          mod: () => import('./views/inicio.js?v=20261106-1827'),      roles: ['solicitante', 'auditor', 'compras', 'admin'], grupo: 'inicio' },
+  // De compras
+  solicitar:         { label: 'Nueva solicitud', mod: () => import('./views/solicitar.js?v=20261106-1827'),   roles: ['solicitante', 'auditor', 'compras', 'admin'] },
+  'mis-solicitudes': { label: 'Mis solicitudes', mod: () => import('./views/solicitudes.js?v=20261106-1827'), roles: ['solicitante'], badge: 'rec' },
+  auditoria:         { label: 'Auditoría',       mod: () => import('./views/auditoria.js?v=20261106-1827'),   roles: ['auditor', 'admin'], badge: 'pend' },
+  solicitudes:       { label: 'Solicitudes',     mod: () => import('./views/solicitudes.js?v=20261106-1827'), roles: ['auditor', 'compras', 'admin'] },
+  compras:           { label: 'Compras',         mod: () => import('./views/compras.js?v=20261106-1827'),     roles: ['compras', 'admin'], badge: 'oc' },
+  facturas:          { label: 'Facturas',        mod: () => import('./views/facturas.js?v=20261106-1827'),    roles: ['auditor', 'compras', 'admin'], badge: 'fc' },
+  indicadores:       { label: 'Indicadores',     mod: () => import('./views/indicadores.js?v=20261106-1827'), roles: ['auditor', 'compras', 'admin'] },
+  catalogo:          { label: 'Catálogo',        mod: () => import('./views/catalogo.js?v=20261106-1827'),    roles: ['compras', 'admin'] },
+  // IT Grassi
+  tickets:           { label: 'Tickets',         mod: () => import('./views/tickets.js?v=20261106-1827'),     roles: ['admin'], soporte: true, grupo: 'it', badge: 'tkit' },
+  soporte:           { label: 'Soporte IT',      mod: () => import('./views/soporte.js?v=20261106-1827'),     roles: ['solicitante', 'auditor', 'compras', 'admin'], sinSoporte: true, grupo: 'it', badge: 'tk' },
+  usuarios:          { label: 'Usuarios',        mod: () => import('./views/usuarios.js?v=20261106-1827'),    roles: ['admin'], soporte: true, grupo: 'it' },
+  // Droguería (lo ve IT y quien tenga perfiles.drogueria; mientras DROGUERIA_PARA_TODOS sea false, solo IT)
+  drogueria:         { label: 'Tablero',         mod: () => import('./views/drogueria.js?v=20261106-1827'),   roles: ['solicitante', 'auditor', 'compras', 'admin'], drog: true, grupo: 'drogueria' },
+  temperatura:       { label: 'Temperatura y humedad', mod: () => import('./views/temperatura.js?v=20261106-1827'), roles: ['solicitante', 'auditor', 'compras', 'admin'], drog: true, grupo: 'drogueria', badge: 'temp' },
+  bachas:            { label: 'Bachas',          mod: () => import('./views/bachas.js?v=20261106-1827'),      roles: ['solicitante', 'auditor', 'compras', 'admin'], drog: true, grupo: 'drogueria', badge: 'bch' },
 };
-const INICIO = { solicitante: 'solicitar', auditor: 'auditoria', compras: 'compras', admin: 'auditoria' };
+// Íconos de los módulos (trazo, toman el color del texto)
+const ICONOS = {
+  inicio: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/>',
+  drogueria: '<path d="M21 8l-9-5-9 5v8l9 5 9-5z"/><path d="M3 8l9 5 9-5"/><path d="M12 13v8"/>',
+  compras: '<path d="M3 4h2l2.4 11h11.2L21 8H7"/><circle cx="10" cy="19" r="1.5"/><circle cx="17" cy="19" r="1.5"/>',
+  it: '<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8"/><path d="M12 16v4"/>',
+};
+const icono = (k, size = 22) => h('span', { class: 'ico', 'aria-hidden': 'true', html: `<svg viewBox="0 0 24 24" width="${size}" height="${size}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${ICONOS[k]}</svg>` });
+const MODULOS = {
+  drogueria: { nombre: 'Droguería', logo: 'drogueria', desc: 'Temperatura y humedad, bachas y tablero del depósito' },
+  compras:   { nombre: 'De compras', logo: 'compras', desc: 'Pedidos de insumos, auditoría y órdenes de compra' },
+  it:        { nombre: 'IT', logo: 'it', desc: 'Tickets de soporte para sucursales y áreas' },
+};
+const ORDEN_MODULOS = ['drogueria', 'compras', 'it'];
+// IT Grassi está en desarrollo: mientras sea false, solo lo ve IT (perfiles.soporte), que además puede abrir "Soporte IT"
+// para probar la vista de la sucursal. En la demo se ve siempre. Para lanzarlo a todos: true.
+const IT_PARA_TODOS = false;
+// (en la demo se puede ocultar IT con localStorage 'demo-sin-it', para sacar capturas como las ve hoy una sucursal)
+const demoConIT = () => { try { return api.modo === 'demo' && !localStorage.getItem('demo-sin-it'); } catch { return api.modo === 'demo'; } };
+const itVisible = () => IT_PARA_TODOS || demoConIT() || me?.soporte;
+const DROGUERIA_PARA_TODOS = false;
+const drogVisible = () => !!(me?.soporte || ((DROGUERIA_PARA_TODOS || api.modo === 'demo') && me?.drogueria));
 const ROL = { solicitante: 'Sucursal', auditor: 'Auditoría (RRHH)', compras: 'Compras', admin: 'Administrador' };
+const grupoDe = v => v.grupo || 'compras';
 
-// Logo de la app: "de compras" + grassi (las OC, PDF y mails a proveedores siguen con el logo oficial logo-grassi.png)
-const logo = cls => [h('img', { class: `${cls} logo-claro`, src: 'img/logo-compras.png', alt: 'Grassi de compras' }), h('img', { class: `${cls} logo-oscuro`, src: 'img/logo-compras-claro.png', alt: 'Grassi de compras' })];
+// Logos (las OC, PDF y mails a proveedores siguen con el logo oficial logo-grassi.png)
+const logoModulo = (m, cls = '') => [
+  h('img', { class: `${cls} logo-claro`, src: `img/logo-${m}.png`, alt: `Grassi ${MODULOS[m]?.nombre || ''}` }),
+  h('img', { class: `${cls} logo-oscuro`, src: `img/logo-${m}-claro.png`, alt: `Grassi ${MODULOS[m]?.nombre || ''}` })];
 // Tema: claro, oscuro o automático (sigue al sistema). Se recuerda en este navegador.
 const TEMAS = [['claro', 'Claro'], ['oscuro', 'Oscuro'], ['auto', 'Auto']];
 const leerTema = () => { try { return localStorage.getItem('insumos-tema') || 'auto'; } catch { return 'auto'; } };
@@ -36,13 +70,13 @@ const app = document.getElementById('app');
 // Contacto de soporte (IT) y si la app está embebida (GrassiNet, Google Sites)
 const IT_TEL = '358 4164 187';
 const enIframe = (() => { try { return window.self !== window.top; } catch { return true; } })();
-let me = null, ruta = null, catCache = null, turno = 0;
+let me = null, ruta = null, catCache = null, turno = 0, abrirParams = null;
 // El catálogo casi no cambia: se trae una vez y se reutiliza al navegar (se refresca en Catálogo y con refresh)
 async function catalogo(fresco) { if (fresco || !catCache) catCache = await api.catalogo(); return catCache; }
 
 function irA(v) { ruta = v; try { history.replaceState(null, '', `#${v}`); } catch { /* sin history */ } pintar(); }
 
-// Contadores del menú: se piden todos juntos y se completan cuando llegan, sin frenar la pantalla
+// Contadores (menú, módulos e inicio): se piden todos juntos y se completan cuando llegan, sin frenar la pantalla
 async function badges() {
   const out = {}, tareas = [];
   const t = (k, f) => tareas.push(f().then(v => { out[k] = v; }).catch(() => {}));
@@ -53,6 +87,18 @@ async function badges() {
   });
   if (me.rol === 'solicitante') t('rec', async () => (await api.recepciones()).filter(r => r.pendiente).length);
   if (['auditor', 'compras', 'admin'].includes(me.rol)) t('fc', async () => (await api.facturas()).filter(f => f.estado === 'recibida').length);
+  // tickets: a IT, los nuevos (y los críticos); a la sucursal, los que esperan su respuesta o su confirmación
+  if (me.soporte) t('tkit', async () => { const ts = await api.tickets(); out.tkcrit = ts.filter(x => x.estado === 'nuevo' && x.prioridad === 'critica').length; return ts.filter(x => x.estado === 'nuevo').length; });
+  else if (itVisible()) t('tk', async () => (await api.tickets()).filter(x => ['en_espera', 'resuelto'].includes(x.estado)).length);
+  // Droguería: turnos de hoy que ya pasaron sin cargar, y bachas demoradas
+  if (drogVisible()) {
+    t('temp', async () => {
+      const { hoyAR, turnosDe, estadoTurno } = await import('./views/drog-comun.js?v=20261106-1827');
+      const hoy = hoyAR(), [ps, ls] = await Promise.all([api.tempPuntos(), api.tempLecturas(hoy, hoy)]);
+      return turnosDe(hoy).filter(tu => ['ahora', 'atrasado'].includes(estadoTurno(hoy, tu, ls.filter(l => l.turno === tu).length, ps.length))).length;
+    });
+    t('bch', async () => (await api.bachas()).filter(b => b.estado === 'vencida').length);
+  }
   await Promise.all(tareas);
   return out;
 }
@@ -64,42 +110,81 @@ function demoBar() {
   return h('div', { class: 'demo-bar' },
     h('span', { class: 'demo-tag' }, 'Demo'),
     h('label', { class: 'demo-who' }, h('span', {}, 'Ver como'),
-      h('select', { id: 'demo-user', onchange: async e => { await api.cambiarUsuario(us.find(u => u.key === e.target.value)); catCache = null; me = await api.me(); irA(INICIO[me.rol]); } },
+      h('select', { id: 'demo-user', onchange: async e => { await api.cambiarUsuario(us.find(u => u.key === e.target.value)); catCache = null; me = await api.me(); irA('inicio'); } },
         us.map(u => h('option', { value: u.key, selected: u.key === actual }, u.label)))),
-    h('button', { class: 'link', onclick: async () => { await api.reset(); catCache = null; me = await api.me(); toast('Datos de ejemplo restaurados'); irA(INICIO[me.rol]); } }, 'Reiniciar datos'));
+    h('button', { class: 'link', onclick: async () => { await api.reset(); catCache = null; me = await api.me(); toast('Datos de ejemplo restaurados'); irA('inicio'); } }, 'Reiniciar datos'));
 }
+
+// vistas que puede abrir este usuario, y los módulos que le quedan
+function permitidas() {
+  return Object.entries(VISTAS).filter(([, v]) => v.roles.includes(me.rol) && (!v.soporte || me.soporte) && (!v.drog || drogVisible())
+    && (grupoDe(v) !== 'it' || itVisible()) && !(v.sinSoporte && me.soporte && (IT_PARA_TODOS || demoConIT())));
+}
+const modulosDe = vistas => ORDEN_MODULOS.filter(m => vistas.some(([, v]) => grupoDe(v) === m));
 
 async function pintar(fresco = false) {
   const mio = ++turno;   // si se navega rápido, solo la última pantalla pedida se dibuja
-  const permitidas = Object.entries(VISTAS).filter(([, v]) => v.roles.includes(me.rol) && (!v.soporte || me.soporte));
-  if (!permitidas.some(([k]) => k === ruta)) ruta = INICIO[me.rol];
-  const cupos = {};
-  const nav = h('nav', { class: 'nav', 'aria-label': 'Secciones' }, permitidas.map(([k, v]) =>
-    h('a', { href: `#${k}`, class: `nav-item${k === ruta ? ' on' : ''}`, 'aria-current': k === ruta ? 'page' : null, onclick: e => { e.preventDefault(); irA(k); } },
-      h('span', {}, v.label), v.badge ? (cupos[v.badge] = h('span', { class: 'badge', hidden: true })) : null)));
-  badges().then(b => { for (const [k, el] of Object.entries(cupos)) if (b[k]) { el.textContent = b[k]; el.hidden = false; } });
+  const vistas = permitidas();
+  if (!vistas.some(([k]) => k === ruta)) ruta = 'inicio';
+  const modulos = modulosDe(vistas);
+  const actual = grupoDe(VISTAS[ruta]);   // 'inicio' o un módulo
+  const primera = m => vistas.find(([, v]) => grupoDe(v) === m)?.[0];
+  const delModulo = actual === 'inicio' ? [] : vistas.filter(([, v]) => grupoDe(v) === actual);
+
+  // contadores: cada badge se pinta donde aparezca (menú, pestañas del celular, puntos de los módulos)
+  const cupos = [], puntos = [];
+  const badgeEl = k => { const el = h('span', { class: 'badge', hidden: true }); cupos.push([k, el]); return el; };
+  const pb = badges();
+  pb.then(b => {
+    for (const [k, el] of cupos) if (b[k]) { el.textContent = b[k]; el.hidden = false; }
+    for (const [m, el] of puntos) if (vistas.some(([, v]) => grupoDe(v) === m && v.badge && b[v.badge])) el.hidden = false;
+  });
+
+  const item = ([k, v], cls) => h('a', { href: `#${k}`, class: `${cls}${k === ruta ? ' on' : ''}`, 'aria-current': k === ruta ? 'page' : null, onclick: e => { e.preventDefault(); irA(k); } },
+    h('span', {}, v.label), v.badge ? badgeEl(v.badge) : null);
+  const botonModulo = (m, cls, conTexto) => {
+    const punto = h('span', { class: 'punto', hidden: true }); puntos.push([m, punto]);
+    const destino = m === 'inicio' ? 'inicio' : primera(m);
+    return h('a', { href: `#${destino}`, class: `${cls} mod-${m}${actual === m ? ' on' : ''}`, 'aria-current': actual === m ? 'page' : null, 'aria-label': m === 'inicio' ? 'Inicio' : MODULOS[m].nombre,
+      title: m === 'inicio' ? 'Inicio' : MODULOS[m].nombre, onclick: e => { e.preventDefault(); irA(destino); } },
+      icono(m), m === 'inicio' ? null : punto, conTexto ? h('span', { class: 'mod-txt' }, m === 'inicio' ? 'Inicio' : MODULOS[m].nombre) : null);
+  };
+  const quien = me.sucursal || me.nombre || me.email;
+  const iniciales = (me.soporte ? 'IT' : quien).replace(/[^\p{L}\p{N} ]/gu, '').split(/\s+/).filter(Boolean).slice(0, 2).map(x => x[0]).join('').toUpperCase() || '·';
+  const botonCuenta = cls => h('button', { type: 'button', class: cls, 'aria-label': 'Mi cuenta: tema, contraseña y salir', title: 'Mi cuenta', onclick: () => cuenta() }, iniciales);
   const main = h('main', { class: 'main', id: 'main' }, h('div', { class: 'loading' }, 'Cargando…'));
 
   app.replaceChildren(
     demoBar(),
-    h('div', { class: 'shell' },
-      h('aside', { class: 'side' },
-        h('div', { class: 'brand' }, h('img', { class: 'brand-iso', src: 'img/isotipo.png', alt: 'Farmacias Grassi · Insumos' }), carrito('mini solo-movil'),
-          h('div', { class: 'brand-logo' }, logo(''), h('span', { class: 'brand-app' }, carrito('mini'), 'Insumos'))),
-        nav,
-        h('button', { type: 'button', class: 'cuenta-movil', 'aria-label': 'Mi cuenta: tema, contraseña y salir', onclick: () => cuentaMovil() },
-          h('span', { 'aria-hidden': 'true', html: ICONO_CUENTA })),
-        h('div', { class: 'who' }, h('strong', {}, me.sucursal || me.nombre || me.email), h('small', {}, ROL[me.rol]),
-          selectorTema(),
-          enIframe ? h('a', { class: 'link abrir-fuera', href: location.href, target: '_blank', rel: 'noopener' }, 'Abrir en pestaña nueva ↗') : null,
-          api.modo !== 'demo' ? h('div', { class: 'who-actions' },
-            me.soporte ? h('button', { class: 'link', onclick: () => cambiarClave() }, 'Cambiar contraseña') : null,
-            h('button', { class: 'link', onclick: async () => { await api.logout(); inicio(); } }, 'Salir')) : null)),
-      main));
+    h('div', { class: `plataforma${actual === 'inicio' ? ' en-inicio' : ''}`, 'data-mod': actual },
+      // barra de módulos (escritorio)
+      h('nav', { class: 'rail', 'aria-label': 'Módulos' },
+        h('a', { href: '#inicio', class: 'rail-iso', 'aria-label': 'Inicio · Grassi Operaciones', title: 'Inicio', onclick: e => { e.preventDefault(); irA('inicio'); } },
+          h('img', { src: 'img/isotipo.png', alt: '' })),
+        modulos.map(m => botonModulo(m, 'rail-mod')),
+        h('span', { class: 'rail-sep' }),
+        botonCuenta('rail-cuenta')),
+      // menú del módulo (escritorio)
+      actual === 'inicio' ? null : h('aside', { class: 'modnav' },
+        h('a', { href: `#${primera(actual)}`, class: 'modnav-logo', onclick: e => { e.preventDefault(); irA(primera(actual)); } }, logoModulo(MODULOS[actual].logo)),
+        h('nav', { class: 'nav', 'aria-label': `Secciones de ${MODULOS[actual].nombre}` }, delModulo.map(x => item(x, 'nav-item'))),
+        h('div', { class: 'who' }, h('strong', {}, quien), h('small', {}, ROL[me.rol]),
+          enIframe ? h('a', { class: 'link abrir-fuera', href: location.href, target: '_blank', rel: 'noopener' }, 'Abrir en pestaña nueva ↗') : null)),
+      // celular: barra de arriba y pestañas del módulo
+      h('header', { class: 'top-movil' },
+        h('a', { href: '#inicio', class: 'top-iso', onclick: e => { e.preventDefault(); irA('inicio'); } }, h('img', { src: 'img/isotipo.png', alt: 'Inicio' })),
+        h('div', { class: 'top-txt' }, h('strong', {}, quien), h('small', {}, actual === 'inicio' ? 'Grassi Operaciones' : `Grassi ${MODULOS[actual].nombre}`)),
+        botonCuenta('top-cuenta')),
+      delModulo.length > 1 ? h('nav', { class: 'subnav', 'aria-label': 'Secciones' }, delModulo.map(x => item(x, 'subnav-item'))) : null,
+      main,
+      modulos.length > 0 ? h('nav', { class: 'tabbar', 'aria-label': 'Módulos' }, botonModulo('inicio', 'tab-mod', true), modulos.map(m => botonModulo(m, 'tab-mod', true))) : null));
+  main.closest('.plataforma').querySelector('.subnav .on')?.scrollIntoView?.({ block: 'nearest', inline: 'center' });
 
   try {
     const [cat, { render }] = await Promise.all([catalogo(fresco || ruta === 'catalogo'), VISTAS[ruta].mod()]);
-    const el = await render({ api, me, cat, go: irA, refresh: () => pintar(true) });
+    const params = abrirParams; abrirParams = null;   // link directo (por ej. #soporte?t=12 desde un mail): se usa una vez
+    const el = await render({ api, me, cat, go: irA, refresh: () => pintar(true), params,
+      modulos, vistas: vistas.map(([k]) => k), badges: pb, primera, MODULOS, logoModulo });
     if (mio === turno) main.replaceChildren(el);
   } catch (e) {
     console.error(e);
@@ -107,10 +192,9 @@ async function pintar(fresco = false) {
   }
 }
 
-// En el celular la barra lateral no entra: la cuenta (tema, contraseña, salir) se abre desde un botón arriba a la derecha
-const ICONO_CUENTA = '<svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>';
-function cuentaMovil() {
-  const m = modal({ title: 'Mi cuenta',
+// Mi cuenta: tema, pestaña nueva, contraseña (solo IT) y salir
+function cuenta() {
+  return modal({ title: 'Mi cuenta',
     body: h('div', { class: 'stack cuenta-body' },
       h('div', {}, h('strong', {}, me.sucursal || me.nombre || me.email), h('small', { class: 'muted', style: 'display:block' }, `${ROL[me.rol]} · ${me.email}`)),
       h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Tema de la pantalla'), selectorTema()),
@@ -119,7 +203,6 @@ function cuentaMovil() {
     actions: api.modo !== 'demo' ? [
       me.soporte ? { label: 'Cambiar contraseña', onClick: () => { setTimeout(() => cambiarClave(), 0); } } : null,
       { label: 'Salir', kind: 'primary', onClick: async () => { await api.logout(); inicio(); } }].filter(Boolean) : [{ label: 'Cerrar' }] });
-  return m;
 }
 
 function cambiarClave(recuperacion = false) {
@@ -135,20 +218,30 @@ function cambiarClave(recuperacion = false) {
     } }].filter(Boolean) });
 }
 
+// Ingreso: panel de la plataforma con sus módulos + formulario
 function login() {
   const email = h('input', { id: 'l-mail', type: 'email', required: true, autocomplete: 'username', placeholder: 'suc1@grupograssi.com' });
   const pass = h('input', { id: 'l-pass', type: 'password', required: true, autocomplete: 'current-password' });
-  const btn = h('button', { class: 'btn primary block', type: 'submit' }, 'Ingresar');
-  app.replaceChildren(h('div', { class: 'login' }, h('form', { class: 'login-card', onsubmit: async e => {
-    e.preventDefault(); btn.disabled = true;
-    try { await api.login(email.value.trim(), pass.value); await inicio(); }
-    catch (err) { toast(err.message === 'Invalid login credentials' ? 'Mail o contraseña incorrectos' : err.message, 'bad'); btn.disabled = false; }
-  } },
-    h('div', { class: 'login-logo' }, logo(''), h('span', { class: 'brand-app login-sub' }, carrito('llega'), 'Pedidos de insumos')),
-    h('p', { class: 'muted' }, 'Ingresá con el mail de tu sucursal o sector.'),
-    field('Mail', email), field('Contraseña', pass), btn,
-    h('p', { class: 'muted login-ayuda' }, '¿Olvidaste la contraseña o no podés entrar? Llamá a IT: ', h('a', { href: `tel:+54${IT_TEL.replace(/\D/g, '')}` }, IT_TEL), '.')),
-    h('p', { class: 'creditos' }, h('img', { src: 'img/ganimedes.png', alt: '' }), h('span', {}, 'Desarrollado por ', h('strong', {}, 'Ganímedes Lab')))));
+  const btn = h('button', { class: 'btn primary block btn-ingresar', type: 'submit' }, 'Ingresar');
+  const fila = (m, desc) => h('li', { class: `login-mod mod-${m}` }, h('img', { src: `img/logo-${m}-claro.png`, alt: `Grassi ${MODULOS[m].nombre}` }), h('span', {}, desc));
+  app.replaceChildren(h('div', { class: 'login2' },
+    h('section', { class: 'login-marca' },
+      h('div', { class: 'login-grupo' }, h('img', { src: 'img/isotipo.png', alt: '' }), h('div', {}, h('strong', {}, 'Grupo Grassi'), h('small', {}, 'Herramientas internas'))),
+      h('div', { class: 'login-titulo' },
+        h('h1', {}, 'Grassi', h('br'), 'Operaciones'),
+        h('p', {}, 'Pedidos de insumos, droguería y soporte IT en un solo lugar, con un solo usuario.'),
+        h('ul', { class: 'login-mods' }, fila('drogueria', MODULOS.drogueria.desc), fila('compras', MODULOS.compras.desc), fila('it', MODULOS.it.desc))),
+      h('small', { class: 'login-pie' }, 'Farmacias Grassi · Servicios Sociales Grassi · Río Cuarto')),
+    h('section', { class: 'login-form-wrap' },
+      h('form', { class: 'login-form', onsubmit: async e => {
+        e.preventDefault(); btn.disabled = true;
+        try { await api.login(email.value.trim(), pass.value); await inicio(); }
+        catch (err) { toast(err.message === 'Invalid login credentials' ? 'Mail o contraseña incorrectos' : err.message, 'bad'); btn.disabled = false; }
+      } },
+        h('div', {}, h('h2', {}, 'Ingresar'), h('p', { class: 'muted' }, 'Con el mail de tu sucursal o sector.')),
+        field('Mail', email), field('Contraseña', pass), btn,
+        h('p', { class: 'login-ayuda' }, '¿Olvidaste la contraseña o no podés entrar? Llamá a IT: ', h('a', { href: `tel:+54${IT_TEL.replace(/\D/g, '')}` }, IT_TEL), '.')),
+      h('p', { class: 'creditos' }, h('img', { src: 'img/ganimedes.png', alt: '' }), h('span', {}, 'Desarrollado por ', h('strong', {}, 'Ganímedes Lab'))))));
 }
 
 async function inicio() {
@@ -163,7 +256,11 @@ async function inicio() {
       h('button', { class: 'btn', onclick: async () => { await api.logout(); inicio(); } }, 'Salir'))));
     return;
   }
-  ruta = (location.hash || '').slice(1) || null;
+  const [r, q] = (location.hash || '').slice(1).split('?');
+  ruta = r || 'inicio';
+  abrirParams = q ? Object.fromEntries(new URLSearchParams(q)) : null;
+  // los links de los mails de IT dicen #ticket?t=12: cada uno lo abre en su pantalla
+  if (ruta === 'ticket') ruta = me.soporte ? 'tickets' : 'soporte';
   pintar();
 }
 

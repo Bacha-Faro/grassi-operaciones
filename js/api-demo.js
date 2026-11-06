@@ -1,6 +1,6 @@
 // Modo demo: misma interfaz que api-supabase.js, con datos en el navegador.
 // Genera 11 meses de historia (dic-2025 a oct-2026) para que los indicadores tengan contenido.
-import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261106-1324';
+import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261106-1827';
 
 const KEY = 'insumos-demo-v1';
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -161,10 +161,95 @@ function construir() {
       _recibir(oc.id, db.oc_items.filter(x => x.oc_id === oc.id).map((x, k) => ({ id: x.id, cantidad_recibida: corto && k === 0 && idx >= 9 ? Math.floor(x.cantidad * 0.5) : x.cantidad })));
     }
   });
+  semillaTickets();
+  semillaDrogueria();
   who = { id: 'demo', rol: 'solicitante', sucursal_id: 1, nombre: 'Suc 1' };
   save();
 }
 const NOMBRES = ['Laura Gómez', 'Martín Ríos', 'Carla Funes', 'Diego Sosa', 'Paula Ferreyra', 'Nicolás Paez', 'Sofía Bustos', 'Javier Molina', 'Romina Aguirre', 'Lucas Ledesma', 'Valeria Quiroga'];
+
+
+// ---------- IT Grassi · tickets de ejemplo ----------
+const IT_CATS = ['PC y notebooks', 'Impresoras y etiquetadoras', 'Posnet y cobros', 'Internet y red', 'Sistema de gestión', 'Usuarios y accesos', 'Teléfonos y celulares', 'Pedido o compra'];
+const RRHH_SUC = 9;   // en la demo, RRHH carga sus tickets como "Centro (Planta Alta)"
+function semillaTickets() {
+  db.it_categorias = IT_CATS.map((nombre, i) => ({ id: i + 1, nombre, orden: i + 1, activo: true }));
+  db.tickets = []; db.ticket_mensajes = []; db.ticket_eventos = []; db.seq.tickets = 0; db.seq.ticket_mensajes = 0; db.seq.ticket_eventos = 0;
+  const hace = (h) => new Date(Date.now() - h * 3600e3).toISOString();
+  const nuevo = (o, h) => { const id = nextId('tickets'); const t = { id, telefono: null, prioridad: o.frena_atencion ? 'critica' : 'normal', prioridad_confirmada: false, estado: 'nuevo',
+    solucion: null, motivo_anulacion: null, reaperturas: 0, created_at: hace(h), primera_respuesta_at: null, resuelto_at: null, cerrado_at: null, cierre_automatico: false, updated_at: hace(h), ...o };
+    db.tickets.push(t); evento(id, 'creado', null, t.created_at); return t; };
+  const t1 = nuevo({ sucursal_id: 1, solicitante_nombre: 'Laura Gómez', categoria_id: 3, asunto: 'El posnet no conecta', descripcion: 'Desde las 9 el posnet de caja 1 dice "sin conexión". Ya lo reiniciamos dos veces.', frena_atencion: true }, 1.5);
+  const t2 = nuevo({ sucursal_id: 4, solicitante_nombre: 'Diego Sosa', categoria_id: 2, asunto: 'La impresora de etiquetas imprime corrido', descripcion: 'Las etiquetas salen desplazadas, se imprime la mitad en una y la mitad en la otra.', frena_atencion: false }, 26);
+  Object.assign(t2, { estado: 'en_curso', prioridad: 'alta', prioridad_confirmada: true, primera_respuesta_at: hace(24) });
+  mensaje(t2.id, 'IT', true, false, '¿Cambiaron el rollo de etiquetas hace poco? Mandame una foto de cómo sale.', hace(24));
+  mensaje(t2.id, 'Diego Sosa', false, false, 'Sí, ayer pusimos un rollo nuevo. Ahí te mando la foto.', hace(23));
+  const t3 = nuevo({ sucursal_id: 1, solicitante_nombre: 'Martín Ríos', categoria_id: 1, asunto: 'La PC de atrás está muy lenta', descripcion: 'Tarda mucho en abrir el sistema y a veces se cuelga.', frena_atencion: false }, 80);
+  Object.assign(t3, { estado: 'resuelto', primera_respuesta_at: hace(76), resuelto_at: hace(20), solucion: 'Se liberó espacio en disco y se desactivaron programas al inicio.' });
+  mensaje(t3.id, 'IT', true, false, 'Me conecto de forma remota a las 14, dejala prendida.', hace(76));
+}
+function evento(ticket_id, tipo, detalle, at) { db.ticket_eventos.push({ id: nextId('ticket_eventos'), ticket_id, tipo, detalle, created_at: at || new Date().toISOString() }); }
+function mensaje(ticket_id, autor_nombre, de_it, interno, texto, at) {
+  const m = { id: nextId('ticket_mensajes'), ticket_id, autor_nombre, de_it, interno, texto, created_at: at || new Date().toISOString() };
+  db.ticket_mensajes.push(m); return m;
+}
+const esIT = () => who.rol === 'admin';
+const miSucTk = () => who.sucursal_id || (who.rol === 'auditor' ? RRHH_SUC : null);
+const tkVisible = t => esIT() || t.sucursal_id === miSucTk();
+const tkRowDemo = t => ({ ...t, sucursal: suc(t.sucursal_id)?.nombre, categoria: db.it_categorias.find(c => c.id === t.categoria_id)?.nombre });
+function cambiarEstadoTk(t, estado, extra = {}) {
+  const antes = t.estado; if (antes === estado) return;
+  const ahora = new Date().toISOString();
+  if (estado === 'resuelto' && !String(extra.solucion ?? t.solucion ?? '').trim()) throw new Error('Escribí qué se hizo para resolverlo');
+  if (estado === 'anulado' && !String(extra.motivo_anulacion ?? '').trim()) throw new Error('Indicá el motivo para anular el ticket');
+  if (['en_curso', 'en_espera', 'resuelto'].includes(estado) && antes === 'nuevo' && !t.primera_respuesta_at) t.primera_respuesta_at = ahora;
+  if (estado === 'resuelto') t.resuelto_at = ahora;
+  if (['cerrado', 'anulado'].includes(estado)) t.cerrado_at = ahora;
+  if (antes === 'resuelto' && estado === 'en_curso') { t.reaperturas++; t.resuelto_at = null; }
+  t.estado = estado; evento(t.id, 'estado', `${antes} → ${estado}`);
+}
+
+
+// ---------- Droguería: bachas y temperatura de ejemplo ----------
+const fechaAR = (d = new Date()) => new Date(d.getTime() - 3 * 3600e3).toISOString().slice(0, 10);
+const TURNOS_DIA = d => { const w = new Date(`${d}T12:00:00`).getDay(); return w === 0 ? [] : w === 6 ? ['08:10', '12:00'] : ['08:10', '12:00', '15:30', '18:50']; };
+function semillaDrogueria() {
+  db.bachas = Array.from({ length: 100 }, (_, i) => ({ id: i + 1, codigo: `BCH-${String(i + 1).padStart(4, '0')}`, activa: true, nota: null }));
+  db.bacha_mov = []; db.seq.bacha_mov = 0;
+  db.temp_puntos = [
+    { id: 1, nombre: 'Depósito · punto 1', tipo: 'ambiente', mide_humedad: true, t_min: 15, t_max: 30, h_min: 40, h_max: 70, orden: 1, activo: true },
+    { id: 2, nombre: 'Depósito · punto 2', tipo: 'ambiente', mide_humedad: true, t_min: 15, t_max: 30, h_min: 40, h_max: 70, orden: 2, activo: true },
+    { id: 3, nombre: 'Cámara de frío', tipo: 'frio', mide_humedad: false, t_min: 2, t_max: 8, h_min: null, h_max: null, orden: 3, activo: true }];
+  db.temp_lecturas = []; db.seq.temp_lecturas = 0;
+  let semilla = 7; const r = () => (semilla = (semilla * 9301 + 49297) % 233280) / 233280;
+  const ahora = Date.now();
+  // salidas de los últimos días (algunas ya volvieron, otras están afuera o vencidas)
+  for (let k = 0; k < 46; k++) {
+    const b = 1 + Math.floor(r() * 100), sid = 1 + Math.floor(r() * 6), dias = Math.floor(r() * 7);
+    const t = new Date(ahora - dias * 86400e3 - r() * 4 * 3600e3).toISOString();
+    const ult = db.bacha_mov.filter(m => m.bacha_id === b).at(-1);
+    if (ult?.tipo === 'salida') continue;
+    db.bacha_mov.push({ id: nextId('bacha_mov'), bacha_id: b, tipo: 'salida', sucursal_id: sid, retorno_esperado: fechaAR(new Date(new Date(t).getTime() + 3 * 86400e3)), observacion: null, usuario_nombre: 'Droguería', created_at: t });
+    if (dias > 1 && r() < 0.65) db.bacha_mov.push({ id: nextId('bacha_mov'), bacha_id: b, tipo: 'retorno', sucursal_id: null, retorno_esperado: null, observacion: null, usuario_nombre: 'Droguería', created_at: new Date(new Date(t).getTime() + (1 + r()) * 86400e3).toISOString() });
+  }
+  db.bacha_mov.sort((a, b) => a.created_at.localeCompare(b.created_at));
+  // lecturas de los últimos 30 días (hoy, solo las que ya pasaron)
+  const hoy = fechaAR(), hhmm = new Date(ahora - 3 * 3600e3).toISOString().slice(11, 16);
+  for (let d = 30; d >= 0; d--) {
+    const f = fechaAR(new Date(ahora - d * 86400e3));
+    for (const turno of TURNOS_DIA(f)) {
+      if (f === hoy && turno > hhmm) continue;
+      for (const p of db.temp_puntos) {
+        const base = p.tipo === 'frio' ? 4.5 + r() * 2 : 21 + (turno >= '12:00' ? 3 : 0) + r() * 3 + (p.id === 2 ? 1.2 : 0);
+        const temperatura = Math.round((base + (d === 9 && p.tipo === 'frio' && turno === '15:30' ? 4.4 : 0)) * 10) / 10;
+        const humedad = p.mide_humedad ? Math.round((48 + r() * 14) * 10) / 10 : null;
+        const fuera = temperatura < p.t_min || temperatura > p.t_max || (p.mide_humedad && (humedad < p.h_min || humedad > p.h_max));
+        db.temp_lecturas.push({ id: nextId('temp_lecturas'), punto_id: p.id, fecha: f, turno, temperatura, humedad, fuera_rango: fuera, accion: fuera ? 'Se revisó el cierre de la puerta; a los 30 min marcaba 6,8 °C' : null, usuario_nombre: 'Droguería', created_at: new Date().toISOString() });
+      }
+    }
+  }
+}
+const esDrog = () => who.rol === 'admin' || who.sucursal_id === 7;
 
 // ---------- vistas de lectura ----------
 const suc = id => db.sucursales.find(s => s.id === id);
@@ -194,11 +279,11 @@ const need = (...roles) => { if (!roles.includes(who.rol)) throw new Error('Tu r
 // ---------- API pública ----------
 export const api = {
   modo: 'demo',
-  async init() { if (!load()) construir(); },
+  async init() { if (!load()) construir(); if (!db.tickets) { semillaTickets(); save(); } if (!db.bachas) { semillaDrogueria(); save(); } },
   async reset() { construir(); },
   async me() {
     const s = who.sucursal_id ? suc(who.sucursal_id) : null;
-    return tick({ ...who, email: s?.email || `${who.rol}@grupograssi.com`, sucursal: s?.nombre || null, soporte: who.rol === 'admin' });
+    return tick({ ...who, email: s?.email || `${who.rol}@grupograssi.com`, sucursal: s?.nombre || null, soporte: who.rol === 'admin', drogueria: who.sucursal_id === 7 });
   },
   usuariosDemo() {
     return [
@@ -295,7 +380,7 @@ export const api = {
   async recibirOC(id, items) { need('compras', 'admin', 'auditor'); const e = _recibir(id, items); save(); return e; },
   async guardarFotoProducto(id, file) {
     need('compras', 'admin');
-    const { achicarImagen } = await import('./ui.js?v=20261106-1324');
+    const { achicarImagen } = await import('./ui.js?v=20261106-1827');
     const blob = await achicarImagen(file, 320, 0.7);
     const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
     db.productos.find(p => p.id === id).foto_url = url; save(); return url;
@@ -412,5 +497,95 @@ export const api = {
     const ex = s.id && db.sucursales.find(x => x.id === s.id);
     if (ex) Object.assign(ex, s); else db.sucursales.push({ activo: true, ...s, id: nextId('sucursales') });
     save();
+  },
+  // ---------------- IT Grassi · Mesa de ayuda ----------------
+  async itCategorias() { return tick(db.it_categorias.filter(c => c.activo)); },
+  async tickets() { return tick(db.tickets.filter(tkVisible).map(tkRowDemo).sort((a, b) => b.created_at.localeCompare(a.created_at))); },
+  async ticket(id) {
+    const t = db.tickets.find(x => x.id === id && tkVisible(x)); if (!t) return tick(null);
+    return tick({ ...tkRowDemo(t), mensajes: db.ticket_mensajes.filter(m => m.ticket_id === id && (esIT() || !m.interno)),
+      eventos: db.ticket_eventos.filter(e => e.ticket_id === id), archivos: (db.ticket_archivos || []).filter(a => a.ticket_id === id) });
+  },
+  async crearTicket({ sucursal_id, solicitante_nombre, telefono, categoria_id, asunto, descripcion, frena_atencion, archivos = [] }) {
+    const sid = esIT() ? +sucursal_id : miSucTk();
+    if (!sid) throw new Error('Elegí la sucursal o área');
+    if (String(asunto || '').trim().length < 3) throw new Error('Escribí el asunto');
+    const id = nextId('tickets'); const at = new Date().toISOString();
+    db.tickets.push({ id, sucursal_id: sid, solicitante_nombre, telefono: telefono || null, categoria_id: +categoria_id, asunto, descripcion, frena_atencion: !!frena_atencion,
+      prioridad: frena_atencion ? 'critica' : 'normal', prioridad_confirmada: false, estado: 'nuevo', solucion: null, motivo_anulacion: null, reaperturas: 0,
+      created_at: at, primera_respuesta_at: null, resuelto_at: null, cerrado_at: null, cierre_automatico: false, updated_at: at });
+    evento(id, 'creado', null, at);
+    db.ticket_archivos ||= [];
+    for (const f of archivos) db.ticket_archivos.push({ ticket_id: id, path: `${id}/${f.name}`, nombre: f.name, tipo: f.type, demo: true });
+    save(); return tick({ id, fallidos: 0 });
+  },
+  async archivoTicketUrl() { throw new Error('En la demo los archivos no se guardan'); },
+  async ticketMensaje(id, texto, interno = false) {
+    const t = db.tickets.find(x => x.id === id && tkVisible(x)); if (!t) throw new Error('Ticket no encontrado');
+    if (['cerrado', 'anulado'].includes(t.estado)) throw new Error('El ticket está cerrado');
+    const m = mensaje(id, esIT() ? 'IT' : who.nombre, esIT(), esIT() && !!interno, texto);
+    if (esIT() && !interno && !t.primera_respuesta_at) t.primera_respuesta_at = m.created_at;
+    if (!esIT() && t.estado === 'en_espera') cambiarEstadoTk(t, 'en_curso');
+    save(); return tick(m.id);
+  },
+  async ticketActualizar(id, cambios) {
+    if (!esIT()) throw new Error('Solo IT puede cambiar el ticket');
+    const t = db.tickets.find(x => x.id === id);
+    if (cambios.prioridad && cambios.prioridad !== t.prioridad) { evento(id, 'prioridad', `${t.prioridad} → ${cambios.prioridad}`); t.prioridad = cambios.prioridad; t.prioridad_confirmada = true; }
+    if (cambios.categoria_id && +cambios.categoria_id !== t.categoria_id) { t.categoria_id = +cambios.categoria_id; evento(id, 'categoria', 'cambio de categoría'); }
+    if ('solucion' in cambios) t.solucion = cambios.solucion;
+    if ('motivo_anulacion' in cambios) t.motivo_anulacion = cambios.motivo_anulacion;
+    if (cambios.estado) cambiarEstadoTk(t, cambios.estado, cambios);
+    save(); return tick(true);
+  },
+  async ticketConfirmar(id) { const t = db.tickets.find(x => x.id === id && tkVisible(x)); if (t?.estado !== 'resuelto') throw new Error('El ticket no está para confirmar'); cambiarEstadoTk(t, 'cerrado'); save(); return tick(true); },
+  async ticketReabrir(id, texto) {
+    if (!String(texto || '').trim()) throw new Error('Contá qué sigue pasando');
+    const t = db.tickets.find(x => x.id === id && tkVisible(x)); if (t?.estado !== 'resuelto') throw new Error('El ticket no se puede reabrir');
+    cambiarEstadoTk(t, 'en_curso'); mensaje(id, who.nombre, false, false, `Sigue pasando: ${texto.trim()}`); save(); return tick(true);
+  },
+  async guardarPush() { return tick(true); },
+  async quitarPush() { return tick(true); },
+  async probarPush() { return tick({ ok: true, enviados: 0, simulado: true }); },
+  // ---------------- Droguería ----------------
+  async bachas() {
+    if (!esDrog()) return tick([]);
+    const hoy = fechaAR();
+    return tick(db.bachas.filter(b => b.activa).map(b => {
+      const m = db.bacha_mov.filter(x => x.bacha_id === b.id).at(-1);
+      const afuera = m?.tipo === 'salida';
+      return { ...b, estado: afuera ? (m.retorno_esperado < hoy ? 'vencida' : 'afuera') : 'disponible', sucursal_id: afuera ? m.sucursal_id : null,
+        sucursal: afuera ? suc(m.sucursal_id)?.nombre : null, desde: m?.created_at || null, retorno_esperado: afuera ? m.retorno_esperado : null, usuario_nombre: m?.usuario_nombre || null };
+    }));
+  },
+  async bachaHistorial(id) { return tick(db.bacha_mov.filter(m => m.bacha_id === id).slice(-20).reverse().map(m => ({ ...m, sucursal: m.sucursal_id ? suc(m.sucursal_id)?.nombre : null }))); },
+  async bachaMovimiento({ bacha_id, tipo, sucursal_id = null, retorno_esperado = null, observacion = null }) {
+    if (!esDrog()) throw new Error('Sin permiso');
+    const ult = db.bacha_mov.filter(m => m.bacha_id === bacha_id).at(-1);
+    if (tipo === 'salida' && ult?.tipo === 'salida') throw new Error('La bacha ya figura afuera: registrá primero el retorno');
+    if (tipo === 'retorno' && (ult?.tipo || 'retorno') === 'retorno') throw new Error('La bacha ya está en la Droguería');
+    if (tipo === 'salida' && !sucursal_id) throw new Error('Elegí la sucursal');
+    db.bacha_mov.push({ id: nextId('bacha_mov'), bacha_id, tipo, sucursal_id: tipo === 'salida' ? +sucursal_id : null, retorno_esperado: tipo === 'salida' ? retorno_esperado : null,
+      observacion: observacion || null, usuario_nombre: who.nombre, created_at: new Date().toISOString() });
+    save(); return tick(true);
+  },
+  async tempPuntos() { return tick(esDrog() ? db.temp_puntos.filter(p => p.activo) : []); },
+  async tempLecturas(desde, hasta) { return tick(esDrog() ? db.temp_lecturas.filter(l => l.fecha >= desde && l.fecha <= hasta) : []); },
+  async tempGuardar(filas) {
+    if (!esDrog()) throw new Error('Sin permiso');
+    for (const f of filas) {
+      const p = db.temp_puntos.find(x => x.id === f.punto_id);
+      if (p.mide_humedad && (f.humedad === null || f.humedad === undefined || f.humedad === '')) throw new Error(`Falta la humedad de ${p.nombre}`);
+      const fuera = f.temperatura < p.t_min || f.temperatura > p.t_max || (p.mide_humedad && (f.humedad < p.h_min || f.humedad > p.h_max));
+      if (fuera && !String(f.accion || '').trim()) throw new Error(`${p.nombre} está fuera de rango: anotá qué se hizo (acción correctiva)`);
+    }
+    for (const f of filas) {
+      const p = db.temp_puntos.find(x => x.id === f.punto_id);
+      const fuera = f.temperatura < p.t_min || f.temperatura > p.t_max || (p.mide_humedad && (f.humedad < p.h_min || f.humedad > p.h_max));
+      const prev = db.temp_lecturas.find(l => l.punto_id === f.punto_id && l.fecha === f.fecha && l.turno === f.turno);
+      const fila = { punto_id: f.punto_id, fecha: f.fecha, turno: f.turno, temperatura: +f.temperatura, humedad: p.mide_humedad ? +f.humedad : null, fuera_rango: fuera, accion: f.accion || null, usuario_nombre: who.nombre };
+      if (prev) Object.assign(prev, fila, { updated_at: new Date().toISOString() }); else db.temp_lecturas.push({ id: nextId('temp_lecturas'), ...fila, created_at: new Date().toISOString() });
+    }
+    save(); return tick(true);
   },
 };

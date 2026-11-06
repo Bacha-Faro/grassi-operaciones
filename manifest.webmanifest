@@ -1,0 +1,14 @@
+{
+  "name": "Grassi Operaciones",
+  "short_name": "Grassi",
+  "description": "Insumos y soporte IT de Grupo Grassi",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0055b8",
+  "lang": "es-AR",
+  "icons": [
+    { "src": "img/isotipo.png", "sizes": "256x256", "type": "image/png", "purpose": "any" }
+  ]
+}

@@ -1,7 +1,7 @@
 // Adaptador Supabase: misma interfaz que api-demo.js.
 // Requiere el script UMD de supabase-js cargado en index.html (window.supabase).
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261106-1324';
-import { achicarImagen } from './ui.js?v=20261106-1324';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261106-1827';
+import { achicarImagen } from './ui.js?v=20261106-1827';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const ok = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
@@ -26,6 +26,9 @@ function solRow(s) {
       cantidad_recibida: x.cantidad_recibida, producto: x.productos?.nombre, unidad: x.productos?.unidad,
       categoria: x.productos?.categorias?.nombre, precio_ref: pu(x), tope_mensual: x.productos?.tope_mensual })) };
 }
+
+// ticket con nombres planos (sucursal, categoría)
+const tkRow = t => { const { sucursales, it_categorias, ...b } = t; return { ...b, sucursal: sucursales?.nombre, categoria: it_categorias?.nombre }; };
 
 function ocRow(o) {
   const its = o.oc_items || [];
@@ -218,4 +221,86 @@ export const api = {
   },
   async guardarProveedor(p) { const { id, ...c } = p; ok(id ? await sb.from('proveedores').update(c).eq('id', id) : await sb.from('proveedores').insert(c)); },
   async guardarSucursal(s) { const { id, ...c } = s; ok(id ? await sb.from('sucursales').update(c).eq('id', id) : await sb.from('sucursales').insert(c)); },
+  // ---------------- IT Grassi · Mesa de ayuda ----------------
+  async itCategorias() { return ok(await sb.from('it_categorias').select('*').eq('activo', true).order('orden')); },
+  async tickets() {
+    return ok(await sb.from('tickets').select('*, sucursales(nombre), it_categorias(nombre)').order('created_at', { ascending: false }))
+      .map(tkRow);
+  },
+  async ticket(id) {
+    const [t, mensajes, eventos, archivos] = await Promise.all([
+      sb.from('tickets').select('*, sucursales(nombre), it_categorias(nombre)').eq('id', id).maybeSingle().then(ok),
+      sb.from('ticket_mensajes').select('*').eq('ticket_id', id).order('created_at').then(ok),
+      sb.from('ticket_eventos').select('*').eq('ticket_id', id).order('created_at').then(ok),
+      sb.storage.from('tickets').list(String(id), { sortBy: { column: 'name', order: 'asc' } }).then(ok)]);
+    if (!t) return null;
+    return { ...tkRow(t), mensajes, eventos, archivos: (archivos || []).filter(a => a.name && !a.name.startsWith('.')).map(a => ({ path: `${id}/${a.name}`, nombre: a.name.replace(/^\d+-/, ''), tipo: a.metadata?.mimetype })) };
+  },
+  async crearTicket({ sucursal_id, solicitante_nombre, telefono, categoria_id, asunto, descripcion, frena_atencion, archivos = [] }) {
+    const t = ok(await sb.from('tickets').insert({ sucursal_id: sucursal_id || perfil?.sucursal_id, solicitante_nombre, telefono: telefono || null,
+      categoria_id, asunto, descripcion, frena_atencion: !!frena_atencion }).select('id').single());
+    let fallidos = 0;
+    for (const f of archivos) { try { await this.subirArchivoTicket(t.id, f); } catch { fallidos++; } }
+    // aviso a IT (mail y, si es crítico, notificación al celular): si falla, el ticket ya quedó cargado
+    sb.functions.invoke('enviar-mail', { body: { tipo: 'ticket', evento: 'nuevo', ticket_id: t.id } }).catch(() => {});
+    return { id: t.id, fallidos };
+  },
+  async subirArchivoTicket(id, file) {
+    const esImg = /^image\//.test(file.type) && !/heic/i.test(file.type);
+    const blob = esImg ? await achicarImagen(file, 1600, 0.85) : file;
+    const limpio = (file.name || 'archivo').normalize('NFD').replace(/[^\w.-]+/g, '_').slice(-60);
+    const nombre = esImg ? limpio.replace(/\.[^.]+$/, '') + '.jpg' : limpio;
+    const up = await sb.storage.from('tickets').upload(`${id}/${Date.now()}-${nombre}`, blob, { contentType: esImg ? 'image/jpeg' : file.type });
+    if (up.error) throw new Error(up.error.message);
+  },
+  async archivoTicketUrl(path) {
+    const { data, error } = await sb.storage.from('tickets').createSignedUrl(path, 300);
+    if (error) throw new Error(error.message);
+    return data.signedUrl;
+  },
+  async ticketMensaje(id, texto, interno = false) {
+    const m = ok(await sb.from('ticket_mensajes').insert({ ticket_id: id, texto, interno: !!interno,
+      autor_nombre: perfil?.soporte ? 'IT' : (perfil?.nombre || perfil?.email || 'Sucursal') }).select('id').single());
+    if (!interno) sb.functions.invoke('enviar-mail', { body: { tipo: 'ticket', evento: 'mensaje', mensaje_id: m.id } }).catch(() => {});
+    return m.id;
+  },
+  // IT: estado, prioridad, categoría, solución o motivo de anulación
+  async ticketActualizar(id, cambios) {
+    const antes = ok(await sb.from('tickets').select('estado').eq('id', id).single());
+    ok(await sb.from('tickets').update(cambios).eq('id', id));
+    if (cambios.estado && cambios.estado !== antes.estado && ['en_curso', 'resuelto'].includes(cambios.estado))
+      sb.functions.invoke('enviar-mail', { body: { tipo: 'ticket', evento: 'estado', ticket_id: id } }).catch(() => {});
+  },
+  async ticketConfirmar(id) { ok(await sb.rpc('ticket_confirmar', { p_id: id })); },
+  async ticketReabrir(id, texto) {
+    ok(await sb.rpc('ticket_reabrir', { p_id: id, p_texto: texto }));
+    sb.functions.invoke('enviar-mail', { body: { tipo: 'ticket', evento: 'reabierto', ticket_id: id } }).catch(() => {});
+  },
+  // notificaciones en el celular (Web Push): se guarda la suscripción de este dispositivo
+  async guardarPush(sub, dispositivo) {
+    const j = sub.toJSON();
+    ok(await sb.from('push_suscripciones').upsert({ endpoint: j.endpoint, p256dh: j.keys.p256dh, auth: j.keys.auth, dispositivo, user_id: perfil?.id }, { onConflict: 'endpoint' }));
+  },
+  async quitarPush(endpoint) { ok(await sb.from('push_suscripciones').delete().eq('endpoint', endpoint)); },
+  async probarPush() {
+    const { data, error } = await sb.functions.invoke('enviar-mail', { body: { tipo: 'push_prueba' } });
+    if (error) throw new Error(error.message);
+    return data;
+  },
+  // ---------------- Droguería: bachas y temperatura ----------------
+  async bachas() { return ok(await sb.from('v_bachas').select('*').eq('activa', true).order('codigo')); },
+  async bachaHistorial(id) { return ok(await sb.from('bacha_movimientos').select('*, sucursales(nombre)').eq('bacha_id', id).order('created_at', { ascending: false }).limit(20)).map(m => ({ ...m, sucursal: m.sucursales?.nombre })); },
+  async bachaMovimiento({ bacha_id, tipo, sucursal_id = null, retorno_esperado = null, observacion = null }) {
+    ok(await sb.from('bacha_movimientos').insert({ bacha_id, tipo, sucursal_id, retorno_esperado, observacion: observacion || null }));
+  },
+  async tempPuntos() { return ok(await sb.from('temp_puntos').select('*').eq('activo', true).order('orden')).map(p => ({ ...p, t_min: +p.t_min, t_max: +p.t_max, h_min: p.h_min === null ? null : +p.h_min, h_max: p.h_max === null ? null : +p.h_max })); },
+  async tempLecturas(desde, hasta) {
+    return ok(await sb.from('temp_lecturas').select('*').gte('fecha', desde).lte('fecha', hasta).order('fecha').order('turno'))
+      .map(l => ({ ...l, temperatura: +l.temperatura, humedad: l.humedad === null ? null : +l.humedad }));
+  },
+  // guarda las lecturas de un turno (si ya estaban, las corrige)
+  async tempGuardar(filas) {
+    const datos = filas.map(f => ({ punto_id: f.punto_id, fecha: f.fecha, turno: f.turno, temperatura: f.temperatura, humedad: f.humedad ?? null, accion: f.accion || null }));
+    ok(await sb.from('temp_lecturas').upsert(datos, { onConflict: 'punto_id,fecha,turno' }));
+  },
 };

@@ -30,6 +30,7 @@ export const ocNum = id => `OC-${String(id).padStart(4, '0')}`;
 // N° de documento: OP (orden de preparación, proveedor interno) u OC (orden de compra)
 export const docNum = o => `${o?.interno ? 'OP' : 'OC'}-${String(o?.id ?? o).padStart(4, '0')}`;
 export const solNum = id => `S-${String(id).padStart(4, '0')}`;
+export const tkNum = id => `T-${String(id).padStart(4, '0')}`;
 
 const ESTADOS = {
   pendiente:        ['Pendiente de auditoría', 'warn'],
@@ -43,6 +44,9 @@ const ESTADOS = {
   // OC
   borrador: ['Borrador', 'warn'], enviada: ['Enviada', 'info'],
   recibida_parcial: ['Recibida con diferencias', 'warn'], anulada: ['Anulada', 'bad'],
+  // tickets de IT
+  nuevo: ['Nuevo', 'warn'], en_curso: ['En curso', 'info'], en_espera: ['Esperando tu respuesta', 'warn'],
+  resuelto: ['Resuelto', 'ok'], cerrado: ['Cerrado', 'done'], anulado: ['Anulado', 'bad'],
 };
 export function pill(estado) {
   const [txt, tone] = ESTADOS[estado] || [estado, 'muted'];
@@ -59,8 +63,8 @@ export function toast(msg, tone = 'ok') {
 }
 
 // Diálogo propio (el visor de artifacts no muestra confirm/alert)
-export function modal({ title, body, actions = [], wide = false }) {
-  const close = () => { wrap.remove(); document.removeEventListener('keydown', onKey); };
+export function modal({ title, body, actions = [], wide = false, onClose }) {
+  const close = () => { if (!wrap.isConnected) return; wrap.remove(); document.removeEventListener('keydown', onKey); onClose?.(); };
   const onKey = e => { if (e.key === 'Escape') close(); };
   const wrap = h('div', { class: 'modal-bg', onclick: e => { if (e.target === wrap) close(); } },
     h('div', { class: `modal${wide ? ' modal-wide' : ''}`, role: 'dialog', 'aria-modal': 'true', 'aria-label': title },
