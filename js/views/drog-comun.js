@@ -1,5 +1,5 @@
 // Droguería: utilidades compartidas (turnos de lectura, fechas en hora de Argentina, rangos ANMAT, códigos de bacha).
-import { h } from '../ui.js?v=20261107-1403';
+import { h } from '../ui.js?v=20261107-1435';
 
 // fecha y hora de Argentina, sin depender de la zona de la compu
 const partes = (d = new Date()) => Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })

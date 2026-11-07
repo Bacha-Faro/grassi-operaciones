@@ -1,6 +1,6 @@
 // Usuarios (solo IT): ver quién tiene acceso y ponerle una contraseña nueva a cualquiera.
 // Las contraseñas no se pueden ver: se definen acá y se anotan en el Registro de accesos.
-import { h, toast, empty, modal, field } from '../ui.js?v=20261107-1403';
+import { h, toast, empty, modal, field } from '../ui.js?v=20261107-1435';
 
 const ROL = { solicitante: 'Sucursal', auditor: 'Auditoría', compras: 'Compras', admin: 'Administrador' };
 // sin letras que se confunden (l/I/1, O/0) para dictarla por teléfono

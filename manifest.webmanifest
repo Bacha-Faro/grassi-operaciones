@@ -1,7 +1,7 @@
 {
   "name": "Grassi Operaciones",
   "short_name": "Grassi",
-  "description": "Insumos y soporte IT de Grupo Grassi",
+  "description": "Droguería, soporte IT, compras y RRHH de Grupo Grassi",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

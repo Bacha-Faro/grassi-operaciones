@@ -517,7 +517,6 @@ button.thumb.vacia:hover { border-color: var(--accent); color: var(--accent); }
 @media (max-width: 860px) { .super .pasillos { top: 57px; } }
 
 /* IT Grassi · mesa de ayuda */
-.nav-grupo { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.09em; font-weight: 700; color: var(--muted); padding: 12px 10px 2px; }
 .nav-grupo:first-child { padding-top: 0; }
 @media (max-width: 860px) { .nav-grupo { align-self: center; padding: 0 2px 0 10px; border-left: 1px solid var(--line); } .nav-grupo:first-child { border-left: 0; padding-left: 0; } }
 .card-row:has(.plazo) .card-main, .card-main { min-width: 0; }
@@ -575,7 +574,6 @@ button.thumb.vacia:hover { border-color: var(--accent); color: var(--accent); }
 .ico { display: inline-flex; }
 
 .plataforma { display: grid; grid-template-columns: 72px 236px minmax(0, 1fr); grid-template-areas: "rail modnav main"; min-height: calc(100vh - 38px); }
-.plataforma.en-inicio { grid-template-columns: 72px minmax(0, 1fr); grid-template-areas: "rail main"; }
 .plataforma > .main { grid-area: main; }
 .rail { grid-area: rail; position: sticky; top: 0; height: 100vh; box-sizing: border-box; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 0; background: var(--navy); }
 .rail-iso { width: 44px; height: 44px; border-radius: 11px; background: #fff; display: grid; place-items: center; margin-bottom: 12px; }
@@ -790,3 +788,28 @@ button.thumb.vacia:hover { border-color: var(--accent); color: var(--accent); }
   .login-pronto { margin-top: -2px; }
   .login-pie { text-align: center; }
 }
+
+/* menú lateral desplegable (Inicio + módulos) */
+.modnav .nav { gap: 4px; }
+.nav-inicio { gap: 10px; justify-content: flex-start; }
+.modnav .nav-inicio.on { background: var(--accent-soft); color: var(--accent); }
+.nav-grupo { border-radius: 10px; }
+.modnav-logo { text-decoration: none; }
+.nav-grupo > summary { text-transform: none; letter-spacing: normal; font-size: 0.98rem; list-style: none; display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; cursor: pointer; font-weight: 650; color: var(--fg); user-select: none; }
+.nav-grupo > summary::-webkit-details-marker { display: none; }
+.nav-grupo > summary .ico { color: var(--m); }
+.nav-grupo > summary:hover { background: var(--sunk); }
+.nav-grupo > summary:focus-visible { outline: 2px solid var(--m); outline-offset: 1px; }
+.nav-grupo-txt { flex: 1; }
+.nav-grupo .punto { width: 8px; height: 8px; border-radius: 50%; background: var(--m); }
+.nav-grupo .punto[hidden] { display: none; }
+.nav-flecha { width: 8px; height: 8px; border-right: 2px solid var(--muted); border-bottom: 2px solid var(--muted); transform: rotate(-45deg); transition: transform 0.2s; margin-right: 4px; }
+.nav-grupo[open] > summary .nav-flecha { transform: rotate(45deg); }
+.nav-grupo.actual > summary { color: var(--m-ink); }
+.nav-sub { display: flex; flex-direction: column; gap: 2px; margin: 2px 0 6px 19px; padding-left: 10px; border-left: 2px solid color-mix(in srgb, var(--m) 35%, transparent); }
+.nav-sub .nav-item { padding: 7px 10px; font-size: 0.95rem; }
+.nav-sub .nav-item.on { background: var(--m-soft); color: var(--m-ink); }
+.nav-sub .nav-item.on .badge { background: var(--m); }
+.op-mini { display: flex; flex-direction: column; align-items: flex-end; width: 168px; }
+.op-mini img { width: 100%; height: auto; }
+.op-mini-txt { margin: 0 6px -2px 0; font: 700 1.05rem/1 var(--f-display); background: linear-gradient(90deg, var(--m-drogueria), var(--m-it), var(--m-compras), var(--m-rrhh)); -webkit-background-clip: text; background-clip: text; color: transparent; }
