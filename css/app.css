@@ -276,9 +276,6 @@ input:disabled { background: var(--sunk); color: var(--muted); }
 .login-logo img { width: 190px; max-width: 70%; height: auto; }
 .login-logo .brand-app { font-size: 0.78rem; }
 .login-logo::after { content: ''; width: 44px; height: 3px; border-radius: 2px; background: var(--brand-green); margin-top: 2px; }
-.creditos { display: flex; align-items: center; gap: 10px; color: var(--muted); font-size: 0.85rem; }
-.creditos img { width: 40px; height: 40px; }
-.creditos strong { color: var(--fg); font-weight: 600; }
 /* animación de entrada: el logo aparece y después el formulario */
 .login-logo { animation: logo-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .login-logo::after { animation: barra-in 0.5s 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; transform-origin: center; }
@@ -623,20 +620,10 @@ button.thumb.vacia:hover { border-color: var(--accent); color: var(--accent); }
 @media (max-width: 1100px) { .inicio-grid { grid-template-columns: minmax(0, 1fr); } }
 
 /* ingreso */
-.login2 { min-height: 100vh; min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); background: var(--bg); }
-.login-marca { display: flex; flex-direction: column; justify-content: space-between; gap: 32px; padding: clamp(28px, 5vw, 64px) clamp(24px, 5vw, 72px); background: var(--navy); color: #fff; }
 .login-grupo { display: flex; align-items: center; gap: 12px; }
 .login-grupo img { width: 46px; height: 46px; border-radius: 12px; background: #fff; }
 .login-grupo strong { display: block; font: 700 1.25rem var(--f-display); }
 .login-grupo small { color: var(--navy-ink); }
-.login-titulo { display: flex; flex-direction: column; gap: 22px; }
-.login-titulo h1 { font: 700 clamp(2.6rem, 5.2vw, 4.6rem)/0.98 var(--f-display); letter-spacing: -0.03em; color: #fff; }
-.login-titulo p { margin: 0; font-size: 1.15rem; color: #dbe6f6; max-width: 34ch; }
-.login-mods { list-style: none; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
-.login-mod { display: flex; align-items: center; gap: 16px; padding: 12px 16px; border-radius: 12px; background: rgb(255 255 255 / 0.07); color: #dbe6f6; font-size: 0.95rem; }
-.login-mod img { width: 128px; height: 44px; object-fit: contain; object-position: left center; flex: none; }
-.login-pie { color: #a9c0e4; }
-.login-form-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; padding: 40px 24px; }
 .login-form { width: min(400px, 100%); display: flex; flex-direction: column; gap: 16px; }
 .login-form h2 { font: 700 2rem var(--f-display); letter-spacing: -0.02em; margin: 0 0 4px; }
 .login-form p { margin: 0; }
@@ -663,14 +650,6 @@ button.thumb.vacia:hover { border-color: var(--accent); color: var(--accent); }
   .tab-mod.on { color: var(--m-ink, var(--accent)); }
   .tab-mod.mod-inicio.on { color: var(--accent); }
   .tab-mod .punto { right: calc(50% - 18px); top: 4px; box-shadow: 0 0 0 2px var(--surface); }
-  .login2 { grid-template-columns: minmax(0, 1fr); }
-  .login-marca { gap: 18px; border-radius: 0 0 24px 24px; }
-  .login-mods { flex-direction: row; flex-wrap: wrap; }
-  .login-mod { padding: 8px 10px; }
-  .login-mod span { display: none; }
-  .login-mod img { width: 92px; height: 34px; }
-  .login-titulo p, .login-pie { display: none; }
-  .login-form-wrap { justify-content: flex-start; padding-top: 28px; }
   .mod-logo img { height: 52px; }
 }
 /* ajustes de la plataforma */
@@ -679,9 +658,6 @@ button.thumb.vacia:hover { border-color: var(--accent); color: var(--accent); }
 @media (max-width: 860px) {
   .plataforma .carrito-bar:not([hidden]) { bottom: calc(80px + env(safe-area-inset-bottom, 0px)); }
   #toasts { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
-  .login-mods { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
-  .login-mod { justify-content: center; }
-  .login-mod img { width: 100%; height: 34px; object-position: center; }
 }
 .mod-cards.n1 { grid-template-columns: minmax(0, 560px); }
 .mod-cards.n1 .mod-logo img { height: 80px; }
@@ -750,3 +726,67 @@ button.thumb.vacia:hover { border-color: var(--accent); color: var(--accent); }
 }
 .temperatura .filters input[type=date], .temperatura .filters input[type=month] { width: auto; }
 .temp-planilla { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 14px 16px; }
+
+/* ===== ingreso (login) ===== */
+:root { --m-rrhh: #d9467a; }
+.login2 { min-height: 100vh; min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); grid-template-rows: 1fr auto; background: var(--bg); }
+.login-marca { grid-row: 1 / span 2; display: flex; flex-direction: column; justify-content: space-between; gap: 36px; padding: clamp(28px, 4.5vw, 60px) clamp(24px, 4.5vw, 64px); background: var(--navy); color: #fff; }
+.login-titulo { display: flex; flex-direction: column; gap: 18px; }
+.login-titulo h1 { font: 700 clamp(2rem, 3.4vw, 3rem)/1.05 var(--f-display); letter-spacing: -0.025em; color: #fff; max-width: 18ch; }
+.login-titulo p { margin: 0; font-size: 1.05rem; color: #dbe6f6; max-width: 46ch; }
+.login-mods { list-style: none; margin: 10px 0 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.login-mod { position: relative; display: flex; flex-direction: column; gap: 12px; padding: 20px 20px 18px; border-radius: 16px; background: rgb(255 255 255 / 0.07);
+  border: 1px solid rgb(255 255 255 / 0.1); color: #dbe6f6; overflow: hidden; animation: sube 0.5s calc(0.25s + var(--i) * 0.08s) ease-out both; transition: background 0.2s, transform 0.2s; }
+.login-mod::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c); }
+.login-mod:hover { background: rgb(255 255 255 / 0.11); transform: translateY(-2px); }
+.login-mod.mod-drogueria { --c: #b98be0; } .login-mod.mod-it { --c: #3fc6d8; } .login-mod.mod-compras { --c: #f09a55; } .login-mod.mod-rrhh { --c: #f08fb2; }
+.login-mod img { width: 100%; max-width: 210px; height: 78px; object-fit: contain; object-position: left center; }
+.login-mod p { margin: 0; font-size: 0.98rem; line-height: 1.4; }
+.login-mod.pronto { background: transparent; border-style: dashed; border-color: rgb(255 255 255 / 0.22); }
+.login-mod.pronto img { opacity: 0.8; }
+.login-pronto { align-self: flex-start; margin-top: -4px; padding: 3px 10px; border-radius: 999px; background: rgb(240 143 178 / 0.18); color: #ffc2d8; font-size: 0.74rem; font-weight: 700; letter-spacing: 0.02em; }
+.login-pie { color: #a9c0e4; }
+.login-form-wrap { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 30px; padding: 48px 24px 24px; }
+
+/* logo Grassi Operaciones, animado */
+.op-logo { position: relative; display: flex; flex-direction: column; align-items: flex-end; width: min(330px, 82%); }
+.op-palabra { display: flex; margin: 0 4% -4px 0; font: 700 clamp(1.7rem, 3vw, 2.25rem)/1 var(--f-display); letter-spacing: -0.01em;
+  background: linear-gradient(90deg, var(--m-drogueria, #915ebd), var(--m-it, #0e9fb3), var(--m-compras, #e07a2e), var(--m-rrhh), var(--m-drogueria, #915ebd)) 0 0 / 300% 100%;
+  -webkit-background-clip: text; background-clip: text; color: transparent; padding: 0 2px 0.12em;
+  animation: op-revela 0.9s 0.2s cubic-bezier(0.6, 0, 0.2, 1) both, op-fluye 10s 1.2s linear infinite; }
+.op-marca { width: 100%; height: auto; animation: logo-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.op-barra { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 62%; height: 6px; margin: 10px auto 0 4%; align-self: flex-start; }
+.op-barra i { border-radius: 3px; transform-origin: left; animation: barra-in 0.45s calc(0.7s + var(--i) * 0.12s) cubic-bezier(0.2, 0.8, 0.2, 1) both, op-brillo 6s calc(2.4s + var(--i) * 0.25s) ease-in-out infinite; }
+.op-barra .b-drogueria { background: var(--m-drogueria, #915ebd); } .op-barra .b-it { background: var(--m-it, #0e9fb3); }
+.op-barra .b-compras { background: var(--m-compras, #e07a2e); } .op-barra .b-rrhh { background: var(--m-rrhh); }
+@keyframes op-revela { from { clip-path: inset(0 100% 0 0); transform: translateX(-8px); } to { clip-path: inset(0 0 0 0); transform: none; } }
+@keyframes op-fluye { to { background-position: 300% 0; } }
+@keyframes op-brillo { 0%, 80%, 100% { transform: scaleY(1); filter: none; } 88% { transform: scaleY(1.7); filter: brightness(1.25); } }
+.login-form { animation: sube 0.5s 0.6s ease-out both; }
+
+/* créditos: Ganímedes Lab, abajo de todo */
+.creditos { grid-column: 2; display: flex; align-items: center; justify-content: center; gap: 16px; padding: 22px 24px 30px; border-top: 1px solid var(--line); margin: 0 clamp(16px, 4vw, 48px); }
+.creditos img { width: 84px; height: 84px; border-radius: 50%; background: #fff; transition: transform 0.6s; }
+.creditos:hover img { transform: rotate(-12deg) scale(1.05); }
+.creditos span { display: flex; flex-direction: column; line-height: 1.15; }
+.creditos small { color: var(--muted); font-size: 0.82rem; }
+.creditos strong { font: 700 1.55rem var(--f-display); letter-spacing: -0.01em; background: linear-gradient(90deg, #12b5e0, #4a5fd6 55%, #a23be0); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+@media (max-width: 860px) {
+  .login2 { grid-template-columns: minmax(0, 1fr); grid-template-rows: none; }
+  .login-form-wrap { order: 1; padding: 36px 20px 28px; gap: 26px; }
+  .login-marca { order: 2; grid-row: auto; gap: 20px; border-radius: 24px 24px 0 0; padding: 28px 18px; }
+  .creditos { order: 3; grid-column: auto; margin: 0; border-top: 0; background: var(--navy); color: #fff; padding: 8px 20px calc(28px + env(safe-area-inset-bottom, 0px)); }
+  .creditos small { color: #a9c0e4; }
+  .creditos strong { background: linear-gradient(90deg, #5fd3f3, #93a2ff 55%, #d48cff); -webkit-background-clip: text; background-clip: text; }
+  .creditos img { width: 72px; height: 72px; background: #fff; border-radius: 50%; }
+  .op-logo { width: min(270px, 78%); }
+  .login-titulo h1 { font-size: 1.6rem; }
+  .login-titulo p { font-size: 0.95rem; }
+  .login-mods { gap: 10px; margin: 0; }
+  .login-mod { padding: 14px 12px 12px; gap: 8px; border-radius: 14px; }
+  .login-mod img { height: 50px; }
+  .login-mod p { font-size: 0.84rem; }
+  .login-pronto { margin-top: -2px; }
+  .login-pie { text-align: center; }
+}

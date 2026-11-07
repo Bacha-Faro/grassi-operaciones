@@ -1,6 +1,6 @@
 // Modo demo: misma interfaz que api-supabase.js, con datos en el navegador.
 // Genera 11 meses de historia (dic-2025 a oct-2026) para que los indicadores tengan contenido.
-import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261106-1827';
+import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261107-1403';
 
 const KEY = 'insumos-demo-v1';
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -380,7 +380,7 @@ export const api = {
   async recibirOC(id, items) { need('compras', 'admin', 'auditor'); const e = _recibir(id, items); save(); return e; },
   async guardarFotoProducto(id, file) {
     need('compras', 'admin');
-    const { achicarImagen } = await import('./ui.js?v=20261106-1827');
+    const { achicarImagen } = await import('./ui.js?v=20261107-1403');
     const blob = await achicarImagen(file, 320, 0.7);
     const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
     db.productos.find(p => p.id === id).foto_url = url; save(); return url;

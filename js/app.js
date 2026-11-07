@@ -1,27 +1,27 @@
 // Shell de Grassi Operaciones: sesión, módulos (De compras · IT · Droguería), navegación por rol y enrutado por #vista.
 // Escritorio: barra angosta de módulos + menú del módulo + contenido. Celular: barra arriba, pestañas del módulo y barra de módulos abajo.
-import { api } from './api.js?v=20261106-1827';
-import { h, toast, field, modal } from './ui.js?v=20261106-1827';
+import { api } from './api.js?v=20261107-1403';
+import { h, toast, field, modal } from './ui.js?v=20261107-1403';
 
 const VISTAS = {
-  inicio:            { label: 'Inicio',          mod: () => import('./views/inicio.js?v=20261106-1827'),      roles: ['solicitante', 'auditor', 'compras', 'admin'], grupo: 'inicio' },
+  inicio:            { label: 'Inicio',          mod: () => import('./views/inicio.js?v=20261107-1403'),      roles: ['solicitante', 'auditor', 'compras', 'admin'], grupo: 'inicio' },
   // De compras
-  solicitar:         { label: 'Nueva solicitud', mod: () => import('./views/solicitar.js?v=20261106-1827'),   roles: ['solicitante', 'auditor', 'compras', 'admin'] },
-  'mis-solicitudes': { label: 'Mis solicitudes', mod: () => import('./views/solicitudes.js?v=20261106-1827'), roles: ['solicitante'], badge: 'rec' },
-  auditoria:         { label: 'Auditoría',       mod: () => import('./views/auditoria.js?v=20261106-1827'),   roles: ['auditor', 'admin'], badge: 'pend' },
-  solicitudes:       { label: 'Solicitudes',     mod: () => import('./views/solicitudes.js?v=20261106-1827'), roles: ['auditor', 'compras', 'admin'] },
-  compras:           { label: 'Compras',         mod: () => import('./views/compras.js?v=20261106-1827'),     roles: ['compras', 'admin'], badge: 'oc' },
-  facturas:          { label: 'Facturas',        mod: () => import('./views/facturas.js?v=20261106-1827'),    roles: ['auditor', 'compras', 'admin'], badge: 'fc' },
-  indicadores:       { label: 'Indicadores',     mod: () => import('./views/indicadores.js?v=20261106-1827'), roles: ['auditor', 'compras', 'admin'] },
-  catalogo:          { label: 'Catálogo',        mod: () => import('./views/catalogo.js?v=20261106-1827'),    roles: ['compras', 'admin'] },
+  solicitar:         { label: 'Nueva solicitud', mod: () => import('./views/solicitar.js?v=20261107-1403'),   roles: ['solicitante', 'auditor', 'compras', 'admin'] },
+  'mis-solicitudes': { label: 'Mis solicitudes', mod: () => import('./views/solicitudes.js?v=20261107-1403'), roles: ['solicitante'], badge: 'rec' },
+  auditoria:         { label: 'Auditoría',       mod: () => import('./views/auditoria.js?v=20261107-1403'),   roles: ['auditor', 'admin'], badge: 'pend' },
+  solicitudes:       { label: 'Solicitudes',     mod: () => import('./views/solicitudes.js?v=20261107-1403'), roles: ['auditor', 'compras', 'admin'] },
+  compras:           { label: 'Compras',         mod: () => import('./views/compras.js?v=20261107-1403'),     roles: ['compras', 'admin'], badge: 'oc' },
+  facturas:          { label: 'Facturas',        mod: () => import('./views/facturas.js?v=20261107-1403'),    roles: ['auditor', 'compras', 'admin'], badge: 'fc' },
+  indicadores:       { label: 'Indicadores',     mod: () => import('./views/indicadores.js?v=20261107-1403'), roles: ['auditor', 'compras', 'admin'] },
+  catalogo:          { label: 'Catálogo',        mod: () => import('./views/catalogo.js?v=20261107-1403'),    roles: ['compras', 'admin'] },
   // IT Grassi
-  tickets:           { label: 'Tickets',         mod: () => import('./views/tickets.js?v=20261106-1827'),     roles: ['admin'], soporte: true, grupo: 'it', badge: 'tkit' },
-  soporte:           { label: 'Soporte IT',      mod: () => import('./views/soporte.js?v=20261106-1827'),     roles: ['solicitante', 'auditor', 'compras', 'admin'], sinSoporte: true, grupo: 'it', badge: 'tk' },
-  usuarios:          { label: 'Usuarios',        mod: () => import('./views/usuarios.js?v=20261106-1827'),    roles: ['admin'], soporte: true, grupo: 'it' },
+  tickets:           { label: 'Tickets',         mod: () => import('./views/tickets.js?v=20261107-1403'),     roles: ['admin'], soporte: true, grupo: 'it', badge: 'tkit' },
+  soporte:           { label: 'Soporte IT',      mod: () => import('./views/soporte.js?v=20261107-1403'),     roles: ['solicitante', 'auditor', 'compras', 'admin'], sinSoporte: true, grupo: 'it', badge: 'tk' },
+  usuarios:          { label: 'Usuarios',        mod: () => import('./views/usuarios.js?v=20261107-1403'),    roles: ['admin'], soporte: true, grupo: 'it' },
   // Droguería (lo ve IT y quien tenga perfiles.drogueria; mientras DROGUERIA_PARA_TODOS sea false, solo IT)
-  drogueria:         { label: 'Tablero',         mod: () => import('./views/drogueria.js?v=20261106-1827'),   roles: ['solicitante', 'auditor', 'compras', 'admin'], drog: true, grupo: 'drogueria' },
-  temperatura:       { label: 'Temperatura y humedad', mod: () => import('./views/temperatura.js?v=20261106-1827'), roles: ['solicitante', 'auditor', 'compras', 'admin'], drog: true, grupo: 'drogueria', badge: 'temp' },
-  bachas:            { label: 'Bachas',          mod: () => import('./views/bachas.js?v=20261106-1827'),      roles: ['solicitante', 'auditor', 'compras', 'admin'], drog: true, grupo: 'drogueria', badge: 'bch' },
+  drogueria:         { label: 'Tablero',         mod: () => import('./views/drogueria.js?v=20261107-1403'),   roles: ['solicitante', 'auditor', 'compras', 'admin'], drog: true, grupo: 'drogueria' },
+  temperatura:       { label: 'Temperatura y humedad', mod: () => import('./views/temperatura.js?v=20261107-1403'), roles: ['solicitante', 'auditor', 'compras', 'admin'], drog: true, grupo: 'drogueria', badge: 'temp' },
+  bachas:            { label: 'Bachas',          mod: () => import('./views/bachas.js?v=20261107-1403'),      roles: ['solicitante', 'auditor', 'compras', 'admin'], drog: true, grupo: 'drogueria', badge: 'bch' },
 };
 // Íconos de los módulos (trazo, toman el color del texto)
 const ICONOS = {
@@ -93,7 +93,7 @@ async function badges() {
   // Droguería: turnos de hoy que ya pasaron sin cargar, y bachas demoradas
   if (drogVisible()) {
     t('temp', async () => {
-      const { hoyAR, turnosDe, estadoTurno } = await import('./views/drog-comun.js?v=20261106-1827');
+      const { hoyAR, turnosDe, estadoTurno } = await import('./views/drog-comun.js?v=20261107-1403');
       const hoy = hoyAR(), [ps, ls] = await Promise.all([api.tempPuntos(), api.tempLecturas(hoy, hoy)]);
       return turnosDe(hoy).filter(tu => ['ahora', 'atrasado'].includes(estadoTurno(hoy, tu, ls.filter(l => l.turno === tu).length, ps.length))).length;
     });
@@ -223,16 +223,32 @@ function login() {
   const email = h('input', { id: 'l-mail', type: 'email', required: true, autocomplete: 'username', placeholder: 'suc1@grupograssi.com' });
   const pass = h('input', { id: 'l-pass', type: 'password', required: true, autocomplete: 'current-password' });
   const btn = h('button', { class: 'btn primary block btn-ingresar', type: 'submit' }, 'Ingresar');
-  const fila = (m, desc) => h('li', { class: `login-mod mod-${m}` }, h('img', { src: `img/logo-${m}-claro.png`, alt: `Grassi ${MODULOS[m].nombre}` }), h('span', {}, desc));
+  // los cuatro módulos de la plataforma, con su descripción (RRHH todavía en desarrollo)
+  const MODS_LOGIN = [
+    ['drogueria', 'Droguería', 'Módulo logístico, controles y métricas.'],
+    ['it', 'Soporte IT', 'Tickets de soporte para sucursales y áreas.'],
+    ['compras', 'De compras', 'Pedidos de insumos, auditoría y compra.'],
+    ['rrhh', 'RRHH', 'Gestión de empleados: horarios, francos y vacaciones.', true]];
+  const tarjeta = ([m, nombre, desc, pronto], i) => h('li', { class: `login-mod mod-${m}${pronto ? ' pronto' : ''}`, style: `--i:${i}` },
+    h('img', { src: `img/logo-${m}-claro.png`, alt: `Grassi ${nombre}` }),
+    h('p', {}, desc),
+    pronto ? h('span', { class: 'login-pronto' }, 'Próximamente') : null);
+  // logo animado: "operaciones" que se revela con los colores de los módulos + la marca grassi + una barra con los colores de los módulos
+  const opLogo = h('div', { class: 'op-logo', role: 'img', 'aria-label': 'Grassi Operaciones' },
+    h('span', { class: 'op-palabra', 'aria-hidden': 'true' }, 'operaciones'),
+    h('img', { class: 'op-marca logo-claro', src: 'img/grassi-marca.png', alt: '' }),
+    h('img', { class: 'op-marca logo-oscuro', src: 'img/grassi-marca-claro.png', alt: '' }),
+    h('span', { class: 'op-barra', 'aria-hidden': 'true' }, ['drogueria', 'it', 'compras', 'rrhh'].map((m, i) => h('i', { class: `b-${m}`, style: `--i:${i}` }))));
   app.replaceChildren(h('div', { class: 'login2' },
     h('section', { class: 'login-marca' },
       h('div', { class: 'login-grupo' }, h('img', { src: 'img/isotipo.png', alt: '' }), h('div', {}, h('strong', {}, 'Grupo Grassi'), h('small', {}, 'Herramientas internas'))),
       h('div', { class: 'login-titulo' },
-        h('h1', {}, 'Grassi', h('br'), 'Operaciones'),
-        h('p', {}, 'Pedidos de insumos, droguería y soporte IT en un solo lugar, con un solo usuario.'),
-        h('ul', { class: 'login-mods' }, fila('drogueria', MODULOS.drogueria.desc), fila('compras', MODULOS.compras.desc), fila('it', MODULOS.it.desc))),
+        h('h1', {}, 'Todo lo operativo, en un solo lugar.'),
+        h('p', {}, 'Un solo usuario para todos los módulos. Adentro ves los que corresponden a tu sucursal o sector.'),
+        h('ul', { class: 'login-mods' }, MODS_LOGIN.map(tarjeta))),
       h('small', { class: 'login-pie' }, 'Farmacias Grassi · Servicios Sociales Grassi · Río Cuarto')),
     h('section', { class: 'login-form-wrap' },
+      opLogo,
       h('form', { class: 'login-form', onsubmit: async e => {
         e.preventDefault(); btn.disabled = true;
         try { await api.login(email.value.trim(), pass.value); await inicio(); }
@@ -240,8 +256,10 @@ function login() {
       } },
         h('div', {}, h('h2', {}, 'Ingresar'), h('p', { class: 'muted' }, 'Con el mail de tu sucursal o sector.')),
         field('Mail', email), field('Contraseña', pass), btn,
-        h('p', { class: 'login-ayuda' }, '¿Olvidaste la contraseña o no podés entrar? Llamá a IT: ', h('a', { href: `tel:+54${IT_TEL.replace(/\D/g, '')}` }, IT_TEL), '.')),
-      h('p', { class: 'creditos' }, h('img', { src: 'img/ganimedes.png', alt: '' }), h('span', {}, 'Desarrollado por ', h('strong', {}, 'Ganímedes Lab'))))));
+        h('p', { class: 'login-ayuda' }, '¿Olvidaste la contraseña o no podés entrar? Llamá a IT: ', h('a', { href: `tel:+54${IT_TEL.replace(/\D/g, '')}` }, IT_TEL), '.'))),
+    h('footer', { class: 'creditos' },
+      h('img', { src: 'img/ganimedes-lab.png', alt: '' }),
+      h('span', {}, h('small', {}, 'Desarrollado por'), h('strong', {}, 'Ganímedes Lab')))));
 }
 
 async function inicio() {
