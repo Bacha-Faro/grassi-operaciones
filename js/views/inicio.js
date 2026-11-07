@@ -1,5 +1,5 @@
 // Inicio de Grassi Operaciones: una tarjeta por módulo con lo pendiente y "Para hacer hoy" con todo junto.
-import { h } from '../ui.js?v=20261107-1435';
+import { h } from '../ui.js?v=20261107-1528';
 
 const saludo = () => { const hr = new Date().getHours(); return hr < 13 ? 'Buen día' : hr < 20 ? 'Buenas tardes' : 'Buenas noches'; };
 const hoy = () => new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -26,6 +26,11 @@ export async function render({ me, go, modulos, vistas, badges, primera, MODULOS
       puede('temperatura') && ['temp', 'Lecturas de temperatura por cargar', 'temperatura'],
       puede('bachas') && ['bch', 'Bachas demoradas', 'bachas', 'bad'],
     ].filter(Boolean),
+    rrhh: [
+      puede('cobertura') && ['rhhoy', 'Ausentes hoy', 'cobertura'],
+      puede('cobertura') && ['rhconf', 'Fechas a confirmar', 'cobertura'],
+      puede('empleados') && ['rhsin', 'Personas sin sucursal', 'empleados', 'bad'],
+    ].filter(Boolean),
   };
   const nums = {};   // clave → elemento del número
   const num = k => (nums[k] ||= []).push(h('strong', { class: 'mono' }, '·')) && nums[k].at(-1);
@@ -51,7 +56,7 @@ export async function render({ me, go, modulos, vistas, badges, primera, MODULOS
   badges.then(b => {
     for (const [k, els] of Object.entries(nums)) for (const el of els) el.textContent = b[k] ?? 0;
     const items = [];
-    for (const m of modulos) for (const [k, l, v, tono] of DATOS[m]) if (b[k] && !(k === 'tkit' && b.tkcrit === b.tkit))
+    for (const m of modulos) for (const [k, l, v, tono] of DATOS[m]) if (b[k] && k !== 'rhhoy' && !(k === 'tkit' && b.tkcrit === b.tkit))
       items.push(h('li', {}, h('a', { href: `#${v}`, class: `hoy-item mod-${m}${tono ? ` t-${tono}` : ''}`, onclick: e => { e.preventDefault(); go(v); } },
         h('span', { class: 'hoy-barra' }), h('span', {}, h('strong', {}, `${b[k]} · ${l}`), h('small', {}, MODULOS[m].nombre)))));
     pendientes.replaceChildren(...(items.length ? items : [h('li', { class: 'muted hoy-vacio' }, 'Todo al día: no hay nada pendiente.')]));

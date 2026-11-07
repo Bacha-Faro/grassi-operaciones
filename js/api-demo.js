@@ -1,6 +1,6 @@
 // Modo demo: misma interfaz que api-supabase.js, con datos en el navegador.
 // Genera 11 meses de historia (dic-2025 a oct-2026) para que los indicadores tengan contenido.
-import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261107-1435';
+import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261107-1528';
 
 const KEY = 'insumos-demo-v1';
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -163,6 +163,7 @@ function construir() {
   });
   semillaTickets();
   semillaDrogueria();
+  semillaRRHH();
   who = { id: 'demo', rol: 'solicitante', sucursal_id: 1, nombre: 'Suc 1' };
   save();
 }
@@ -249,6 +250,30 @@ function semillaDrogueria() {
     }
   }
 }
+// RRHH: empleados y ausencias de ejemplo (nombres inventados)
+const RRHH_NOMBRES = ['Ana Bustos', 'Bruno Cabrera', 'Carla Díaz', 'Damián Escobar', 'Elena Funes', 'Federico Gil', 'Gisela Herrera', 'Hugo Ibáñez', 'Inés Juárez',
+  'Julián Luna', 'Karina Medina', 'Leandro Núñez', 'Marina Ortiz', 'Nahuel Peralta', 'Olga Quinteros', 'Pablo Ramos', 'Rocío Suárez', 'Sergio Toledo', 'Tamara Urquiza',
+  'Valeria Vera', 'Walter Zárate', 'Yanina Acosta', 'Ezequiel Benítez', 'Florencia Castro'];
+function semillaRRHH() {
+  const r = rng(41); db.rrhh_empleados = []; db.rrhh_ausencias = [];
+  const sucs = [1, 2, 3, 4, 5, 6, 10];
+  RRHH_NOMBRES.forEach((nombre, i) => db.rrhh_empleados.push({ id: nextId('rrhh_empleados'), nombre, sucursal_id: i < 21 ? sucs[i % sucs.length] : null,
+    puesto: i % 4 === 0 ? 'Farmacéutico/a' : 'Vendedor/a', acuerdo_sabado: ['franquera', 'manana_fija', 'por_medio', null][i % 4], horas_semana: [36, 40, 44][i % 3],
+    dias_vacaciones: [14, 21, 14, 28][i % 4], activo: true, nota: i >= 21 ? 'Falta indicar la sucursal.' : null, created_at: new Date().toISOString() }));
+  const lunes = d => { const x = new Date(`${d}T12:00:00`); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x.toISOString().slice(0, 10); };
+  const mas = (d, n) => { const x = new Date(`${d}T12:00:00`); x.setDate(x.getDate() + n); return x.toISOString().slice(0, 10); };
+  const base = lunes(fechaAR());
+  for (const e of db.rrhh_empleados) for (let k = 0; k < (r() < 0.4 ? 2 : 1); k++) {
+    const desde = mas(base, Math.floor(r() * 26) * 7 - 14 + (k ? 0 : Math.floor(r() * 3))), dias = k ? 7 : [7, 14, 14][Math.floor(r() * 3)];
+    const aprox = r() < 0.35;
+    db.rrhh_ausencias.push({ id: nextId('rrhh_ausencias'), empleado_id: e.id, tipo: 'vacaciones', desde, hasta: mas(desde, dias - 1), dias, periodo: +desde.slice(0, 4) - (+desde.slice(5, 7) < 10 ? 1 : 0),
+      titulo: null, nota: aprox ? 'Importada del Excel: el Excel solo indica la semana, confirmar la fecha exacta.' : null, aproximada: aprox, usuario_nombre: 'RRHH', created_at: new Date().toISOString() });
+  }
+  const d1 = mas(base, 3), d2 = mas(base, 9);
+  db.rrhh_ausencias.push({ id: nextId('rrhh_ausencias'), empleado_id: 2, tipo: 'dia_libre', desde: d1, hasta: d1, dias: 1, periodo: null, titulo: null, nota: 'Cumpleaños', aproximada: false, usuario_nombre: 'RRHH', created_at: new Date().toISOString() });
+  db.rrhh_ausencias.push({ id: nextId('rrhh_ausencias'), empleado_id: 5, tipo: 'evento', desde: d2, hasta: d2, dias: 1, periodo: null, titulo: 'Entrega de título', nota: null, aproximada: false, usuario_nombre: 'RRHH', created_at: new Date().toISOString() });
+}
+const esRRHH = () => ['auditor', 'admin'].includes(who.rol);
 const esDrog = () => who.rol === 'admin' || who.sucursal_id === 7;
 
 // ---------- vistas de lectura ----------
@@ -278,8 +303,38 @@ const need = (...roles) => { if (!roles.includes(who.rol)) throw new Error('Tu r
 
 // ---------- API pública ----------
 export const api = {
+  // ---------- RRHH ----------
+  async rrhhEmpleados() { if (!esRRHH()) return tick([]); return tick([...db.rrhh_empleados].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))); },
+  async rrhhGuardarEmpleado(e) {
+    need('auditor', 'admin');
+    const campos = { nombre: e.nombre.trim(), sucursal_id: e.sucursal_id ? +e.sucursal_id : null, puesto: e.puesto || null, acuerdo_sabado: e.acuerdo_sabado || null,
+      horas_semana: e.horas_semana === '' || e.horas_semana == null ? null : +e.horas_semana, dias_vacaciones: e.dias_vacaciones === '' || e.dias_vacaciones == null ? null : +e.dias_vacaciones,
+      activo: e.activo !== false, nota: e.nota || null };
+    let x = e.id && db.rrhh_empleados.find(y => y.id === e.id);
+    if (x) Object.assign(x, campos); else db.rrhh_empleados.push(x = { id: nextId('rrhh_empleados'), ...campos, created_at: new Date().toISOString() });
+    save(); return tick(x);
+  },
+  async rrhhUnificar(origen, destino) {
+    need('auditor', 'admin');
+    db.rrhh_ausencias.forEach(a => { if (a.empleado_id === origen) a.empleado_id = destino; });
+    db.rrhh_empleados = db.rrhh_empleados.filter(e => e.id !== origen); save();
+  },
+  async rrhhAusencias(desde = null, hasta = null) {
+    if (!esRRHH()) return tick([]);
+    return tick(db.rrhh_ausencias.filter(a => (!desde || a.hasta >= desde) && (!hasta || a.desde <= hasta)).sort((a, b) => a.desde.localeCompare(b.desde)));
+  },
+  async rrhhGuardarAusencia(a) {
+    need('auditor', 'admin');
+    if (a.hasta < a.desde) throw new Error('La fecha "hasta" no puede ser anterior a "desde"');
+    const campos = { empleado_id: +a.empleado_id, tipo: a.tipo, desde: a.desde, hasta: a.hasta, dias: +a.dias, periodo: a.periodo ? +a.periodo : null, titulo: a.titulo || null, nota: a.nota || null, aproximada: !!a.aproximada };
+    let x = a.id && db.rrhh_ausencias.find(y => y.id === a.id);
+    if (x) Object.assign(x, campos); else db.rrhh_ausencias.push(x = { id: nextId('rrhh_ausencias'), ...campos, usuario_nombre: who.nombre || 'RRHH', created_at: new Date().toISOString() });
+    save(); return tick(x);
+  },
+  async rrhhBorrarAusencia(id) { need('auditor', 'admin'); db.rrhh_ausencias = db.rrhh_ausencias.filter(a => a.id !== id); save(); },
+
   modo: 'demo',
-  async init() { if (!load()) construir(); if (!db.tickets) { semillaTickets(); save(); } if (!db.bachas) { semillaDrogueria(); save(); } },
+  async init() { if (!load()) construir(); if (!db.tickets) { semillaTickets(); save(); } if (!db.bachas) { semillaDrogueria(); save(); } if (!db.rrhh_empleados) { semillaRRHH(); save(); } },
   async reset() { construir(); },
   async me() {
     const s = who.sucursal_id ? suc(who.sucursal_id) : null;
@@ -380,7 +435,7 @@ export const api = {
   async recibirOC(id, items) { need('compras', 'admin', 'auditor'); const e = _recibir(id, items); save(); return e; },
   async guardarFotoProducto(id, file) {
     need('compras', 'admin');
-    const { achicarImagen } = await import('./ui.js?v=20261107-1435');
+    const { achicarImagen } = await import('./ui.js?v=20261107-1528');
     const blob = await achicarImagen(file, 320, 0.7);
     const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
     db.productos.find(p => p.id === id).foto_url = url; save(); return url;

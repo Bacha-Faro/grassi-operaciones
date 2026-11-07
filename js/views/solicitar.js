@@ -1,6 +1,6 @@
 // Nueva solicitud, en modo "súper": cada categoría es una góndola (pasillo), los insumos son
 // productos en el estante y el pedido es el carrito. Incluye pedido sugerido según consumo.
-import { h, money, n, toast, field, empty, groupBy, sum, verFoto, carrito } from '../ui.js?v=20261107-1435';
+import { h, money, n, toast, field, empty, groupBy, sum, verFoto, carrito } from '../ui.js?v=20261107-1528';
 
 // Pasillos: ícono y color por categoría (por nombre; si aparece una nueva, toma un color de la lista)
 const PASILLOS = [

@@ -1,7 +1,7 @@
 // Adaptador Supabase: misma interfaz que api-demo.js.
 // Requiere el script UMD de supabase-js cargado en index.html (window.supabase).
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261107-1435';
-import { achicarImagen } from './ui.js?v=20261107-1435';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261107-1528';
+import { achicarImagen } from './ui.js?v=20261107-1528';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const ok = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
@@ -303,4 +303,32 @@ export const api = {
     const datos = filas.map(f => ({ punto_id: f.punto_id, fecha: f.fecha, turno: f.turno, temperatura: f.temperatura, humedad: f.humedad ?? null, accion: f.accion || null }));
     ok(await sb.from('temp_lecturas').upsert(datos, { onConflict: 'punto_id,fecha,turno' }));
   },
+
+  // ---------- RRHH Grassi (solo RRHH y admin; lo controla la base con RLS) ----------
+  async rrhhEmpleados() { return ok(await sb.from('rrhh_empleados').select('*').order('nombre')).map(e => ({ ...e, horas_semana: e.horas_semana === null ? null : +e.horas_semana })); },
+  async rrhhGuardarEmpleado(e) {
+    const campos = { nombre: e.nombre.trim(), sucursal_id: e.sucursal_id || null, puesto: e.puesto || null, acuerdo_sabado: e.acuerdo_sabado || null,
+      horas_semana: e.horas_semana === '' || e.horas_semana == null ? null : +e.horas_semana, dias_vacaciones: e.dias_vacaciones === '' || e.dias_vacaciones == null ? null : +e.dias_vacaciones,
+      activo: e.activo !== false, nota: e.nota || null };
+    if (e.id) return ok(await sb.from('rrhh_empleados').update(campos).eq('id', e.id).select().single());
+    return ok(await sb.from('rrhh_empleados').insert(campos).select().single());
+  },
+  // une dos fichas de la misma persona: las ausencias pasan a la que queda y la otra se borra
+  async rrhhUnificar(origen, destino) {
+    ok(await sb.from('rrhh_ausencias').update({ empleado_id: destino }).eq('empleado_id', origen));
+    ok(await sb.from('rrhh_empleados').delete().eq('id', origen));
+  },
+  async rrhhAusencias(desde = null, hasta = null) {
+    let q = sb.from('rrhh_ausencias').select('*').order('desde');
+    if (desde) q = q.gte('hasta', desde);
+    if (hasta) q = q.lte('desde', hasta);
+    return ok(await q);
+  },
+  async rrhhGuardarAusencia(a) {
+    const campos = { empleado_id: +a.empleado_id, tipo: a.tipo, desde: a.desde, hasta: a.hasta, dias: +a.dias, periodo: a.periodo ? +a.periodo : null,
+      titulo: a.titulo || null, nota: a.nota || null, aproximada: !!a.aproximada };
+    if (a.id) return ok(await sb.from('rrhh_ausencias').update(campos).eq('id', a.id).select().single());
+    return ok(await sb.from('rrhh_ausencias').insert({ ...campos, usuario_nombre: perfil?.nombre || perfil?.email || null }).select().single());
+  },
+  async rrhhBorrarAusencia(id) { ok(await sb.from('rrhh_ausencias').delete().eq('id', id)); },
 };
