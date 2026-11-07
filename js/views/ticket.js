@@ -1,6 +1,6 @@
 // IT Grassi · piezas compartidas de la mesa de ayuda: estados, prioridades, tiempo de respuesta,
 // alta de un ticket y el detalle con la conversación (lo usan Soporte IT y la bandeja de IT).
-import { h, toast, modal, field, fechaHora, tkNum, empty } from '../ui.js?v=20261107-1528';
+import { h, toast, modal, field, fechaHora, tkNum, empty } from '../ui.js?v=20261107-1537';
 
 export const PRIORIDADES = [['critica', 'Crítica'], ['alta', 'Alta'], ['normal', 'Normal'], ['baja', 'Baja']];
 export const PRIO_TXT = Object.fromEntries(PRIORIDADES);
