@@ -741,7 +741,7 @@ button.thumb.vacia:hover { border-color: var(--accent); color: var(--accent); }
   border: 1px solid rgb(255 255 255 / 0.1); color: #dbe6f6; overflow: hidden; animation: sube 0.5s calc(0.25s + var(--i) * 0.08s) ease-out both; transition: background 0.2s, transform 0.2s; }
 .login-mod::before { content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; background: var(--c); }
 .login-mod:hover { background: rgb(255 255 255 / 0.11); transform: translateY(-2px); }
-.login-mod.mod-drogueria { --c: #b98be0; } .login-mod.mod-it { --c: #3fc6d8; } .login-mod.mod-compras { --c: #f09a55; } .login-mod.mod-rrhh { --c: #f08fb2; }
+.login-mod.mod-drogueria { --c: #b98be0; } .login-mod.mod-it { --c: #3fc6d8; } .login-mod.mod-compras { --c: #f09a55; } .login-mod.mod-rrhh { --c: #f08fb2; } .login-mod.mod-analytics { --c: #6fd3a5; }
 .login-mod img { width: 100%; max-width: 210px; height: 78px; object-fit: contain; object-position: left center; }
 .login-mod p { margin: 0; font-size: 0.98rem; line-height: 1.4; }
 .login-mod.pronto { background: transparent; border-style: dashed; border-color: rgb(255 255 255 / 0.22); }
@@ -753,14 +753,14 @@ button.thumb.vacia:hover { border-color: var(--accent); color: var(--accent); }
 /* logo Grassi Operaciones, animado */
 .op-logo { position: relative; display: flex; flex-direction: column; align-items: flex-end; width: min(330px, 82%); }
 .op-palabra { display: flex; margin: 0 4% -4px 0; font: 700 clamp(1.7rem, 3vw, 2.25rem)/1 var(--f-display); letter-spacing: -0.01em;
-  background: linear-gradient(90deg, var(--m-drogueria, #915ebd), var(--m-it, #0e9fb3), var(--m-compras, #e07a2e), var(--m-rrhh), var(--m-drogueria, #915ebd)) 0 0 / 300% 100%;
+  background: linear-gradient(90deg, var(--m-drogueria, #915ebd), var(--m-it, #0e9fb3), var(--m-compras, #e07a2e), var(--m-rrhh), var(--m-analytics), var(--m-drogueria, #915ebd)) 0 0 / 300% 100%;
   -webkit-background-clip: text; background-clip: text; color: transparent; padding: 0 2px 0.12em;
   animation: op-revela 0.9s 0.2s cubic-bezier(0.6, 0, 0.2, 1) both, op-fluye 2.6s 1.1s linear infinite; }
 .op-marca { width: 100%; height: auto; animation: logo-in 0.7s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
-.op-barra { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; width: 62%; height: 6px; margin: 10px auto 0 4%; align-self: flex-start; }
+.op-barra { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; width: 62%; height: 6px; margin: 10px auto 0 4%; align-self: flex-start; }
 .op-barra i { border-radius: 3px; transform-origin: left; animation: barra-in 0.45s calc(0.7s + var(--i) * 0.12s) cubic-bezier(0.2, 0.8, 0.2, 1) both, op-corre 1.4s calc(1.3s + var(--i) * 0.14s) ease-in-out infinite; }
 .op-barra .b-drogueria { background: var(--m-drogueria, #915ebd); } .op-barra .b-it { background: var(--m-it, #0e9fb3); }
-.op-barra .b-compras { background: var(--m-compras, #e07a2e); } .op-barra .b-rrhh { background: var(--m-rrhh); }
+.op-barra .b-compras { background: var(--m-compras, #e07a2e); } .op-barra .b-rrhh { background: var(--m-rrhh); } .op-barra .b-analytics { background: var(--m-analytics); }
 @keyframes op-revela { from { clip-path: inset(0 100% 0 0); transform: translateX(-8px); } to { clip-path: inset(0 0 0 0); transform: none; } }
 @keyframes op-fluye { to { background-position: 300% 0; } }
 @keyframes op-brillo { 0%, 80%, 100% { transform: scaleY(1); filter: none; } 88% { transform: scaleY(1.7); filter: brightness(1.25); } }
@@ -940,3 +940,8 @@ body.solo-lectura .temp-pie, body.solo-lectura .bachas-barra, body.solo-lectura 
 body.solo-lectura .em-suc-sel, body.solo-lectura .check-mini:has(#bch-varias) { pointer-events: none; opacity: 0.7; }
 body.solo-lectura:not([data-mod="it"]) .modal input, body.solo-lectura:not([data-mod="it"]) .modal select { pointer-events: none; background: var(--sunk); }
 .tab-ayuda { margin: 0; font-size: 0.88rem; }
+
+/* login: Analytics ocupa el ancho de la grilla, con logo y texto en fila */
+.login-mod.mod-analytics { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 22px; }
+.login-mod.mod-analytics img { width: 190px; flex: none; }
+@media (max-width: 860px) { .login-mod.mod-analytics { gap: 12px; } .login-mod.mod-analytics img { width: 120px; } }
