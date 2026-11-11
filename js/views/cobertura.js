@@ -1,6 +1,6 @@
 // RRHH · Cobertura: quién falta y cuándo (vacaciones, días libres, francos, eventos), por mes o por sucursal. Reemplaza la planilla de cobertura.
-import { h, toast, modal, field, empty, tabs } from '../ui.js?v=20261111-1635';
-import { hoyAR, sumarDias, COLORES, grupoSuc, estiloSuc, ordenSuc, nombreSuc, TIPOS, lunesDe, fechaTxt, fechaDia, mesTxt, rango, diasEntre, fichaAusencia } from './rrhh-comun.js?v=20261111-1635';
+import { h, toast, modal, field, empty, tabs } from '../ui.js?v=20261111-1654';
+import { hoyAR, sumarDias, COLORES, grupoSuc, estiloSuc, ordenSuc, nombreSuc, TIPOS, lunesDe, fechaTxt, fechaDia, mesTxt, rango, diasEntre, fichaAusencia } from './rrhh-comun.js?v=20261111-1654';
 
 const DIAS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 const ultimoDia = ym => new Date(+ym.slice(0, 4), +ym.slice(5, 7), 0).getDate();

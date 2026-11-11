@@ -1,6 +1,6 @@
 // Modo demo: misma interfaz que api-supabase.js, con datos en el navegador.
 // Genera 11 meses de historia (dic-2025 a oct-2026) para que los indicadores tengan contenido.
-import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261111-1635';
+import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261111-1654';
 
 const KEY = 'insumos-demo-v1';
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -189,6 +189,41 @@ function semillaTickets() {
   Object.assign(t3, { estado: 'resuelto', primera_respuesta_at: hace(76), resuelto_at: hace(20), solucion: 'Se liberó espacio en disco y se desactivaron programas al inicio.' });
   mensaje(t3.id, 'IT', true, false, 'Me conecto de forma remota a las 14, dejala prendida.', hace(76));
 }
+// Soporte IT fase 2: equipos, respuestas rápidas y guías de ejemplo
+function semillaIT2() {
+  db.seq.it_equipos = 0; db.seq.it_respuestas = 0; db.seq.it_soluciones = 0;
+  const eq = (o) => { const e = { id: nextId('it_equipos'), marca: null, modelo: null, serie: null, usuario: null, remoto: null, estado: 'en_uso', nota: null, ...o }; return e; };
+  db.it_equipos = [
+    eq({ sucursal_id: 1, tipo: 'pc', nombre: 'PC Caja 1', marca: 'Lenovo', modelo: 'ThinkCentre M70', serie: 'MJ0AB123', usuario: 'Caja 1', remoto: '123 456 789' }),
+    eq({ sucursal_id: 1, tipo: 'pc', nombre: 'PC Atrás', marca: 'HP', modelo: 'ProDesk 400', usuario: 'Depósito' }),
+    eq({ sucursal_id: 1, tipo: 'posnet', nombre: 'Posnet Caja 1', marca: 'Ingenico', modelo: 'Move/5000' }),
+    eq({ sucursal_id: 1, tipo: 'impresora', nombre: 'Impresora mostrador', marca: 'Brother', modelo: 'HL-L2360' }),
+    eq({ sucursal_id: 2, tipo: 'pc', nombre: 'PC Caja 1', marca: 'Dell', modelo: 'OptiPlex 3080' }),
+    eq({ sucursal_id: 2, tipo: 'router', nombre: 'Router principal', marca: 'TP-Link', modelo: 'Archer C6' }),
+    eq({ sucursal_id: 4, tipo: 'etiquetadora', nombre: 'Etiquetadora', marca: 'Zebra', modelo: 'GC420t' }),
+    eq({ sucursal_id: 4, tipo: 'pc', nombre: 'PC Caja 2', marca: 'Lenovo', modelo: 'V50s', estado: 'en_reparacion', nota: 'Fuente quemada, en el service.' }),
+    eq({ sucursal_id: null, tipo: 'notebook', nombre: 'Notebook de reemplazo', marca: 'HP', modelo: '240 G8', estado: 'en_deposito' }),
+  ];
+  const t1 = db.tickets.find(t => t.asunto === 'El posnet no conecta'); if (t1) t1.equipo_id = 3;
+  const t2 = db.tickets.find(t => t.asunto.startsWith('La impresora de etiquetas')); if (t2) t2.equipo_id = 7;
+  const t3 = db.tickets.find(t => t.asunto.startsWith('La PC de atrás')); if (t3) t3.equipo_id = 2;
+  const cat = n => db.it_categorias.find(c => c.nombre === n)?.id ?? null;
+  db.it_respuestas = [
+    ['Conexión remota', 'Hola, me voy a conectar de forma remota para revisarlo. Dejá la PC prendida, abrí AnyDesk y pasame el número que aparece.'],
+    ['Reiniciar el equipo', '¿Podés apagar el equipo por completo, esperar 30 segundos y volver a encenderlo? Contame si sigue pasando.'],
+    ['Foto del error', '¿Me mandás una foto de la pantalla con el error? Así lo veo mejor.'],
+    ['Voy a la sucursal', 'Paso por la sucursal a revisarlo. Te aviso el horario.'],
+    ['Probar y confirmar', 'Ya lo solucioné desde acá. ¿Podés probar y confirmarme si anda?'],
+  ].map(([titulo, texto], i) => ({ id: nextId('it_respuestas'), categoria_id: null, titulo, texto, orden: i + 1, activo: true }));
+  db.it_soluciones = [
+    [cat('Impresoras y etiquetadoras'), 'La impresora no imprime', 'Fijate que esté encendida, con papel y sin luces de error.\nSi hay papel trabado, abrí la tapa y sacalo con cuidado.\nApagala, esperá 30 segundos y volvé a prenderla.\nEn la PC, cancelá los documentos que quedaron en cola y volvé a imprimir.'],
+    [cat('Internet y red'), 'No hay internet', 'Fijate si los otros equipos de la sucursal tienen internet.\nApagá el router y el módem, esperá 1 minuto y prendelos.\nEsperá unos 3 minutos a que se conecten.\nSi sigue sin andar, cargá el ticket y marcá si frena la atención.'],
+    [cat('PC y notebooks'), 'La PC está lenta o colgada', 'Guardá lo que estés haciendo.\nCerrá los programas que no estés usando.\nReiniciá la PC (Inicio → Reiniciar; no la apagues del botón).\nSi sigue igual, cargá el ticket con una foto de la pantalla.'],
+    [cat('Posnet y cobros'), 'El posnet no conecta', 'Apagá el posnet y volvé a prenderlo.\nFijate que tenga señal (wifi o chip) o el cable conectado.\nProbá una operación.\nSi sigue sin andar, cobrá con otro medio y cargá el ticket marcando que frena la atención.'],
+  ].map(([categoria_id, titulo, pasos], i) => ({ id: nextId('it_soluciones'), categoria_id, titulo, pasos, orden: 1, activo: true, updated_at: new Date().toISOString() }));
+  const hace = d => new Date(Date.now() - d * 86400e3).toISOString();
+  db.it_soluciones_usos = [{ solucion_id: 1, sucursal_id: 2, created_at: hace(3) }, { solucion_id: 2, sucursal_id: 5, created_at: hace(6) }, { solucion_id: 1, sucursal_id: 1, created_at: hace(9) }];
+}
 function evento(ticket_id, tipo, detalle, at) { db.ticket_eventos.push({ id: nextId('ticket_eventos'), ticket_id, tipo, detalle, created_at: at || new Date().toISOString() }); }
 function mensaje(ticket_id, autor_nombre, de_it, interno, texto, at) {
   const m = { id: nextId('ticket_mensajes'), ticket_id, autor_nombre, de_it, interno, texto, created_at: at || new Date().toISOString() };
@@ -197,7 +232,7 @@ function mensaje(ticket_id, autor_nombre, de_it, interno, texto, at) {
 const esIT = () => who.rol === 'admin';
 const miSucTk = () => who.sucursal_id || (who.rol === 'auditor' ? RRHH_SUC : null);
 const tkVisible = t => esIT() || t.sucursal_id === miSucTk();
-const tkRowDemo = t => ({ ...t, sucursal: suc(t.sucursal_id)?.nombre, categoria: db.it_categorias.find(c => c.id === t.categoria_id)?.nombre });
+const tkRowDemo = t => ({ ...t, sucursal: suc(t.sucursal_id)?.nombre, categoria: db.it_categorias.find(c => c.id === t.categoria_id)?.nombre, equipo: (db.it_equipos || []).find(e => e.id === t.equipo_id)?.nombre || null });
 function cambiarEstadoTk(t, estado, extra = {}) {
   const antes = t.estado; if (antes === estado) return;
   const ahora = new Date().toISOString();
@@ -351,7 +386,7 @@ export const api = {
   async rrhhBorrarAusencia(id) { need('auditor', 'admin'); db.rrhh_ausencias = db.rrhh_ausencias.filter(a => a.id !== id); save(); },
 
   modo: 'demo',
-  async init() { if (!load()) construir(); if (!db.tickets) { semillaTickets(); save(); } if (!db.bachas) { semillaDrogueria(); save(); } if (!db.rrhh_empleados) { semillaRRHH(); save(); } },
+  async init() { if (!load()) construir(); if (!db.tickets) { semillaTickets(); save(); } if (!db.bachas) { semillaDrogueria(); save(); } if (!db.rrhh_empleados) { semillaRRHH(); save(); } if (!db.it_equipos) { semillaIT2(); save(); } },
   async reset() { construir(); },
   async me() {
     const s = who.sucursal_id ? suc(who.sucursal_id) : null;
@@ -454,7 +489,7 @@ export const api = {
   async recibirOC(id, items) { need('compras', 'admin', 'auditor'); const e = _recibir(id, items); save(); return e; },
   async guardarFotoProducto(id, file) {
     need('compras', 'admin');
-    const { achicarImagen } = await import('./ui.js?v=20261111-1635');
+    const { achicarImagen } = await import('./ui.js?v=20261111-1654');
     const blob = await achicarImagen(file, 320, 0.7);
     const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
     db.productos.find(p => p.id === id).foto_url = url; save(); return url;
@@ -580,12 +615,13 @@ export const api = {
     return tick({ ...tkRowDemo(t), mensajes: db.ticket_mensajes.filter(m => m.ticket_id === id && (esIT() || !m.interno)),
       eventos: db.ticket_eventos.filter(e => e.ticket_id === id), archivos: (db.ticket_archivos || []).filter(a => a.ticket_id === id) });
   },
-  async crearTicket({ sucursal_id, solicitante_nombre, telefono, categoria_id, asunto, descripcion, frena_atencion, archivos = [] }) {
+  async crearTicket({ sucursal_id, solicitante_nombre, telefono, categoria_id, asunto, descripcion, frena_atencion, equipo_id, archivos = [] }) {
     const sid = esIT() ? +sucursal_id : miSucTk();
+    const eqOk = equipo_id && (db.it_equipos || []).some(e => e.id === +equipo_id && e.sucursal_id === sid) ? +equipo_id : null;
     if (!sid) throw new Error('Elegí la sucursal o área');
     if (String(asunto || '').trim().length < 3) throw new Error('Escribí el asunto');
     const id = nextId('tickets'); const at = new Date().toISOString();
-    db.tickets.push({ id, sucursal_id: sid, solicitante_nombre, telefono: telefono || null, categoria_id: +categoria_id, asunto, descripcion, frena_atencion: !!frena_atencion,
+    db.tickets.push({ id, sucursal_id: sid, solicitante_nombre, telefono: telefono || null, categoria_id: +categoria_id, asunto, descripcion, frena_atencion: !!frena_atencion, equipo_id: eqOk,
       prioridad: frena_atencion ? 'critica' : 'normal', prioridad_confirmada: false, estado: 'nuevo', solucion: null, motivo_anulacion: null, reaperturas: 0,
       created_at: at, primera_respuesta_at: null, resuelto_at: null, cerrado_at: null, cierre_automatico: false, updated_at: at });
     evento(id, 'creado', null, at);
@@ -607,6 +643,7 @@ export const api = {
     const t = db.tickets.find(x => x.id === id);
     if (cambios.prioridad && cambios.prioridad !== t.prioridad) { evento(id, 'prioridad', `${t.prioridad} → ${cambios.prioridad}`); t.prioridad = cambios.prioridad; t.prioridad_confirmada = true; }
     if (cambios.categoria_id && +cambios.categoria_id !== t.categoria_id) { t.categoria_id = +cambios.categoria_id; evento(id, 'categoria', 'cambio de categoría'); }
+    if ('equipo_id' in cambios && (cambios.equipo_id || null) !== (t.equipo_id || null)) { t.equipo_id = cambios.equipo_id ? +cambios.equipo_id : null; evento(id, 'equipo', db.it_equipos.find(e => e.id === t.equipo_id)?.nombre || 'sin equipo'); }
     if ('solucion' in cambios) t.solucion = cambios.solucion;
     if ('motivo_anulacion' in cambios) t.motivo_anulacion = cambios.motivo_anulacion;
     if (cambios.estado) cambiarEstadoTk(t, cambios.estado, cambios);
@@ -618,6 +655,25 @@ export const api = {
     const t = db.tickets.find(x => x.id === id && tkVisible(x)); if (t?.estado !== 'resuelto') throw new Error('El ticket no se puede reabrir');
     cambiarEstadoTk(t, 'en_curso'); mensaje(id, who.nombre, false, false, `Sigue pasando: ${texto.trim()}`); save(); return tick(true);
   },
+  // ---- Soporte IT fase 2 ----
+  async itEquipos() { return tick((db.it_equipos || []).filter(e => esIT() || (e.sucursal_id === miSucTk() && e.estado !== 'de_baja')).sort((a, b) => a.nombre.localeCompare(b.nombre))); },
+  async guardarEquipo(e) {
+    if (!esIT()) throw new Error('Solo IT');
+    const c = { ...e, nombre: String(e.nombre || '').trim(), sucursal_id: e.sucursal_id ? +e.sucursal_id : null };
+    for (const k of ['marca', 'modelo', 'serie', 'usuario', 'remoto', 'nota']) c[k] = String(c[k] ?? '').trim() || null;
+    if (c.nombre.length < 2) throw new Error('Poné un nombre');
+    const ex = c.id && db.it_equipos.find(x => x.id === c.id);
+    if (ex) Object.assign(ex, c); else { c.id = nextId('it_equipos'); db.it_equipos.push(c); }
+    save(); return tick(c.id);
+  },
+  async itRespuestas() { if (!esIT()) return tick([]); return tick([...db.it_respuestas].sort((a, b) => a.orden - b.orden)); },
+  async guardarRespuesta(x) { if (!esIT()) throw new Error('Solo IT'); const ex = x.id && db.it_respuestas.find(r => r.id === x.id); const c = { activo: true, ...x, categoria_id: x.categoria_id ? +x.categoria_id : null }; if (ex) Object.assign(ex, c); else db.it_respuestas.push({ ...c, id: nextId('it_respuestas') }); save(); return tick(true); },
+  async borrarRespuesta(id) { db.it_respuestas = db.it_respuestas.filter(r => r.id !== id); save(); return tick(true); },
+  async itSoluciones() { return tick(db.it_soluciones.filter(x => x.activo || esIT()).sort((a, b) => a.orden - b.orden)); },
+  async guardarSolucion(x) { if (!esIT()) throw new Error('Solo IT'); const ex = x.id && db.it_soluciones.find(r => r.id === x.id); const c = { ...x, categoria_id: x.categoria_id ? +x.categoria_id : null, updated_at: new Date().toISOString() }; if (ex) Object.assign(ex, c); else db.it_soluciones.push({ activo: true, ...c, id: nextId('it_soluciones') }); save(); return tick(true); },
+  async borrarSolucion(id) { db.it_soluciones = db.it_soluciones.filter(r => r.id !== id); save(); return tick(true); },
+  async solucionSirvio(id) { db.it_soluciones_usos.push({ solucion_id: id, sucursal_id: miSucTk(), created_at: new Date().toISOString() }); save(); return tick(true); },
+  async itSolucionesUsos() { return tick(esIT() ? [...db.it_soluciones_usos] : []); },
   async guardarPush() { return tick(true); },
   async quitarPush() { return tick(true); },
   async probarPush() { return tick({ ok: true, enviados: 0, simulado: true }); },

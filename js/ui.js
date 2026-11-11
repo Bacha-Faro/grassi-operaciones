@@ -165,3 +165,10 @@ export function cargarScript(src) {
   }));
   return libs.get(src);
 }
+
+// Descarga una tabla como CSV para Excel (separador ; y BOM para los acentos)
+export function descargarCSV(nombre, filas) {
+  const txt = '﻿' + filas.map(f => f.map(x => `"${String(x ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n');
+  const el = h('a', { href: URL.createObjectURL(new Blob([txt], { type: 'text/csv' })), download: `${nombre}.csv` });
+  document.body.append(el); el.click(); el.remove();
+}

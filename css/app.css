@@ -1,3 +1,4 @@
+[hidden] { display: none !important; }
 /* Layout: barra lateral fija con navegación por rol + área de trabajo; en móvil la nav pasa arriba y se desplaza. */
 :root {
   /* marca Farmacias Grassi: azul #0055B8 + verde #71A850 */
@@ -945,3 +946,28 @@ body.solo-lectura:not([data-mod="it"]) .modal input, body.solo-lectura:not([data
 .login-mod.mod-analytics { grid-column: 1 / -1; flex-direction: row; align-items: center; gap: 22px; }
 .login-mod.mod-analytics img { width: 190px; flex: none; }
 @media (max-width: 860px) { .login-mod.mod-analytics { gap: 12px; } .login-mod.mod-analytics img { width: 120px; } }
+
+/* ---------- Soporte IT · fase 2: guías, respuestas rápidas, equipos y reportes ---------- */
+.tk-guias { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: var(--r); background: var(--m-it-soft); border-left: 3px solid var(--m-it); }
+.tk-guias > strong { color: var(--m-it-ink); }
+.guia { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+.guia summary { cursor: pointer; font-weight: 600; }
+.guia[open] summary { margin-bottom: 6px; }
+.guia .btn { margin-top: 4px; }
+.guia-pasos { margin: 4px 0 8px; padding-left: 22px; display: flex; flex-direction: column; gap: 4px; }
+.guia-vista { padding: 10px 12px; background: var(--sunk); border-radius: var(--r); }
+.tk-rapidas { width: auto; max-width: 100%; align-self: flex-start; color: var(--m-it-ink); font-weight: 600; }
+.card.inactivo { opacity: 0.6; }
+.base-grupo h2 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 10px 0 6px; }
+.eq-tbl tbody tr { cursor: pointer; }
+.eq-tbl td.num, .rep-tbl td.num, .rep-tbl th.num { text-align: right; white-space: nowrap; }
+.eq-hist { border-top: 1px solid var(--line); padding-top: 10px; }
+.eq-hist-lista { list-style: none; margin: 6px 0 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow: auto; }
+.eq-hist-lista li { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.rep-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr)); gap: 14px; align-items: start; }
+.rep-bloque { margin: 0; }
+.rep-barra { display: inline-block; width: 70px; height: 8px; border-radius: 4px; background: var(--sunk); vertical-align: middle; overflow: hidden; }
+.rep-barra > span { display: block; height: 100%; background: var(--m-it); border-radius: 4px; }
+.rep-tbl { font-size: 0.9rem; }
+.rep-tbl th, .rep-tbl td { padding-left: 8px; padding-right: 8px; }
+.rep-tbl td.num { font-variant-numeric: tabular-nums; }

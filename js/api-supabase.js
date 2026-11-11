@@ -1,7 +1,7 @@
 // Adaptador Supabase: misma interfaz que api-demo.js.
 // Requiere el script UMD de supabase-js cargado en index.html (window.supabase).
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261111-1635';
-import { achicarImagen } from './ui.js?v=20261111-1635';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261111-1654';
+import { achicarImagen } from './ui.js?v=20261111-1654';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const ok = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
@@ -28,7 +28,7 @@ function solRow(s) {
 }
 
 // ticket con nombres planos (sucursal, categoría)
-const tkRow = t => { const { sucursales, it_categorias, ...b } = t; return { ...b, sucursal: sucursales?.nombre, categoria: it_categorias?.nombre }; };
+const tkRow = t => { const { sucursales, it_categorias, it_equipos, ...b } = t; return { ...b, sucursal: sucursales?.nombre, categoria: it_categorias?.nombre, equipo: it_equipos?.nombre || null }; };
 
 function ocRow(o) {
   const its = o.oc_items || [];
@@ -224,21 +224,21 @@ export const api = {
   // ---------------- IT Grassi · Mesa de ayuda ----------------
   async itCategorias() { return ok(await sb.from('it_categorias').select('*').eq('activo', true).order('orden')); },
   async tickets() {
-    return ok(await sb.from('tickets').select('*, sucursales(nombre), it_categorias(nombre)').order('created_at', { ascending: false }))
+    return ok(await sb.from('tickets').select('*, sucursales(nombre), it_categorias(nombre), it_equipos(nombre)').order('created_at', { ascending: false }))
       .map(tkRow);
   },
   async ticket(id) {
     const [t, mensajes, eventos, archivos] = await Promise.all([
-      sb.from('tickets').select('*, sucursales(nombre), it_categorias(nombre)').eq('id', id).maybeSingle().then(ok),
+      sb.from('tickets').select('*, sucursales(nombre), it_categorias(nombre), it_equipos(nombre)').eq('id', id).maybeSingle().then(ok),
       sb.from('ticket_mensajes').select('*').eq('ticket_id', id).order('created_at').then(ok),
       sb.from('ticket_eventos').select('*').eq('ticket_id', id).order('created_at').then(ok),
       sb.storage.from('tickets').list(String(id), { sortBy: { column: 'name', order: 'asc' } }).then(ok)]);
     if (!t) return null;
     return { ...tkRow(t), mensajes, eventos, archivos: (archivos || []).filter(a => a.name && !a.name.startsWith('.')).map(a => ({ path: `${id}/${a.name}`, nombre: a.name.replace(/^\d+-/, ''), tipo: a.metadata?.mimetype })) };
   },
-  async crearTicket({ sucursal_id, solicitante_nombre, telefono, categoria_id, asunto, descripcion, frena_atencion, archivos = [] }) {
+  async crearTicket({ sucursal_id, solicitante_nombre, telefono, categoria_id, asunto, descripcion, frena_atencion, equipo_id, archivos = [] }) {
     const t = ok(await sb.from('tickets').insert({ sucursal_id: sucursal_id || perfil?.sucursal_id, solicitante_nombre, telefono: telefono || null,
-      categoria_id, asunto, descripcion, frena_atencion: !!frena_atencion }).select('id').single());
+      categoria_id, asunto, descripcion, frena_atencion: !!frena_atencion, equipo_id: equipo_id || null }).select('id').single());
     let fallidos = 0;
     for (const f of archivos) { try { await this.subirArchivoTicket(t.id, f); } catch { fallidos++; } }
     // aviso a IT (mail y, si es crítico, notificación al celular): si falla, el ticket ya quedó cargado
@@ -276,6 +276,22 @@ export const api = {
     ok(await sb.rpc('ticket_reabrir', { p_id: id, p_texto: texto }));
     sb.functions.invoke('enviar-mail', { body: { tipo: 'ticket', evento: 'reabierto', ticket_id: id } }).catch(() => {});
   },
+  // ---- Soporte IT fase 2: equipos, respuestas rápidas, guías ----
+  async itEquipos() { return ok(await sb.from('it_equipos').select('*').order('nombre')); },
+  async guardarEquipo(e) {
+    const { id, ...c } = e;
+    for (const k of ['marca', 'modelo', 'serie', 'usuario', 'remoto', 'nota']) c[k] = String(c[k] ?? '').trim() || null;
+    c.nombre = String(c.nombre || '').trim(); c.sucursal_id = c.sucursal_id ? +c.sucursal_id : null;
+    return ok(id ? await sb.from('it_equipos').update(c).eq('id', id).select('id').single() : await sb.from('it_equipos').insert(c).select('id').single()).id;
+  },
+  async itRespuestas() { return ok(await sb.from('it_respuestas').select('*').order('orden').order('titulo')); },
+  async guardarRespuesta(r) { const { id, ...c } = r; c.categoria_id = c.categoria_id ? +c.categoria_id : null; ok(id ? await sb.from('it_respuestas').update(c).eq('id', id) : await sb.from('it_respuestas').insert(c)); },
+  async borrarRespuesta(id) { ok(await sb.from('it_respuestas').delete().eq('id', id)); },
+  async itSoluciones() { return ok(await sb.from('it_soluciones').select('*').order('orden').order('titulo')); },
+  async guardarSolucion(x) { const { id, ...c } = x; c.categoria_id = c.categoria_id ? +c.categoria_id : null; ok(id ? await sb.from('it_soluciones').update(c).eq('id', id) : await sb.from('it_soluciones').insert(c)); },
+  async borrarSolucion(id) { ok(await sb.from('it_soluciones').delete().eq('id', id)); },
+  async solucionSirvio(id) { ok(await sb.rpc('solucion_sirvio', { p_id: id })); },
+  async itSolucionesUsos() { return ok(await sb.from('it_soluciones_usos').select('solucion_id, sucursal_id, created_at').order('created_at', { ascending: false }).limit(2000)); },
   // notificaciones en el celular (Web Push): se guarda la suscripción de este dispositivo
   async guardarPush(sub, dispositivo) {
     const j = sub.toJSON();

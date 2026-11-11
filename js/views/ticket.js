@@ -1,6 +1,6 @@
 // IT Grassi · piezas compartidas de la mesa de ayuda: estados, prioridades, tiempo de respuesta,
 // alta de un ticket y el detalle con la conversación (lo usan Soporte IT y la bandeja de IT).
-import { h, toast, modal, field, fechaHora, tkNum, empty } from '../ui.js?v=20261111-1635';
+import { h, toast, modal, field, fechaHora, tkNum, empty } from '../ui.js?v=20261111-1654';
 
 export const PRIORIDADES = [['critica', 'Crítica'], ['alta', 'Alta'], ['normal', 'Normal'], ['baja', 'Baja']];
 export const PRIO_TXT = Object.fromEntries(PRIORIDADES);
@@ -14,6 +14,10 @@ const ESTADO = {
 };
 export const estadoPill = (e, paraIT) => { const [a, b, tono] = ESTADO[e] || [e, e, 'muted']; return h('span', { class: `pill pill-${tono}` }, paraIT ? a : b); };
 export const ABIERTOS = ['nuevo', 'en_curso', 'en_espera', 'resuelto'];
+export const TIPOS_EQUIPO = { pc: 'PC', notebook: 'Notebook', impresora: 'Impresora', etiquetadora: 'Etiquetadora', router: 'Router / red', posnet: 'Posnet', lector: 'Lector de códigos', telefono: 'Teléfono / celular', camara: 'Cámara', otro: 'Otro' };
+export const nombreEquipo = e => `${e.nombre}${e.marca || e.modelo ? ` · ${[e.marca, e.modelo].filter(Boolean).join(' ')}` : ''}`;
+// pasos de una guía: uno por línea
+export const pasosLista = txt => h('ol', { class: 'guia-pasos' }, String(txt || '').split('\n').map(x => x.trim()).filter(Boolean).map(x => h('li', {}, x)));
 
 // ---- tiempo de primera respuesta, en horario de IT (lunes a viernes de 8 a 16) ----
 const H_INI = 8, H_FIN = 16;
@@ -80,6 +84,33 @@ export function nuevoTicket({ api, me, cats, sucursales, onDone }) {
   const frena = h('input', { type: 'checkbox', id: 'tk-frena' });
   const archivos = h('input', { type: 'file', id: 'tk-arch', accept: 'image/*,application/pdf', multiple: true });
   const avisoClaves = h('div', { class: 'notice', hidden: true }, 'No escribas contraseñas en el ticket. Si hace falta una, IT te la pide por teléfono.');
+  // equipo afectado (los de la sucursal) y guías de la categoría elegida
+  const equipo = h('select', { id: 'tk-equipo' }, h('option', { value: '' }, 'No sé / no aplica'));
+  const filaEquipo = field('Equipo afectado', equipo, 'Si es de un equipo en particular, elegilo: IT ve su historial.');
+  filaEquipo.hidden = true;
+  let equipos = [], guias = [];
+  const llenarEquipos = () => {
+    const lista = equipos.filter(e => e.estado !== 'de_baja' && (!esIT || e.sucursal_id === +suc.value));
+    equipo.replaceChildren(h('option', { value: '' }, 'No sé / no aplica'), ...lista.map(e => h('option', { value: e.id }, nombreEquipo(e))));
+    filaEquipo.hidden = !lista.length;
+  };
+  const cajaGuias = h('div', { class: 'tk-guias', hidden: true });
+  let m;
+  const pintarGuias = () => {
+    const delCat = guias.filter(g => g.activo && g.categoria_id === +cat.value);
+    cajaGuias.hidden = esIT || !delCat.length;
+    cajaGuias.replaceChildren(h('strong', {}, 'Antes de cargarlo, probá esto:'),
+      ...delCat.map(g => h('details', { class: 'guia' }, h('summary', {}, g.titulo), pasosLista(g.pasos),
+        h('button', { type: 'button', class: 'btn ok', onclick: async () => {
+          try { await api.solucionSirvio(g.id); } catch { /* igual se cierra */ }
+          toast('¡Bien! No hace falta cargar el ticket.'); m?.close();
+        } }, 'Listo, se solucionó'))),
+      h('small', { class: 'muted' }, 'Si no se soluciona, completá el ticket y envialo.'));
+  };
+  api.itEquipos().then(l => { equipos = l; llenarEquipos(); }).catch(() => {});
+  if (!esIT) api.itSoluciones().then(l => { guias = l; pintarGuias(); }).catch(() => {});
+  cat.addEventListener('change', pintarGuias);
+  suc?.addEventListener('change', llenarEquipos);
   const btn = { label: 'Enviar a IT', kind: 'primary', onClick: async () => {
     const files = [...archivos.files];
     if (esIT && !suc.value) { toast('Elegí la sucursal o área', 'bad'); return false; }
@@ -92,17 +123,19 @@ export function nuevoTicket({ api, me, cats, sucursales, onDone }) {
     try {
       if (!esIT) recordar.set(nombre.value.trim());
       const r = await api.crearTicket({ sucursal_id: esIT ? +suc.value : null, solicitante_nombre: nombre.value.trim(), telefono: tel.value.trim(),
-        categoria_id: +cat.value, asunto: asunto.value.trim(), descripcion: desc.value.trim(), frena_atencion: frena.checked, archivos: files });
+        categoria_id: +cat.value, asunto: asunto.value.trim(), descripcion: desc.value.trim(), frena_atencion: frena.checked, equipo_id: equipo.value ? +equipo.value : null, archivos: files });
       toast(`Ticket ${tkNum(r.id)} enviado a IT`);
       if (r.fallidos) toast(`${r.fallidos} archivo(s) no se pudieron subir`, 'bad');
       onDone?.(r.id);
     } catch (e) { toast(e.message, 'bad'); return false; }
   } };
-  modal({ title: 'Nuevo ticket para IT', wide: true,
+  m = modal({ title: 'Nuevo ticket para IT', wide: true,
     body: h('div', { class: 'stack tk-form' },
       suc ? field('Sucursal o área', suc) : null,
       h('div', { class: 'grid2' }, field('Tipo de problema', cat, ejemplo), field('Tu nombre', nombre)),
+      cajaGuias,
       field('¿Qué pasa? (en una línea)', asunto),
+      filaEquipo,
       field('Descripción', desc),
       avisoClaves,
       h('label', { class: 'check-frena' }, frena, h('span', {}, h('strong', {}, 'Frena la atención al público o el cobro'), h('small', { class: 'muted', style: 'display:block' }, 'Por ejemplo: sin sistema, sin posnet o sin internet. IT lo atiende primero.'))),
@@ -115,13 +148,15 @@ const ESTADO_EVT = { nuevo: 'Nuevo', en_curso: 'En curso', en_espera: 'En espera
 const evtTexto = e => e.tipo === 'creado' ? 'Ticket cargado'
   : e.tipo === 'estado' ? `Estado: ${e.detalle.split(' → ').map(x => ESTADO_EVT[x] || x).join(' → ')}`
   : e.tipo === 'prioridad' ? `Prioridad: ${e.detalle.split(' → ').map(x => PRIO_TXT[x] || x).join(' → ')}`
-  : e.tipo === 'categoria' ? `Categoría: ${e.detalle}` : e.tipo;
+  : e.tipo === 'categoria' ? `Categoría: ${e.detalle}`
+  : e.tipo === 'equipo' ? `Equipo: ${e.detalle}` : e.tipo;
 
 export async function abrirTicket({ api, me, id, cats = [], onChange }) {
   const esIT = !!me.soporte;
   const cuerpo = h('div', { class: 'tk-detalle' }, h('div', { class: 'loading' }, 'Cargando…'));
   let cambio = false;
   const m = modal({ title: tkNum(id), wide: true, body: cuerpo, onClose: () => { if (cambio) onChange?.(); } });
+  const [respuestas, equiposIT] = esIT ? await Promise.all([api.itRespuestas().catch(() => []), api.itEquipos().catch(() => [])]) : [[], []];
 
   async function cargar() {
     let t;
@@ -134,7 +169,7 @@ export async function abrirTicket({ api, me, id, cats = [], onChange }) {
     // cabecera
     const cab = h('div', { class: 'tk-cab' },
       estadoPill(t.estado, esIT), prioPill(t.prioridad), plazoTag(t),
-      h('span', { class: 'muted' }, `${t.sucursal} · ${t.categoria} · ${t.solicitante_nombre}${t.telefono ? ` · ☎ ${t.telefono}` : ''} · ${fechaHora(t.created_at)}`));
+      h('span', { class: 'muted' }, `${t.sucursal} · ${t.categoria}${t.equipo ? ` · 🖥 ${t.equipo}` : ''} · ${t.solicitante_nombre}${t.telefono ? ` · ☎ ${t.telefono}` : ''} · ${fechaHora(t.created_at)}`));
 
     // archivos
     const archivos = t.archivos?.length ? h('div', { class: 'tk-archivos' }, t.archivos.map(a =>
@@ -169,7 +204,13 @@ export async function abrirTicket({ api, me, id, cats = [], onChange }) {
     // responder
     const nota = h('input', { type: 'checkbox', id: 'tk-interno' });
     const caja = h('textarea', { id: 'tk-msg', rows: 3, maxlength: 4000, placeholder: esIT ? 'Escribile a la sucursal…' : 'Escribile a IT…' });
-    const responder = abierto && !(!esIT && t.estado === 'resuelto') ? h('div', { class: 'tk-responder' }, caja,
+    const rapidas = esIT ? h('select', { class: 'tk-rapidas', 'aria-label': 'Respuesta rápida', onchange: e => {
+      const x = respuestas.find(r => r.id === +e.target.value); e.target.value = '';
+      if (!x) return;
+      caja.value = caja.value.trim() ? `${caja.value.trim()}\n${x.texto}` : x.texto; caja.focus();
+    } }, h('option', { value: '' }, '⚡ Respuesta rápida…'),
+      respuestas.filter(r => r.activo && (!r.categoria_id || r.categoria_id === t.categoria_id)).map(r => h('option', { value: r.id }, r.titulo))) : null;
+    const responder = abierto && !(!esIT && t.estado === 'resuelto') ? h('div', { class: 'tk-responder' }, rapidas, caja,
       h('div', { class: 'toolbar filters' },
         esIT ? h('label', { class: 'check-mini' }, nota, ' Nota interna') : null,
         esIT ? h('button', { class: 'btn', title: 'Envía el mensaje y deja el ticket esperando la respuesta de la sucursal', onclick: () => {
@@ -187,6 +228,10 @@ export async function abrirTicket({ api, me, id, cats = [], onChange }) {
         PRIORIDADES.map(([k, l]) => h('option', { value: k, selected: k === t.prioridad }, l)));
       const cat = h('select', { id: 'tk-cat2', onchange: e => hecho(() => api.ticketActualizar(t.id, { categoria_id: +e.target.value }), 'Categoría actualizada') },
         cats.map(c => h('option', { value: c.id, selected: c.id === t.categoria_id }, c.nombre)));
+      const delSuc = equiposIT.filter(e => e.sucursal_id === t.sucursal_id && (e.estado !== 'de_baja' || e.id === t.equipo_id));
+      const eq = h('select', { id: 'tk-eq2', onchange: e => hecho(() => api.ticketActualizar(t.id, { equipo_id: e.target.value ? +e.target.value : null }), 'Equipo actualizado') },
+        h('option', { value: '' }, delSuc.length ? 'Sin equipo' : 'No hay equipos cargados'),
+        delSuc.map(e => h('option', { value: e.id, selected: e.id === t.equipo_id }, nombreEquipo(e))));
       const resolver = () => {
         const sol = h('textarea', { rows: 3, maxlength: 2000, value: t.solucion || '', placeholder: 'Qué se hizo, en una o dos líneas' });
         modal({ title: `Resolver ${tkNum(t.id)}`, body: h('div', { class: 'stack' }, field('Solución', sol, 'La sucursal la ve y confirma si quedó resuelto.')),
@@ -206,6 +251,7 @@ export async function abrirTicket({ api, me, id, cats = [], onChange }) {
       return h('div', { class: 'tk-gestion' },
         h('label', { class: 'field tk-mini' }, h('span', { class: 'field-label' }, 'Prioridad'), prio),
         h('label', { class: 'field tk-mini' }, h('span', { class: 'field-label' }, 'Categoría'), cat),
+        h('label', { class: 'field tk-mini' }, h('span', { class: 'field-label' }, 'Equipo'), eq),
         h('div', { class: 'tk-acciones' },
           t.estado === 'nuevo' ? h('button', { class: 'btn primary', onclick: () => hecho(() => api.ticketActualizar(t.id, { estado: 'en_curso' }), 'Ticket tomado: la sucursal recibe el aviso') }, 'Tomar ticket') : null,
           t.estado === 'en_espera' ? h('button', { class: 'btn', onclick: () => hecho(() => api.ticketActualizar(t.id, { estado: 'en_curso' })) }, 'Volver a En curso') : null,
