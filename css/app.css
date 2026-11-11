@@ -933,7 +933,7 @@ button.thumb.vacia:hover { border-color: var(--accent); color: var(--accent); }
 /* Gerencia y dirección: solo lectura (menos en Soporte IT, donde cargan sus tickets como cualquiera) */
 body.solo-lectura:not([data-mod="it"]) .main .btn.primary,
 body.solo-lectura:not([data-mod="it"]) .main .btn.danger,
-body.solo-lectura:not([data-mod="it"]) .modal-foot .btn.primary,
+body.solo-lectura:not([data-mod="it"]) .modal-foot .btn.primary:not(.btn-salir),
 body.solo-lectura:not([data-mod="it"]) .modal-foot .danger-link,
 body.solo-lectura .em-unificar, body.solo-lectura .em-ausencias .toolbar .btn,
 body.solo-lectura .temp-pie, body.solo-lectura .bachas-barra, body.solo-lectura .tab-editar { display: none !important; }
