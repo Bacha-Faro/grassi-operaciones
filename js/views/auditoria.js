@@ -1,6 +1,6 @@
 // Auditoría (RRHH): cola de solicitudes pendientes y revisión ítem por ítem,
 // con el consumo promedio de la sucursal como referencia y alertas automáticas.
-import { h, money, n, pill, empty, toast, fechaHora, solNum, sum, confirmar } from '../ui.js?v=20261107-1537';
+import { h, money, n, pill, empty, toast, fechaHora, solNum, sum, confirmar } from '../ui.js?v=20261111-1253';
 
 export async function render({ api, me, refresh }) {
   const puedeAuditar = ['auditor', 'admin'].includes(me.rol);

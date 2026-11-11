@@ -565,12 +565,14 @@ button.thumb.vacia:hover { border-color: var(--accent); color: var(--accent); }
   --m-drogueria: #915ebd; --m-drogueria-ink: #6f3f99; --m-drogueria-soft: #f1e8f8;
   --m-compras: #e07a2e; --m-compras-ink: #a8501a; --m-compras-soft: #fcebdd;
   --m-it: #0e9fb3; --m-it-ink: #0a6c79; --m-it-soft: #dff3f6;
-  --m-rrhh: #d9467a; --m-rrhh-ink: #a8285a; --m-rrhh-soft: #fbe4ed; }
-:root[data-theme="dark"] { --navy: #0b2a5c; --m-drogueria-ink: #c7a6ea; --m-drogueria-soft: #2c2240; --m-compras-ink: #f2a463; --m-compras-soft: #3a2a1c; --m-it-ink: #6fd6e4; --m-it-soft: #173539; --m-rrhh-ink: #f08fb2; --m-rrhh-soft: #3a1f2b; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --navy: #0b2a5c; --m-drogueria-ink: #c7a6ea; --m-drogueria-soft: #2c2240; --m-compras-ink: #f2a463; --m-compras-soft: #3a2a1c; --m-it-ink: #6fd6e4; --m-it-soft: #173539; --m-rrhh-ink: #f08fb2; --m-rrhh-soft: #3a1f2b; } }
+  --m-rrhh: #d9467a; --m-rrhh-ink: #a8285a; --m-rrhh-soft: #fbe4ed;
+  --m-analytics: #1f9d6b; --m-analytics-ink: #13724c; --m-analytics-soft: #dcf3e9; }
+:root[data-theme="dark"] { --navy: #0b2a5c; --m-drogueria-ink: #c7a6ea; --m-drogueria-soft: #2c2240; --m-compras-ink: #f2a463; --m-compras-soft: #3a2a1c; --m-it-ink: #6fd6e4; --m-it-soft: #173539; --m-rrhh-ink: #f08fb2; --m-rrhh-soft: #3a1f2b; --m-analytics-ink: #6fd3a5; --m-analytics-soft: #173a2c; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --navy: #0b2a5c; --m-drogueria-ink: #c7a6ea; --m-drogueria-soft: #2c2240; --m-compras-ink: #f2a463; --m-compras-soft: #3a2a1c; --m-it-ink: #6fd6e4; --m-it-soft: #173539; --m-rrhh-ink: #f08fb2; --m-rrhh-soft: #3a1f2b; --m-analytics-ink: #6fd3a5; --m-analytics-soft: #173a2c; } }
 .mod-drogueria { --m: var(--m-drogueria); --m-ink: var(--m-drogueria-ink); --m-soft: var(--m-drogueria-soft); }
 .mod-compras, [data-mod="compras"] { --m: var(--m-compras); --m-ink: var(--m-compras-ink); --m-soft: var(--m-compras-soft); }
 .mod-it, [data-mod="it"] { --m: var(--m-it); --m-ink: var(--m-it-ink); --m-soft: var(--m-it-soft); }
+.mod-analytics, [data-mod="analytics"] { --m: var(--m-analytics); --m-ink: var(--m-analytics-ink); --m-soft: var(--m-analytics-soft); }
 .mod-rrhh, [data-mod="rrhh"] { --m: var(--m-rrhh); --m-ink: var(--m-rrhh-ink); --m-soft: var(--m-rrhh-soft); }
 [data-mod="drogueria"] { --m: var(--m-drogueria); --m-ink: var(--m-drogueria-ink); --m-soft: var(--m-drogueria-soft); }
 .ico { display: inline-flex; }
@@ -907,3 +909,34 @@ button.thumb.vacia:hover { border-color: var(--accent); color: var(--accent); }
 .gan-logo img { position: relative; width: 84px; height: 84px; border-radius: 50%; }
 .creditos strong { background-size: 300% 100%; animation: op-fluye 3.5s linear infinite; background-image: linear-gradient(90deg, #12b5e0, #4a5fd6, #a23be0, #e04ac4, #12b5e0); }
 @media (max-width: 860px) { .gan-logo { width: 82px; height: 82px; } .gan-logo img { width: 72px; height: 72px; } }
+
+/* ===== Grassi Analytics ===== */
+.tab-cont { display: flex; flex-direction: column; gap: 22px; }
+.tab-area h2 { font-size: 1rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin: 0 0 10px; }
+.tab-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px; }
+.tab-card { position: relative; display: flex; flex-direction: column; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); border-top: 4px solid var(--m-analytics); transition: transform 0.15s, box-shadow 0.15s; }
+.tab-card:hover { transform: translateY(-2px); box-shadow: 0 8px 22px rgb(15 30 60 / 0.1); }
+.tab-card.inactivo { opacity: 0.6; }
+.tab-abrir { display: flex; flex-direction: column; align-items: flex-start; gap: 6px; padding: 18px 18px 16px; border: 0; background: none; color: var(--fg); text-align: left; font: inherit; cursor: pointer; flex: 1; }
+.tab-abrir strong { font: 700 1.1rem var(--f-display); }
+.tab-abrir .muted { font-size: 0.9rem; }
+.tab-ico { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 12px; background: var(--m-analytics-soft); color: var(--m-analytics-ink); margin-bottom: 4px; }
+.tab-editar { position: absolute; top: 14px; right: 14px; font-size: 0.85rem; }
+.tab-barra { align-items: center; }
+.tab-titulo { display: flex; align-items: center; gap: 12px; }
+.tab-titulo strong { font: 700 1.2rem var(--f-display); }
+.tab-marco { position: relative; width: 100%; height: calc(100vh - 210px); height: calc(100dvh - 210px); min-height: 480px; border-radius: 12px; overflow: hidden; border: 1px solid var(--line); background: #fff; }
+.tab-marco iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+.tab-marco:fullscreen { border-radius: 0; border: 0; }
+@media (max-width: 860px) { .tab-marco { height: 70vh; min-height: 360px; } .tab-titulo .btn { padding: 6px 10px; } }
+
+/* Gerencia y dirección: solo lectura (menos en Soporte IT, donde cargan sus tickets como cualquiera) */
+body.solo-lectura:not([data-mod="it"]) .main .btn.primary,
+body.solo-lectura:not([data-mod="it"]) .main .btn.danger,
+body.solo-lectura:not([data-mod="it"]) .modal-foot .btn.primary,
+body.solo-lectura:not([data-mod="it"]) .modal-foot .danger-link,
+body.solo-lectura .em-unificar, body.solo-lectura .em-ausencias .toolbar .btn,
+body.solo-lectura .temp-pie, body.solo-lectura .bachas-barra, body.solo-lectura .tab-editar { display: none !important; }
+body.solo-lectura .em-suc-sel, body.solo-lectura .check-mini:has(#bch-varias) { pointer-events: none; opacity: 0.7; }
+body.solo-lectura:not([data-mod="it"]) .modal input, body.solo-lectura:not([data-mod="it"]) .modal select { pointer-events: none; background: var(--sunk); }
+.tab-ayuda { margin: 0; font-size: 0.88rem; }

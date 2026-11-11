@@ -1,5 +1,5 @@
 // Inicio de Grassi Operaciones: una tarjeta por módulo con lo pendiente y "Para hacer hoy" con todo junto.
-import { h } from '../ui.js?v=20261107-1537';
+import { h } from '../ui.js?v=20261111-1253';
 
 const saludo = () => { const hr = new Date().getHours(); return hr < 13 ? 'Buen día' : hr < 20 ? 'Buenas tardes' : 'Buenas noches'; };
 const hoy = () => new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
@@ -26,6 +26,7 @@ export async function render({ me, go, modulos, vistas, badges, primera, MODULOS
       puede('temperatura') && ['temp', 'Lecturas de temperatura por cargar', 'temperatura'],
       puede('bachas') && ['bch', 'Bachas demoradas', 'bachas', 'bad'],
     ].filter(Boolean),
+    analytics: [],
     rrhh: [
       puede('cobertura') && ['rhhoy', 'Ausentes hoy', 'cobertura'],
       puede('cobertura') && ['rhconf', 'Fechas a confirmar', 'cobertura'],
@@ -43,7 +44,7 @@ export async function render({ me, go, modulos, vistas, badges, primera, MODULOS
         h('button', { class: 'btn', onclick: e => { e.stopPropagation(); go('mis-solicitudes'); } }, 'Mis solicitudes'))
       : m === 'it' && puede('soporte') && !me.soporte
         ? h('div', { class: 'mod-acciones' }, h('button', { class: 'btn', onclick: e => { e.stopPropagation(); go('soporte'); } }, '+ Nuevo ticket'))
-        : null;
+        : m === 'analytics' ? h('div', { class: 'mod-acciones' }, h('button', { class: 'btn', onclick: e => { e.stopPropagation(); go('tableros'); } }, 'Ver tableros')) : null;
     return h('article', { class: `mod-card mod-${m}` },
       h('a', { href: `#${primera(m)}`, class: 'mod-card-link', onclick: e => { e.preventDefault(); go(primera(m)); } },
         h('span', { class: 'mod-logo' }, logoModulo(MODULOS[m].logo)),

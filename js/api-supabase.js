@@ -1,7 +1,7 @@
 // Adaptador Supabase: misma interfaz que api-demo.js.
 // Requiere el script UMD de supabase-js cargado en index.html (window.supabase).
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261107-1537';
-import { achicarImagen } from './ui.js?v=20261107-1537';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261111-1253';
+import { achicarImagen } from './ui.js?v=20261111-1253';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const ok = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
@@ -303,6 +303,15 @@ export const api = {
     const datos = filas.map(f => ({ punto_id: f.punto_id, fecha: f.fecha, turno: f.turno, temperatura: f.temperatura, humedad: f.humedad ?? null, accion: f.accion || null }));
     ok(await sb.from('temp_lecturas').upsert(datos, { onConflict: 'punto_id,fecha,turno' }));
   },
+
+  // ---------- Grassi Analytics: tableros de Power BI (los links solo los lee quien está habilitado) ----------
+  async tableros() { return ok(await sb.from('analytics_tableros').select('*').order('orden').order('titulo')); },
+  async guardarTablero(t) {
+    const campos = { titulo: t.titulo.trim(), descripcion: t.descripcion || null, area: t.area || null, url: t.url.trim(), orden: +t.orden || 0, activo: t.activo !== false };
+    if (t.id) return ok(await sb.from('analytics_tableros').update(campos).eq('id', t.id).select().single());
+    return ok(await sb.from('analytics_tableros').insert(campos).select().single());
+  },
+  async borrarTablero(id) { ok(await sb.from('analytics_tableros').delete().eq('id', id)); },
 
   // ---------- RRHH Grassi (solo RRHH y admin; lo controla la base con RLS) ----------
   async rrhhEmpleados() { return ok(await sb.from('rrhh_empleados').select('*').order('nombre')).map(e => ({ ...e, horas_semana: e.horas_semana === null ? null : +e.horas_semana })); },

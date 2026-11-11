@@ -1,6 +1,6 @@
 // Modo demo: misma interfaz que api-supabase.js, con datos en el navegador.
 // Genera 11 meses de historia (dic-2025 a oct-2026) para que los indicadores tengan contenido.
-import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261107-1537';
+import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261111-1253';
 
 const KEY = 'insumos-demo-v1';
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -273,8 +273,8 @@ function semillaRRHH() {
   db.rrhh_ausencias.push({ id: nextId('rrhh_ausencias'), empleado_id: 2, tipo: 'dia_libre', desde: d1, hasta: d1, dias: 1, periodo: null, titulo: null, nota: 'Cumpleaños', aproximada: false, usuario_nombre: 'RRHH', created_at: new Date().toISOString() });
   db.rrhh_ausencias.push({ id: nextId('rrhh_ausencias'), empleado_id: 5, tipo: 'evento', desde: d2, hasta: d2, dias: 1, periodo: null, titulo: 'Entrega de título', nota: null, aproximada: false, usuario_nombre: 'RRHH', created_at: new Date().toISOString() });
 }
-const esRRHH = () => ['auditor', 'admin'].includes(who.rol);
-const esDrog = () => who.rol === 'admin' || who.sucursal_id === 7;
+const esRRHH = () => ['auditor', 'admin', 'direccion'].includes(who.rol);
+const esDrog = () => ['admin', 'direccion'].includes(who.rol) || who.sucursal_id === 7;
 
 // ---------- vistas de lectura ----------
 const suc = id => db.sucursales.find(s => s.id === id);
@@ -303,6 +303,23 @@ const need = (...roles) => { if (!roles.includes(who.rol)) throw new Error('Tu r
 
 // ---------- API pública ----------
 export const api = {
+  // ---------- Analytics (en la demo, tableros de ejemplo sin link real) ----------
+  async tableros() {
+    if (!['admin', 'direccion'].includes(who.rol)) return tick([]);
+    db.tableros ||= [
+      { id: 1, titulo: 'Ventas por sucursal', descripcion: 'Facturación diaria y mensual de las 13 sucursales.', area: 'Gerencia', url: 'https://app.powerbi.com/view?r=ejemplo1', orden: 1, activo: true },
+      { id: 2, titulo: 'Stock y quiebres', descripcion: 'Cobertura de stock y faltantes por droguería.', area: 'Operaciones', url: 'https://app.powerbi.com/view?r=ejemplo2', orden: 2, activo: true },
+      { id: 3, titulo: 'Resultados del mes', descripcion: 'Ingresos, gastos y margen por razón social.', area: 'Dirección', url: 'https://app.powerbi.com/view?r=ejemplo3', orden: 3, activo: true }];
+    return tick(db.tableros);
+  },
+  async guardarTablero(t) {
+    need('admin'); if (!/^https:\/\/app\.powerbi\.com\//.test(t.url)) throw new Error('El link tiene que ser de app.powerbi.com');
+    const campos = { titulo: t.titulo.trim(), descripcion: t.descripcion || null, area: t.area || null, url: t.url.trim(), orden: +t.orden || 0, activo: t.activo !== false };
+    let x = t.id && db.tableros.find(y => y.id === t.id);
+    if (x) Object.assign(x, campos); else db.tableros.push(x = { id: Math.max(0, ...db.tableros.map(y => y.id)) + 1, ...campos });
+    save(); return tick(x);
+  },
+  async borrarTablero(id) { need('admin'); db.tableros = db.tableros.filter(t => t.id !== id); save(); },
   // ---------- RRHH ----------
   async rrhhEmpleados() { if (!esRRHH()) return tick([]); return tick([...db.rrhh_empleados].sort((a, b) => a.nombre.localeCompare(b.nombre, 'es'))); },
   async rrhhGuardarEmpleado(e) {
@@ -338,7 +355,7 @@ export const api = {
   async reset() { construir(); },
   async me() {
     const s = who.sucursal_id ? suc(who.sucursal_id) : null;
-    return tick({ ...who, email: s?.email || `${who.rol}@grupograssi.com`, sucursal: s?.nombre || null, soporte: who.rol === 'admin', drogueria: who.sucursal_id === 7 });
+    return tick({ ...who, email: s?.email || `${who.rol}@grupograssi.com`, sucursal: s?.nombre || null, soporte: who.rol === 'admin', drogueria: who.sucursal_id === 7, analytics: ['admin', 'direccion'].includes(who.rol) });
   },
   usuariosDemo() {
     return [
@@ -346,6 +363,7 @@ export const api = {
       { key: 'auditor', label: 'RRHH · auditoría', rol: 'auditor', sucursal_id: null, nombre: 'RRHH' },
       { key: 'compras', label: 'Compras', rol: 'compras', sucursal_id: null, nombre: 'Compras' },
       { key: 'admin', label: 'Administrador', rol: 'admin', sucursal_id: null, nombre: 'Admin' },
+      { key: 'direccion', label: 'Gerencia y dirección', rol: 'direccion', sucursal_id: null, nombre: 'Dirección' },
     ];
   },
   async cambiarUsuario(u) { who = { id: 'demo', rol: u.rol, sucursal_id: u.sucursal_id, nombre: u.nombre }; save(); },
@@ -435,7 +453,7 @@ export const api = {
   async recibirOC(id, items) { need('compras', 'admin', 'auditor'); const e = _recibir(id, items); save(); return e; },
   async guardarFotoProducto(id, file) {
     need('compras', 'admin');
-    const { achicarImagen } = await import('./ui.js?v=20261107-1537');
+    const { achicarImagen } = await import('./ui.js?v=20261111-1253');
     const blob = await achicarImagen(file, 320, 0.7);
     const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
     db.productos.find(p => p.id === id).foto_url = url; save(); return url;
