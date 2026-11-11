@@ -1,6 +1,6 @@
 // Seguimiento de solicitudes: la sucursal ve las suyas; el equipo ve todas.
-import { h, money, n, pill, empty, fecha, fechaHora, solNum, tabs, docNum } from '../ui.js?v=20261111-1328';
-import { abrirRecepcion, estadoRecepcion, difsTexto } from './recepcion.js?v=20261111-1328';
+import { h, money, n, pill, empty, fecha, fechaHora, solNum, tabs, docNum } from '../ui.js?v=20261111-1635';
+import { abrirRecepcion, estadoRecepcion, difsTexto } from './recepcion.js?v=20261111-1635';
 
 const GRUPOS = [
   ['activas', 'En curso', ['pendiente', 'aprobada', 'aprobada_parcial', 'en_compra']],

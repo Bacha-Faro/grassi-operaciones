@@ -1,6 +1,6 @@
 // Modo demo: misma interfaz que api-supabase.js, con datos en el navegador.
 // Genera 11 meses de historia (dic-2025 a oct-2026) para que los indicadores tengan contenido.
-import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261111-1328';
+import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261111-1635';
 
 const KEY = 'insumos-demo-v1';
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -305,7 +305,7 @@ const need = (...roles) => { if (!roles.includes(who.rol)) throw new Error('Tu r
 export const api = {
   // ---------- Analytics (en la demo, tableros de ejemplo sin link real) ----------
   async tableros() {
-    if (!['admin', 'direccion'].includes(who.rol)) return tick([]);
+    if (!['admin', 'direccion', 'analista'].includes(who.rol)) return tick([]);
     db.tableros ||= [
       { id: 1, titulo: 'Ventas por sucursal', descripcion: 'Facturación diaria y mensual de las 13 sucursales.', area: 'Gerencia', url: 'https://app.powerbi.com/view?r=ejemplo1', orden: 1, activo: true },
       { id: 2, titulo: 'Stock y quiebres', descripcion: 'Cobertura de stock y faltantes por droguería.', area: 'Operaciones', url: 'https://app.powerbi.com/view?r=ejemplo2', orden: 2, activo: true },
@@ -355,7 +355,7 @@ export const api = {
   async reset() { construir(); },
   async me() {
     const s = who.sucursal_id ? suc(who.sucursal_id) : null;
-    return tick({ ...who, email: s?.email || `${who.rol}@grupograssi.com`, sucursal: s?.nombre || null, soporte: who.rol === 'admin', drogueria: who.sucursal_id === 7, analytics: ['admin', 'direccion'].includes(who.rol) });
+    return tick({ ...who, email: s?.email || `${who.rol}@grupograssi.com`, sucursal: s?.nombre || null, soporte: who.rol === 'admin', drogueria: who.sucursal_id === 7, analytics: ['admin', 'direccion', 'analista'].includes(who.rol) });
   },
   usuariosDemo() {
     return [
@@ -364,6 +364,7 @@ export const api = {
       { key: 'compras', label: 'Compras', rol: 'compras', sucursal_id: null, nombre: 'Compras' },
       { key: 'admin', label: 'Administrador', rol: 'admin', sucursal_id: null, nombre: 'Admin' },
       { key: 'direccion', label: 'Gerencia y dirección', rol: 'direccion', sucursal_id: null, nombre: 'Dirección' },
+      { key: 'analista', label: 'Contabilidad (solo Analytics)', rol: 'analista', sucursal_id: null, nombre: 'Contabilidad' },
     ];
   },
   async cambiarUsuario(u) { who = { id: 'demo', rol: u.rol, sucursal_id: u.sucursal_id, nombre: u.nombre }; save(); },
@@ -453,7 +454,7 @@ export const api = {
   async recibirOC(id, items) { need('compras', 'admin', 'auditor'); const e = _recibir(id, items); save(); return e; },
   async guardarFotoProducto(id, file) {
     need('compras', 'admin');
-    const { achicarImagen } = await import('./ui.js?v=20261111-1328');
+    const { achicarImagen } = await import('./ui.js?v=20261111-1635');
     const blob = await achicarImagen(file, 320, 0.7);
     const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
     db.productos.find(p => p.id === id).foto_url = url; save(); return url;
