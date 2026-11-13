@@ -1,6 +1,6 @@
 // Documento de Orden de Compra: vista HTML y PDF (mismos campos que la planilla
 // "ORDEN DE COMPRA ARTICULOS INSUMOS": comprador, proveedor, ítems, forma de pago, entrega, firma).
-import { h, money, n, fecha, ocNum, docNum, groupBy, cargarScript } from './ui.js?v=20261111-1654';
+import { h, money, n, fecha, ocNum, docNum, groupBy, cargarScript } from './ui.js?v=20261113-1745';
 
 // Agrupa lo que hay que entregar por dirección: [{ direccion, sucursales, items: [{producto, cantidad}] }]
 export function entregas(oc) {
@@ -124,7 +124,9 @@ export function ocHTML(oc) {
 const pu = i => (+i.precio_unit > 0 ? money(i.precio_unit) : 'A confirmar');
 const sub = i => (+i.precio_unit > 0 ? money(i.cantidad * i.precio_unit) : '—');
 const faltan = oc => oc.items.some(i => !(+i.precio_unit > 0));
-const totalTxt = (oc, base) => `${base}${faltan(oc) ? ' · sin los ítems a confirmar' : ''}`;
+// Gaso y la mayoría cotizan + IVA; algunos (Grassano) dan precios finales con IVA incluido
+export const ivaTxt = oc => (oc.con_iva ? 'IVA incluido' : 'sin IVA');
+const totalTxt = (oc, base) => `${base.replace('sin IVA', ivaTxt(oc))}${faltan(oc) ? ' · sin los ítems a confirmar' : ''}`;
 
 // Librería de PDF: se baja recién cuando se va a generar uno (o al abrir Compras)
 export const pdfListo = () => cargarScript('vendor/jspdf.umd.min.js').then(() => cargarScript('vendor/jspdf.plugin.autotable.min.js'));

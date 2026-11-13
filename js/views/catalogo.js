@@ -1,5 +1,5 @@
 // Catálogo: insumos, proveedores y sucursales. Cambiar un precio lo registra en el historial.
-import { h, money, fecha, empty, toast, modal, field, tabs, verFoto, linkCompra } from '../ui.js?v=20261111-1654';
+import { h, money, fecha, empty, toast, modal, field, tabs, verFoto, linkCompra } from '../ui.js?v=20261113-1745';
 
 export async function render({ api, me, cat, refresh }) {
   const puede = ['compras', 'admin'].includes(me.rol);
@@ -16,7 +16,7 @@ export async function render({ api, me, cat, refresh }) {
       if (f.opts) return h('select', { id, onchange: e => { vals[f.k] = e.target.value === '' ? null : (f.str ? e.target.value : +e.target.value); } },
         f.empty ? h('option', { value: '' }, f.empty) : null, f.opts.map(o => h('option', { value: o.id, selected: String(vals[f.k]) === String(o.id) }, o.nombre)));
       if (f.list) return h('input', { id, type: 'text', value: (vals[f.k] || []).join(', '), oninput: e => { vals[f.k] = e.target.value.split(/[,;\s]+/).map(x => x.trim().toLowerCase()).filter(Boolean); } });
-      if (f.type === 'check') return h('input', { id, type: 'checkbox', checked: vals[f.k] !== false, onchange: e => { vals[f.k] = e.target.checked; } });
+      if (f.type === 'check') return h('input', { id, type: 'checkbox', checked: f.off ? !!vals[f.k] : vals[f.k] !== false, onchange: e => { vals[f.k] = e.target.checked; } });
       return h('input', { id, type: f.type || 'text', value: vals[f.k] ?? '', step: f.type === 'number' ? 'any' : null, required: f.req,
         oninput: e => { vals[f.k] = f.type === 'number' ? (e.target.value === '' ? null : +e.target.value) : f.type === 'date' ? (e.target.value || null) : e.target.value; } });
     };
@@ -58,16 +58,18 @@ export async function render({ api, me, cat, refresh }) {
   const F_PROD = [
     { k: 'nombre', label: 'Nombre', req: true }, { k: 'categoria_id', label: 'Categoría', opts: cat.categorias, req: true },
     { k: 'unidad', label: 'Unidad', hint: 'Ej.: caja, bidón, resma' }, { k: 'proveedor_id', label: 'Proveedor habitual', opts: cat.proveedores, empty: 'Sin asignar' },
-    { k: 'precio_ref', label: 'Precio de lista (sin IVA)', type: 'number', hint: 'Solo de una lista o presupuesto del proveedor. Vacío = "a confirmar"' },
+    { k: 'precio_ref', label: 'Precio de lista', type: 'number', hint: 'Tal como figura en la lista o presupuesto del proveedor (+ IVA, o IVA incluido si el proveedor cotiza así). Vacío = "a confirmar"' },
     { k: 'precio_fuente', label: 'De qué lista sale el precio', hint: 'Ej.: Gaso · presupuesto 0001-00042254' }, { k: 'precio_fecha', label: 'Fecha de la lista', type: 'date' },
     { k: 'tope_mensual', label: 'Tope por sucursal y mes', type: 'number', hint: 'Opcional. Genera alerta en auditoría' },
     { k: 'link_compra', label: 'Link de compra', type: 'url', hint: 'Opcional. Ej.: la publicación de Mercado Libre del vendedor habitual. Solo lo ve el equipo de compras' },
     { k: 'activo', label: 'Visible para pedir', type: 'check' }];
   const F_PROV = [
     { k: 'nombre', label: 'Razón social / nombre', req: true }, { k: 'cuit', label: 'CUIT' }, { k: 'email', label: 'Mail para órdenes de compra', type: 'email' },
-    { k: 'emails_factura', label: 'Mails desde los que factura', list: true, hint: 'Separados por coma. Sirve para reconocer sus facturas en comprobantes@' },
+    { k: 'emails_factura', label: 'Mails desde los que factura', list: true, hint: 'Separados por coma. Sirve para reconocer sus facturas cuando llegan a grassidrogueria@' },
     { k: 'telefono', label: 'Teléfono' }, { k: 'direccion', label: 'Dirección' }, { k: 'contacto', label: 'Contacto' },
-    { k: 'condicion_pago', label: 'Condición de pago', hint: 'Ej.: Contado, 30 días' }, { k: 'activo', label: 'Activo', type: 'check' }];
+    { k: 'condicion_pago', label: 'Condición de pago', hint: 'Ej.: Contado, 30 días' },
+    { k: 'precios_con_iva', label: 'Cotiza con IVA incluido (precios finales)', type: 'check', off: true, hint: 'Destildado: sus precios son + IVA, como la mayoría.' },
+    { k: 'activo', label: 'Activo', type: 'check' }];
   const EMP = cat.empresas.map(e => ({ id: e.codigo, nombre: e.razon_social }));
   const F_SUC = [
     { k: 'nombre', label: 'Nombre', req: true }, { k: 'empresa', label: 'Factura a', opts: EMP, str: true, req: true },
@@ -81,12 +83,12 @@ export async function render({ api, me, cat, refresh }) {
     let head, rows, nuevo;
     if (tab === 'productos') {
       head = ['Insumo', 'Categoría', 'Proveedor', 'Precio ref.', ''];
-      rows = cat.productos.filter(p => like(p.nombre)).map(p => [h('span', { class: `prod-cell${p.activo === false ? ' muted' : ''}` }, miniatura(p), h('span', {}, p.nombre, h('small', { class: 'muted' }, ` · ${p.unidad || ''}`), p.link_compra ? h('small', { style: 'display:block' }, linkCompra(p.link_compra, true)) : null)), catN(p.categoria_id), prov(p.proveedor_id) || h('span', { class: 'flag' }, 'Sin proveedor'), h('span', { class: 'mono', title: p.precio_fuente ? `${p.precio_fuente}${p.precio_fecha ? ' · ' + fecha(p.precio_fecha) : ''}` : '' }, p.precio_ref ? money(p.precio_ref) : h('span', { class: 'muted' }, 'a confirmar')), p]);
+      rows = cat.productos.filter(p => like(p.nombre)).map(p => [h('span', { class: `prod-cell${p.activo === false ? ' muted' : ''}` }, miniatura(p), h('span', {}, p.nombre, h('small', { class: 'muted' }, ` · ${p.unidad || ''}`), p.link_compra ? h('small', { style: 'display:block' }, linkCompra(p.link_compra, true)) : null)), catN(p.categoria_id), prov(p.proveedor_id) || h('span', { class: 'flag' }, 'Sin proveedor'), h('span', { class: 'mono', title: p.precio_fuente ? `${p.precio_fuente}${p.precio_fecha ? ' · ' + fecha(p.precio_fecha) : ''}` : '' }, p.precio_ref ? [money(p.precio_ref), cat.proveedores.find(x => x.id === p.proveedor_id)?.precios_con_iva ? h('small', { class: 'muted' }, ' IVA inc.') : null] : h('span', { class: 'muted' }, 'a confirmar')), p]);
       nuevo = () => form(F_PROD, { activo: true, categoria_id: cat.categorias[0].id }, v => api.guardarProducto(v), 'Nuevo insumo');
     } else if (tab === 'proveedores') {
       head = ['Proveedor', 'Mail', 'Condición', 'Insumos', ''];
       rows = cat.proveedores.filter(p => like(p.nombre)).map(p => [p.nombre, p.email || h('span', { class: 'flag' }, 'Falta mail'), p.condicion_pago || '—', cat.productos.filter(x => x.proveedor_id === p.id).length, p]);
-      nuevo = () => form(F_PROV, { activo: true, condicion_pago: 'Contado' }, v => api.guardarProveedor(v), 'Nuevo proveedor');
+      nuevo = () => form(F_PROV, { activo: true, condicion_pago: 'Contado', precios_con_iva: false }, v => api.guardarProveedor(v), 'Nuevo proveedor');
     } else {
       const rs = Object.fromEntries(cat.empresas.map(e => [e.codigo, e.razon_social]));
       head = ['Sucursal / área', 'Factura a', 'Entregar en', 'Mail', ''];

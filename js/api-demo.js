@@ -1,6 +1,6 @@
 // Modo demo: misma interfaz que api-supabase.js, con datos en el navegador.
 // Genera 11 meses de historia (dic-2025 a oct-2026) para que los indicadores tengan contenido.
-import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261111-1654';
+import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261113-1745';
 
 const KEY = 'insumos-demo-v1';
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -328,7 +328,7 @@ function solRow(s) {
 }
 function ocRow(o) {
   const its = db.oc_items.filter(x => x.oc_id === o.id); const p = prov(o.proveedor_id);
-  return { ...o, proveedor: p.nombre, proveedor_email: p.email, interno: !!p.interno, periodo: per(o.periodo_id)?.nombre,
+  return { ...o, proveedor: p.nombre, proveedor_email: p.email, interno: !!p.interno, con_iva: !!p.precios_con_iva, periodo: per(o.periodo_id)?.nombre,
     total: its.reduce((a, x) => a + x.cantidad * x.precio_unit, 0), n_items: its.length,
     total_recibido: its.some(x => x.cantidad_recibida !== null && x.cantidad_recibida !== undefined) ? its.reduce((a, x) => a + (Number(x.cantidad_recibida) || 0) * x.precio_unit, 0) : null };
 }
@@ -489,7 +489,7 @@ export const api = {
   async recibirOC(id, items) { need('compras', 'admin', 'auditor'); const e = _recibir(id, items); save(); return e; },
   async guardarFotoProducto(id, file) {
     need('compras', 'admin');
-    const { achicarImagen } = await import('./ui.js?v=20261111-1654');
+    const { achicarImagen } = await import('./ui.js?v=20261113-1745');
     const blob = await achicarImagen(file, 320, 0.7);
     const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
     db.productos.find(p => p.id === id).foto_url = url; save(); return url;

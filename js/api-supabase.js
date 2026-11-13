@@ -1,7 +1,7 @@
 // Adaptador Supabase: misma interfaz que api-demo.js.
 // Requiere el script UMD de supabase-js cargado en index.html (window.supabase).
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261111-1654';
-import { achicarImagen } from './ui.js?v=20261111-1654';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261113-1745';
+import { achicarImagen } from './ui.js?v=20261113-1745';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const ok = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
@@ -32,7 +32,7 @@ const tkRow = t => { const { sucursales, it_categorias, it_equipos, ...b } = t; 
 
 function ocRow(o) {
   const its = o.oc_items || [];
-  return { ...o, proveedor: o.proveedores?.nombre, proveedor_email: o.proveedores?.email, interno: !!o.proveedores?.interno, periodo: o.periodos?.nombre,
+  return { ...o, proveedor: o.proveedores?.nombre, proveedor_email: o.proveedores?.email, interno: !!o.proveedores?.interno, con_iva: !!o.proveedores?.precios_con_iva, periodo: o.periodos?.nombre,
     total: its.reduce((a, x) => a + x.cantidad * x.precio_unit, 0), n_items: its.length,
     total_recibido: its.some(x => x.cantidad_recibida !== null && x.cantidad_recibida !== undefined) ? its.reduce((a, x) => a + (Number(x.cantidad_recibida) || 0) * x.precio_unit, 0) : null };
 }
@@ -108,7 +108,7 @@ export const api = {
   },
   async generarOrdenes() { return ok(await sb.rpc('generar_ordenes', {})); },
   async ordenes() {
-    return ok(await sb.from('ordenes_compra').select('*, proveedores(nombre, email, interno), periodos(nombre), oc_items(cantidad, precio_unit, cantidad_recibida)')
+    return ok(await sb.from('ordenes_compra').select('*, proveedores(nombre, email, interno, precios_con_iva), periodos(nombre), oc_items(cantidad, precio_unit, cantidad_recibida)')
       .order('id', { ascending: false })).map(ocRow);
   },
   async orden(id) {

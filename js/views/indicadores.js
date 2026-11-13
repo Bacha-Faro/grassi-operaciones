@@ -1,5 +1,5 @@
 // Indicadores: gasto y consumo por período, sucursal, categoría e insumo; precios por proveedor.
-import { h, money, n, pct, empty, groupBy, sum, cargarScript } from '../ui.js?v=20261111-1654';
+import { h, money, n, pct, empty, groupBy, sum, cargarScript } from '../ui.js?v=20261113-1745';
 
 const charts = [];
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
@@ -143,7 +143,7 @@ export async function render({ api, cat }) {
 
   const view = h('div', { class: 'view' },
     h('header', { class: 'view-head' }, h('div', {}, h('p', { class: 'eyebrow' }, 'Análisis'), h('h1', {}, 'Indicadores de consumo y compras'),
-      h('p', { class: 'muted' }, 'Montos sin IVA. Lo pendiente de auditoría no suma al gasto.'))),
+      h('p', { class: 'muted' }, 'Montos según las listas de cada proveedor: + IVA, salvo los que cotizan con IVA incluido. Lo pendiente de auditoría no suma al gasto.'))),
     h('div', { class: 'toolbar filters' }, selPer, selCat),
     root);
   requestAnimationFrame(pintar);

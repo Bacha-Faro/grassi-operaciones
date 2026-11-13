@@ -1,6 +1,6 @@
 // Soporte IT · Reportes del mes: cuántos tickets, de dónde, de qué, cuánto se tardó y qué equipos fallan más. Solo IT.
-import { h, empty, fechaHora, tkNum, descargarCSV } from '../ui.js?v=20261111-1654';
-import { plazo, minutosHabiles, PRIORIDADES, PRIO_TXT, TIPOS_EQUIPO } from './ticket.js?v=20261111-1654';
+import { h, empty, fechaHora, tkNum, descargarCSV } from '../ui.js?v=20261113-1745';
+import { plazo, minutosHabiles, PRIORIDADES, PRIO_TXT, TIPOS_EQUIPO } from './ticket.js?v=20261113-1745';
 
 const ESTADO_TXT = { nuevo: 'Nuevo', en_curso: 'En curso', en_espera: 'En espera', resuelto: 'Resuelto', cerrado: 'Cerrado', anulado: 'Anulado' };
 const durTxt = m => m === null ? '—' : m < 60 ? `${Math.round(m)} min` : m < 480 ? `${(m / 60).toFixed(1).replace('.', ',')} h` : `${(m / 480).toFixed(1).replace('.', ',')} días`;

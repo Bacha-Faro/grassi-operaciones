@@ -1,5 +1,5 @@
 // Facturas recibidas en comprobantes@ (o cargadas a mano). Registro + auditoría manual contra la OC.
-import { h, money, n, empty, toast, modal, field, tabs, fecha, fechaHora, ocNum, sum } from '../ui.js?v=20261111-1654';
+import { h, money, n, empty, toast, modal, field, tabs, fecha, fechaHora, ocNum, sum } from '../ui.js?v=20261113-1745';
 
 const ESTADOS = {
   recibida:   ['Sin auditar', 'warn'],
@@ -65,12 +65,14 @@ export async function render({ api, me, cat, refresh }) {
         const e = empresas.find(x => x.codigo === oc.empresa);
         avisos.push(['bad', `Razón social incorrecta: la OC es para ${e?.razon_social || oc.empresa}${e?.cuit ? ` (CUIT ${e.cuit})` : ''}.`]);
       }
-      if (oc && vals.neto !== '' && Number(vals.neto) > 0) {
-        const dif = Number(vals.neto) - oc.total;
+      // la OC se compara contra el neto, o contra el total si el proveedor cotiza con IVA incluido
+      const campoCmp = oc?.con_iva ? 'total' : 'neto', txtCmp = oc?.con_iva ? 'Total facturado' : 'Neto facturado';
+      if (oc && vals[campoCmp] !== '' && Number(vals[campoCmp]) > 0) {
+        const dif = Number(vals[campoCmp]) - oc.total;
         const pct = oc.total ? dif / oc.total * 100 : 0;
-        avisos.push([Math.abs(pct) <= 1 ? 'ok' : 'warn', `Neto facturado ${money(vals.neto)} contra OC ${money(oc.total)} (sin IVA): ${dif === 0 ? 'coincide' : `${dif > 0 ? '+' : ''}${money(dif)} (${pct.toFixed(1)}%)`}.`]);
+        avisos.push([Math.abs(pct) <= 1 ? 'ok' : 'warn', `${txtCmp} ${money(vals[campoCmp])} contra OC ${money(oc.total)} (${oc.con_iva ? 'IVA incluido' : 'sin IVA'}): ${dif === 0 ? 'coincide' : `${dif > 0 ? '+' : ''}${money(dif)} (${pct.toFixed(1)}%)`}.`]);
       }
-      if (oc && !(vals.neto > 0)) avisos.push(['muted', `Total de la OC sin IVA: ${money(oc.total)}. Cargá el neto de la factura para comparar.`]);
+      if (oc && !(vals[campoCmp] > 0)) avisos.push(['muted', oc.con_iva ? `Total de la OC con IVA incluido: ${money(oc.total)}. Cargá el total de la factura para comparar.` : `Total de la OC sin IVA: ${money(oc.total)}. Cargá el neto de la factura para comparar.`]);
       if (oc) {
         if (oc.total_recibido === null) avisos.push(['warn', 'Ninguna sucursal confirmó todavía la recepción de esta orden.']);
         else {

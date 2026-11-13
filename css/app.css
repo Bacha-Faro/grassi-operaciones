@@ -119,6 +119,7 @@ input:disabled { background: var(--sunk); color: var(--muted); }
 .readonly { padding: 8px 10px; border-radius: 6px; background: var(--sunk); font-weight: 600; }
 
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--line); background: var(--surface); font-weight: 600; cursor: pointer; white-space: nowrap; }
+a.btn { color: var(--fg); text-decoration: none; }
 .btn:hover { border-color: var(--muted); }
 .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 .btn.primary:hover { filter: brightness(1.08); }

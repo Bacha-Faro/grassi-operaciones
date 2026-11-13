@@ -1,6 +1,6 @@
 // Droguería · Temperatura y humedad: carga de las lecturas del día por turno y planilla del mes (para ANMAT).
-import { h, toast, empty, tabs } from '../ui.js?v=20261111-1654';
-import { hoyAR, sumarDias, fechaLarga, fechaCorta, turnosDe, estadoTurno, fmt, rangoTxt, fuera, TODOS_TURNOS } from './drog-comun.js?v=20261111-1654';
+import { h, toast, empty, tabs } from '../ui.js?v=20261113-1745';
+import { hoyAR, sumarDias, fechaLarga, fechaCorta, turnosDe, estadoTurno, fmt, rangoTxt, fuera, TODOS_TURNOS } from './drog-comun.js?v=20261113-1745';
 
 const ESTADO_TXT = { hecho: ['Cargado', 'ok'], ahora: ['Toca ahora', 'warn'], atrasado: ['Pendiente', 'bad'], proximo: ['Más tarde', 'muted'] };
 
