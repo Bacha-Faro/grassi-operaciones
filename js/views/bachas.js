@@ -1,6 +1,6 @@
 // Droguería · Bachas: dónde está cada una, salidas a sucursales y retornos (se pueden registrar varias juntas).
-import { h, toast, modal, field, empty, tabs, fechaHora } from '../ui.js?v=20261113-1924';
-import { hoyAR, sumarDias, fechaCorta, codigoBacha, pillBacha } from './drog-comun.js?v=20261113-1924';
+import { h, toast, modal, field, empty, tabs, fechaHora } from '../ui.js?v=20261113-1943';
+import { hoyAR, sumarDias, fechaCorta, codigoBacha, pillBacha } from './drog-comun.js?v=20261113-1943';
 
 const FILTROS = [['todas', 'Todas'], ['disponible', 'En Droguería'], ['afuera', 'En sucursales'], ['vencida', 'Demoradas']];
 const DIAS_RETORNO = 7;   // una semana para que la bacha vuelva a la Droguería
@@ -9,7 +9,8 @@ export async function render({ api, cat, refresh }) {
   let lista = await api.bachas();
   if (!lista.length) return empty('Sin acceso', 'Este módulo es de la Droguería.');
   let filtro = 'todas', elegidas = new Set();
-  const sucursales = cat.sucursales.filter(s => s.activo !== false && !/drogu/i.test(s.nombre));
+  const sucursales = cat.sucursales.filter(s => s.activo !== false && s.tipo === 'sucursal' && /^Suc \d+/.test(s.nombre)) // solo farmacias
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { numeric: true }));
   const grilla = h('div', { class: 'bachas-grilla' });
   const barra = h('div', { class: 'bachas-barra', hidden: true });
   const cuenta = e => lista.filter(b => e === 'todas' || b.estado === e).length;
@@ -20,7 +21,7 @@ export async function render({ api, cat, refresh }) {
   function mover(bs) {
     const tipo = bs[0].estado === 'disponible' ? 'salida' : 'retorno';
     if (bs.some(b => (b.estado === 'disponible') !== (tipo === 'salida'))) return toast('Elegí bachas en el mismo estado: todas en Droguería o todas afuera', 'bad');
-    const suc = h('select', { id: 'bch-suc' }, h('option', { value: '' }, 'Elegí la sucursal…'), sucursales.map(s => h('option', { value: s.id }, s.nombre)));
+    const suc = h('select', { id: 'bch-suc' }, h('option', { value: '' }, 'Elegí la farmacia…'), sucursales.map(s => h('option', { value: s.id }, s.nombre)));
     const vuelve = h('input', { type: 'date', id: 'bch-vuelve', value: sumarDias(hoyAR(), DIAS_RETORNO), min: hoyAR() });
     const obs = h('input', { maxlength: 500, id: 'bch-obs', placeholder: tipo === 'salida' ? 'Opcional' : 'Opcional: llegó rota, sucia, sin tapa…' });
     const titulo = bs.length === 1 ? bs[0].codigo : `${bs.length} bachas`;
@@ -31,7 +32,7 @@ export async function render({ api, cat, refresh }) {
           : h('p', {}, bs.length === 1 ? `Está en ${bs[0].sucursal} desde el ${fechaHora(bs[0].desde)}.` : 'Vuelven a la Droguería.'),
         field('Observación', obs)),
       actions: [{ label: 'Cancelar' }, { label: tipo === 'salida' ? 'Registrar salida' : 'Registrar retorno', kind: 'primary', onClick: async () => {
-        if (tipo === 'salida' && !suc.value) { toast('Elegí la sucursal', 'bad'); return false; }
+        if (tipo === 'salida' && !suc.value) { toast('Elegí la farmacia', 'bad'); return false; }
         let ok = 0;
         for (const b of bs) {
           try { await api.bachaMovimiento({ bacha_id: b.id, tipo, sucursal_id: tipo === 'salida' ? +suc.value : null, retorno_esperado: tipo === 'salida' ? vuelve.value : null, observacion: obs.value.trim() }); ok++; }
