@@ -1,6 +1,6 @@
 // Soporte IT · Equipos: inventario por sucursal (PC, impresoras, posnet, routers…) con el historial de tickets de cada uno. Solo IT.
-import { h, toast, modal, field, empty, fecha, tkNum, descargarCSV } from '../ui.js?v=20261113-1822';
-import { TIPOS_EQUIPO, abrirTicket, estadoPill, ABIERTOS } from './ticket.js?v=20261113-1822';
+import { h, toast, modal, field, empty, fecha, tkNum, descargarCSV } from '../ui.js?v=20261113-1924';
+import { TIPOS_EQUIPO, abrirTicket, estadoPill, ABIERTOS } from './ticket.js?v=20261113-1924';
 
 export const ESTADOS_EQUIPO = { en_uso: ['En uso', 'ok'], en_reparacion: ['En reparación', 'warn'], en_deposito: ['En depósito', 'info'], de_baja: ['De baja', 'muted'] };
 const estadoEq = e => h('span', { class: `pill pill-${ESTADOS_EQUIPO[e]?.[1] || 'muted'}` }, ESTADOS_EQUIPO[e]?.[0] || e);

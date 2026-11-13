@@ -1,6 +1,6 @@
 // IT Grassi · Soporte IT: la sucursal o área carga tickets y sigue los suyos.
-import { h, empty, fechaHora, tkNum, tabs } from '../ui.js?v=20261113-1822';
-import { nuevoTicket, abrirTicket, estadoPill, ABIERTOS } from './ticket.js?v=20261113-1822';
+import { h, empty, fechaHora, tkNum, tabs } from '../ui.js?v=20261113-1924';
+import { nuevoTicket, abrirTicket, estadoPill, ABIERTOS } from './ticket.js?v=20261113-1924';
 
 export async function render({ api, me, cat, refresh, params }) {
   const [lista, cats] = await Promise.all([api.tickets(), api.itCategorias()]);
