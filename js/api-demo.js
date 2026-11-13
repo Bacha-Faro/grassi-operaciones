@@ -1,6 +1,6 @@
 // Modo demo: misma interfaz que api-supabase.js, con datos en el navegador.
 // Genera 11 meses de historia (dic-2025 a oct-2026) para que los indicadores tengan contenido.
-import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261113-1745';
+import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261113-1924';
 
 const KEY = 'insumos-demo-v1';
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -339,6 +339,44 @@ const need = (...roles) => { if (!roles.includes(who.rol)) throw new Error('Tu r
 // ---------- API pública ----------
 export const api = {
   // ---------- Analytics (en la demo, tableros de ejemplo sin link real) ----------
+  // Conciliación Droguería → farmacias (datos de prueba hasta conectar Quantio y Plex)
+  async conciliacion({ desde, hasta } = {}) {
+    let x = 20261113; const rnd = () => ((x = (x * 1103515245 + 12345) % 2147483648) / 2147483648);
+    const PRODS = ['Ibuprofeno 400 mg x 20', 'Paracetamol 500 mg x 20', 'Amoxicilina 500 mg x 16', 'Omeprazol 20 mg x 28', 'Enalapril 10 mg x 30', 'Losartán 50 mg x 30',
+      'Metformina 850 mg x 60', 'Atorvastatina 20 mg x 30', 'Diclofenac 75 mg x 15', 'Loratadina 10 mg x 10', 'Salbutamol aerosol', 'Insulina NPH 10 ml',
+      'Alcohol en gel 250 ml', 'Gasas estériles x 10', 'Jeringa 5 ml x 100', 'Protector solar FPS 50'];
+    const farmacias = db.sucursales.filter(s => s.tipo === 'sucursal');
+    const hoy = new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
+    const sumar = (f, d) => { const t = new Date(`${f}T12:00:00`); t.setDate(t.getDate() + d); return t.toISOString().slice(0, 10); };
+    const filas = []; let nro = 41200;
+    for (let d = 45; d >= 0; d--) {
+      const f = sumar(hoy, -d), w = new Date(`${f}T12:00:00`).getDay();
+      if (w === 0) continue;
+      for (const s of farmacias) {
+        const cant = w === 6 ? (rnd() < 0.4 ? 1 : 0) : 1 + (rnd() < 0.5 ? 1 : 0);
+        for (let k = 0; k < cant; k++) {
+          const surtido = [...PRODS].sort(() => rnd() - 0.5);
+          const renglones = Array.from({ length: 3 + Math.floor(rnd() * 6) }, (_, j) => {
+            const c = 1 + Math.floor(rnd() * 12);
+            return { producto: surtido[j], cantidad: c, lote: `L${Math.floor(rnd() * 90000 + 10000)}`, vence: sumar(hoy, 200 + Math.floor(rnd() * 500)), precio: Math.round(1500 + rnd() * 18000) };
+          });
+          const unid = renglones.reduce((a, r) => a + r.cantidad, 0);
+          const tipo = rnd() < 0.7 ? 'remito' : 'factura';
+          const num = `${tipo === 'remito' ? 'R' : 'A'} 0003-${String(++nro).padStart(8, '0')}`;
+          let ingreso = null; const r = rnd();
+          if (d >= 1 && !(d <= 2 && r < 0.35) && !(r > 0.965)) {
+            const demora = Math.min(d, rnd() < 0.1 ? 3 + Math.floor(rnd() * 3) : rnd() < 0.55 ? 0 : 1);
+            const dif = rnd() < 0.09 ? -(1 + Math.floor(rnd() * 3)) : rnd() < 0.02 ? 1 : 0;
+            ingreso = { fecha: sumar(f, demora), estado: rnd() < 0.05 ? 'N' : rnd() < 0.5 ? 'U' : 'C', unidades_facturadas: unid, unidades_recibidas: unid + dif, idcomprobante: 900000 + nro };
+          }
+          filas.push({ id: nro, fecha: f, tipo, comprobante: num, sucursal_id: s.id, sucursal: s.nombre, unidades: unid,
+            total: renglones.reduce((a, r) => a + r.cantidad * r.precio, 0), renglones, ingreso });
+        }
+      }
+    }
+    return tick({ modo: 'demo', filas: filas.filter(f => (!desde || f.fecha >= desde) && (!hasta || f.fecha <= hasta)) });
+  },
+  async feriados() { return tick([{ fecha: '2026-11-23', nombre: 'Día de la Soberanía Nacional', tipo: 'feriado' }, { fecha: '2026-12-08', nombre: 'Inmaculada Concepción de María', tipo: 'feriado' }, { fecha: '2026-12-25', nombre: 'Navidad', tipo: 'feriado' }]); },
   async tableros() {
     if (!['admin', 'direccion', 'analista'].includes(who.rol)) return tick([]);
     db.tableros ||= [
@@ -489,7 +527,7 @@ export const api = {
   async recibirOC(id, items) { need('compras', 'admin', 'auditor'); const e = _recibir(id, items); save(); return e; },
   async guardarFotoProducto(id, file) {
     need('compras', 'admin');
-    const { achicarImagen } = await import('./ui.js?v=20261113-1745');
+    const { achicarImagen } = await import('./ui.js?v=20261113-1924');
     const blob = await achicarImagen(file, 320, 0.7);
     const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
     db.productos.find(p => p.id === id).foto_url = url; save(); return url;

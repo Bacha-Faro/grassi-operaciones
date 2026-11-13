@@ -1,6 +1,6 @@
 // Droguería · Temperatura y humedad: carga de las lecturas del día por turno y planilla del mes (para ANMAT).
-import { h, toast, empty, tabs } from '../ui.js?v=20261113-1745';
-import { hoyAR, sumarDias, fechaLarga, fechaCorta, turnosDe, estadoTurno, fmt, rangoTxt, fuera, TODOS_TURNOS } from './drog-comun.js?v=20261113-1745';
+import { h, toast, empty, tabs } from '../ui.js?v=20261113-1822';
+import { hoyAR, sumarDias, fechaLarga, fechaCorta, turnosDe, estadoTurno, fmt, rangoTxt, fuera, TODOS_TURNOS, cargarFeriados, feriadoDe } from './drog-comun.js?v=20261113-1822';
 
 const ESTADO_TXT = { hecho: ['Cargado', 'ok'], ahora: ['Toca ahora', 'warn'], atrasado: ['Pendiente', 'bad'], proximo: ['Más tarde', 'muted'] };
 
@@ -8,6 +8,7 @@ export async function render({ api, refresh }) {
   const hoy = hoyAR();
   let fecha = hoy, pestaña = 'cargar', mes = hoy.slice(0, 7);
   const puntos = await api.tempPuntos();
+  await cargarFeriados(api);
   if (!puntos.length) return empty('Sin acceso', 'Este módulo es de la Droguería.');
   const cont = h('div', { class: 'stack' });
 
@@ -21,7 +22,9 @@ export async function render({ api, refresh }) {
       h('input', { type: 'date', value: fecha, max: hoy, 'aria-label': 'Fecha', onchange: e => { fecha = e.target.value || hoy; pintarCarga(); } }),
       fecha < hoy ? h('button', { class: 'btn', onclick: () => { fecha = sumarDias(fecha, 1); pintarCarga(); } }, 'Día siguiente ›') : null,
       fecha !== hoy ? h('button', { class: 'link', onclick: () => { fecha = hoy; pintarCarga(); } }, 'Volver a hoy') : null);
-    if (!turnos.length) return cont.replaceChildren(selector, empty(`${fechaLarga(fecha)}: domingo`, 'Los domingos no hay lecturas.'));
+    if (!turnos.length) return cont.replaceChildren(selector, feriadoDe(fecha)
+      ? empty(`${fechaLarga(fecha)}: feriado`, `${feriadoDe(fecha).nombre}. Los feriados no hay lecturas.`)
+      : empty(`${fechaLarga(fecha)}: domingo`, 'Los domingos no hay lecturas.'));
 
     const bloques = turnos.map(turno => {
       const hechas = puntos.filter(p => de(p, turno)).length;

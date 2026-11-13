@@ -1,5 +1,5 @@
 // Droguería: utilidades compartidas (turnos de lectura, fechas en hora de Argentina, rangos ANMAT, códigos de bacha).
-import { h } from '../ui.js?v=20261113-1745';
+import { h } from '../ui.js?v=20261113-1822';
 
 // fecha y hora de Argentina, sin depender de la zona de la compu
 const partes = (d = new Date()) => Object.fromEntries(new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Argentina/Buenos_Aires', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hourCycle: 'h23' })
@@ -10,9 +10,17 @@ export const sumarDias = (f, n) => { const d = new Date(`${f}T12:00:00`); d.setD
 export const fechaLarga = f => new Date(`${f}T12:00:00`).toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
 export const fechaCorta = f => new Date(`${f}T12:00:00`).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' });
 
-// lecturas: lunes a viernes 4, sábados 2, domingos ninguna
+// lecturas: lunes a viernes 4, sábados 2, domingos y feriados ninguna
 export const TODOS_TURNOS = ['08:10', '12:00', '15:30', '18:50'];
-export const turnosDe = f => { const w = new Date(`${f}T12:00:00`).getDay(); return w === 0 ? [] : w === 6 ? ['08:10', '12:00'] : TODOS_TURNOS; };
+// feriados nacionales (tabla feriados, los carga IT). Cada vista los carga antes de usar turnosDe.
+export const FERIADOS = new Map();
+let feriadosOk = false;
+export async function cargarFeriados(api) {
+  if (feriadosOk) return;
+  try { for (const x of await api.feriados()) FERIADOS.set(x.fecha, x); feriadosOk = true; } catch { /* sin feriados, se usan los días de semana */ }
+}
+export const feriadoDe = f => (FERIADOS.get(f)?.tipo === 'feriado' ? FERIADOS.get(f) : null);
+export const turnosDe = f => { const w = new Date(`${f}T12:00:00`).getDay(); return w === 0 || feriadoDe(f) ? [] : w === 6 ? ['08:10', '12:00'] : TODOS_TURNOS; };
 const minutos = t => +t.slice(0, 2) * 60 + +t.slice(3);
 // estado de un turno de hoy: 'hecho' | 'ahora' (desde la hora hasta 1 h después) | 'atrasado' | 'proximo'
 export function estadoTurno(f, turno, cargadas, total) {

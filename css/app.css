@@ -972,3 +972,11 @@ body.solo-lectura:not([data-mod="it"]) .modal input, body.solo-lectura:not([data
 .rep-tbl { font-size: 0.9rem; }
 .rep-tbl th, .rep-tbl td { padding-left: 8px; padding-right: 8px; }
 .rep-tbl td.num { font-variant-numeric: tabular-nums; }
+
+/* Droguería · Conciliación */
+.txt-bad { color: var(--bad); font-weight: 600; } .txt-warn { color: var(--warn); font-weight: 600; }
+.conc-lados { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.conc-lado { background: var(--sunk); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; display: flex; flex-direction: column; gap: 3px; }
+.conc-lado span { font-size: 0.88rem; }
+.conciliacion .filters input[type=date] { width: auto; }
+@media (max-width: 640px) { .conc-lados { grid-template-columns: 1fr; } }

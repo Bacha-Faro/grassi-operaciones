@@ -1,12 +1,13 @@
 // Droguería · Tablero: cómo vienen hoy las lecturas, temperaturas de las últimas dos semanas y dónde están las bachas.
-import { h, empty, cargarScript } from '../ui.js?v=20261113-1745';
-import { hoyAR, sumarDias, fechaLarga, fechaCorta, turnosDe, estadoTurno, fmt, rangoTxt, pillBacha } from './drog-comun.js?v=20261113-1745';
+import { h, empty, cargarScript } from '../ui.js?v=20261113-1822';
+import { hoyAR, sumarDias, fechaLarga, fechaCorta, turnosDe, estadoTurno, fmt, rangoTxt, pillBacha, cargarFeriados, feriadoDe } from './drog-comun.js?v=20261113-1822';
 
 const TONO = { hecho: 'ok', ahora: 'warn', atrasado: 'bad', proximo: 'muted' };
 const TXT = { hecho: 'Cargado', ahora: 'Toca ahora', atrasado: 'Pendiente', proximo: 'Más tarde' };
 
 export async function render({ api, go }) {
   const hoy = hoyAR(), desde = sumarDias(hoy, -13);
+  await cargarFeriados(api);
   const [puntos, lect, bachas] = await Promise.all([api.tempPuntos(), api.tempLecturas(sumarDias(hoy, -29), hoy), api.bachas()]);
   if (!puntos.length) return empty('Sin acceso', 'Este módulo es de la Droguería.');
   const lectHoy = lect.filter(l => l.fecha === hoy);
@@ -19,7 +20,7 @@ export async function render({ api, go }) {
     turnos.length ? h('div', { class: 'drog-turnos' }, turnos.map(t => {
       const n = lectHoy.filter(l => l.turno === t).length, est = estadoTurno(hoy, t, n, puntos.length);
       return h('div', { class: `drog-turno est-${est}` }, h('strong', { class: 'mono' }, t), h('span', { class: `pill pill-${TONO[est]}` }, TXT[est]));
-    })) : h('p', { class: 'muted' }, 'Hoy es domingo: no hay lecturas.'),
+    })) : h('p', { class: 'muted' }, feriadoDe(hoy) ? `Hoy es feriado (${feriadoDe(hoy).nombre}): no hay lecturas.` : 'Hoy es domingo: no hay lecturas.'),
     h('div', { class: 'drog-ultimas' }, puntos.map(p => {
       const ult = [...lect].reverse().find(l => l.punto_id === p.id);
       return h('div', { class: `drog-ultima${ult?.fuera_rango ? ' mal' : ''}` },

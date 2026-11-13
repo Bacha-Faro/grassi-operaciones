@@ -1,7 +1,7 @@
 // Adaptador Supabase: misma interfaz que api-demo.js.
 // Requiere el script UMD de supabase-js cargado en index.html (window.supabase).
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261113-1745';
-import { achicarImagen } from './ui.js?v=20261113-1745';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261113-1924';
+import { achicarImagen } from './ui.js?v=20261113-1924';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const ok = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
@@ -321,6 +321,9 @@ export const api = {
   },
 
   // ---------- Grassi Analytics: tableros de Power BI (los links solo los lee quien está habilitado) ----------
+  // Conciliación Droguería → farmacias: se llena cuando estén conectadas las APIs de Quantio y Plex (Galbop)
+  async conciliacion() { return { modo: 'sin_conexion', filas: [] }; },
+  async feriados() { return ok(await sb.from('feriados').select('*').order('fecha')); },
   async tableros() { return ok(await sb.from('analytics_tableros').select('*').order('orden').order('titulo')); },
   async guardarTablero(t) {
     const campos = { titulo: t.titulo.trim(), descripcion: t.descripcion || null, area: t.area || null, url: t.url.trim(), orden: +t.orden || 0, activo: t.activo !== false };
