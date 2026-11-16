@@ -1,7 +1,7 @@
 // Shell de Grassi Operaciones: sesión, módulos (De compras · IT · Droguería), navegación por rol y enrutado por #vista.
 // Escritorio: barra angosta de módulos + menú del módulo + contenido. Celular: barra arriba, pestañas del módulo y barra de módulos abajo.
-import { api } from './api.js?v=20261114-1439';
-import { h, toast, field, modal } from './ui.js?v=20261114-1439';
+import { api } from './api.js?v=20261116-1346';
+import { h, toast, field, modal } from './ui.js?v=20261116-1346';
 
 // Red de seguridad: si algo falla sin que la pantalla lo atrape, se avisa en vez de quedar "sin hacer nada"
 let ultimoAviso = 0;
@@ -13,33 +13,33 @@ window.addEventListener('unhandledrejection', e => {
 });
 
 const VISTAS = {
-  inicio:            { label: 'Inicio',          mod: () => import('./views/inicio.js?v=20261114-1439'),      roles: ['solicitante', 'auditor', 'compras', 'admin', 'direccion', 'analista'], grupo: 'inicio' },
+  inicio:            { label: 'Inicio',          mod: () => import('./views/inicio.js?v=20261116-1346'),      roles: ['solicitante', 'auditor', 'compras', 'admin', 'direccion', 'analista', 'tecnico'], grupo: 'inicio' },
   // De compras
-  solicitar:         { label: 'Nueva solicitud', mod: () => import('./views/solicitar.js?v=20261114-1439'),   roles: ['solicitante', 'auditor', 'compras', 'admin'] },
-  'mis-solicitudes': { label: 'Mis solicitudes', mod: () => import('./views/solicitudes.js?v=20261114-1439'), roles: ['solicitante'], badge: 'rec' },
-  auditoria:         { label: 'Auditoría',       mod: () => import('./views/auditoria.js?v=20261114-1439'),   roles: ['auditor', 'admin'], badge: 'pend' },
-  solicitudes:       { label: 'Solicitudes',     mod: () => import('./views/solicitudes.js?v=20261114-1439'), roles: ['auditor', 'compras', 'admin', 'direccion'] },
-  compras:           { label: 'Compras',         mod: () => import('./views/compras.js?v=20261114-1439'),     roles: ['compras', 'admin', 'direccion'], badge: 'oc' },
-  facturas:          { label: 'Facturas',        mod: () => import('./views/facturas.js?v=20261114-1439'),    roles: ['auditor', 'compras', 'admin', 'direccion'], badge: 'fc' },
-  indicadores:       { label: 'Indicadores',     mod: () => import('./views/indicadores.js?v=20261114-1439'), roles: ['auditor', 'compras', 'admin', 'direccion'] },
-  catalogo:          { label: 'Catálogo',        mod: () => import('./views/catalogo.js?v=20261114-1439'),    roles: ['compras', 'admin', 'direccion'] },
+  solicitar:         { label: 'Nueva solicitud', mod: () => import('./views/solicitar.js?v=20261116-1346'),   roles: ['solicitante', 'auditor', 'compras', 'admin'] },
+  'mis-solicitudes': { label: 'Mis solicitudes', mod: () => import('./views/solicitudes.js?v=20261116-1346'), roles: ['solicitante'], badge: 'rec' },
+  auditoria:         { label: 'Auditoría',       mod: () => import('./views/auditoria.js?v=20261116-1346'),   roles: ['auditor', 'admin'], badge: 'pend' },
+  solicitudes:       { label: 'Solicitudes',     mod: () => import('./views/solicitudes.js?v=20261116-1346'), roles: ['auditor', 'compras', 'admin', 'direccion'] },
+  compras:           { label: 'Compras',         mod: () => import('./views/compras.js?v=20261116-1346'),     roles: ['compras', 'admin', 'direccion'], badge: 'oc' },
+  facturas:          { label: 'Facturas',        mod: () => import('./views/facturas.js?v=20261116-1346'),    roles: ['auditor', 'compras', 'admin', 'direccion'], badge: 'fc' },
+  indicadores:       { label: 'Indicadores',     mod: () => import('./views/indicadores.js?v=20261116-1346'), roles: ['auditor', 'compras', 'admin', 'direccion'] },
+  catalogo:          { label: 'Catálogo',        mod: () => import('./views/catalogo.js?v=20261116-1346'),    roles: ['compras', 'admin', 'direccion'] },
   // IT Grassi
-  tickets:           { label: 'Tickets',         mod: () => import('./views/tickets.js?v=20261114-1439'),     roles: ['admin'], soporte: true, grupo: 'it', badge: 'tkit' },
-  equipos:           { label: 'Equipos',         mod: () => import('./views/equipos.js?v=20261114-1439'),     roles: ['admin'], soporte: true, grupo: 'it' },
-  'it-reportes':     { label: 'Reportes',        mod: () => import('./views/it-reportes.js?v=20261114-1439'), roles: ['admin'], soporte: true, grupo: 'it' },
-  'it-base':         { label: 'Guías y respuestas', mod: () => import('./views/it-base.js?v=20261114-1439'),  roles: ['admin'], soporte: true, grupo: 'it' },
-  soporte:           { label: 'Soporte IT',      mod: () => import('./views/soporte.js?v=20261114-1439'),     roles: ['solicitante', 'auditor', 'compras', 'admin', 'direccion'], sinSoporte: true, grupo: 'it', badge: 'tk' },
-  usuarios:          { label: 'Usuarios',        mod: () => import('./views/usuarios.js?v=20261114-1439'),    roles: ['admin'], soporte: true, grupo: 'it' },
+  tickets:           { label: 'Tickets',         mod: () => import('./views/tickets.js?v=20261116-1346'),     roles: ['admin', 'tecnico'], soporte: true, grupo: 'it', badge: 'tkit' },
+  equipos:           { label: 'Equipos',         mod: () => import('./views/equipos.js?v=20261116-1346'),     roles: ['admin', 'tecnico'], soporte: true, grupo: 'it' },
+  'it-reportes':     { label: 'Reportes',        mod: () => import('./views/it-reportes.js?v=20261116-1346'), roles: ['admin', 'tecnico'], soporte: true, grupo: 'it' },
+  'it-base':         { label: 'Guías y respuestas', mod: () => import('./views/it-base.js?v=20261116-1346'),  roles: ['admin', 'tecnico'], soporte: true, grupo: 'it' },
+  soporte:           { label: 'Soporte IT',      mod: () => import('./views/soporte.js?v=20261116-1346'),     roles: ['solicitante', 'auditor', 'compras', 'admin', 'direccion'], sinSoporte: true, grupo: 'it', badge: 'tk' },
+  usuarios:          { label: 'Usuarios',        mod: () => import('./views/usuarios.js?v=20261116-1346'),    roles: ['admin'], soporte: true, grupo: 'it' },
   // Droguería (lo ve IT y quien tenga perfiles.drogueria; mientras DROGUERIA_PARA_TODOS sea false, solo IT)
-  drogueria:         { label: 'Tablero',         mod: () => import('./views/drogueria.js?v=20261114-1439'),   roles: ['solicitante', 'auditor', 'compras', 'admin', 'direccion'], drog: true, grupo: 'drogueria' },
-  temperatura:       { label: 'Temperatura y humedad', mod: () => import('./views/temperatura.js?v=20261114-1439'), roles: ['solicitante', 'auditor', 'compras', 'admin', 'direccion'], drog: true, grupo: 'drogueria', badge: 'temp' },
+  drogueria:         { label: 'Tablero',         mod: () => import('./views/drogueria.js?v=20261116-1346'),   roles: ['solicitante', 'auditor', 'compras', 'admin', 'direccion', 'tecnico'], drog: true, grupo: 'drogueria' },
+  temperatura:       { label: 'Temperatura y humedad', mod: () => import('./views/temperatura.js?v=20261116-1346'), roles: ['solicitante', 'auditor', 'compras', 'admin', 'direccion', 'tecnico'], drog: true, grupo: 'drogueria', badge: 'temp' },
   // RRHH: solo lo ven RRHH (auditor) y administración
-  cobertura:         { label: 'Cobertura',       mod: () => import('./views/cobertura.js?v=20261114-1439'),   roles: ['auditor', 'admin', 'direccion'], grupo: 'rrhh' },
-  empleados:         { label: 'Empleados',       mod: () => import('./views/empleados.js?v=20261114-1439'),   roles: ['auditor', 'admin', 'direccion'], grupo: 'rrhh', badge: 'rhsin' },
+  cobertura:         { label: 'Cobertura',       mod: () => import('./views/cobertura.js?v=20261116-1346'),   roles: ['auditor', 'admin', 'direccion'], grupo: 'rrhh' },
+  empleados:         { label: 'Empleados',       mod: () => import('./views/empleados.js?v=20261116-1346'),   roles: ['auditor', 'admin', 'direccion'], grupo: 'rrhh', badge: 'rhsin' },
   // Grassi Analytics: tableros de Power BI (IT y quien tenga perfiles.analytics)
-  tableros:          { label: 'Tableros',        mod: () => import('./views/tableros.js?v=20261114-1439'),    roles: ['solicitante', 'auditor', 'compras', 'admin', 'direccion', 'analista'], ana: true, grupo: 'analytics' },
-  conciliacion:      { label: 'Conciliación',    mod: () => import('./views/conciliacion.js?v=20261114-1439'), roles: ['admin'], soporte: true, drog: true, grupo: 'drogueria' },
-  bachas:            { label: 'Bachas',          mod: () => import('./views/bachas.js?v=20261114-1439'),      roles: ['solicitante', 'auditor', 'compras', 'admin', 'direccion'], drog: true, grupo: 'drogueria', badge: 'bch' },
+  tableros:          { label: 'Tableros',        mod: () => import('./views/tableros.js?v=20261116-1346'),    roles: ['solicitante', 'auditor', 'compras', 'admin', 'direccion', 'analista'], ana: true, grupo: 'analytics' },
+  conciliacion:      { label: 'Conciliación',    mod: () => import('./views/conciliacion.js?v=20261116-1346'), roles: ['admin', 'tecnico'], soporte: true, drog: true, grupo: 'drogueria' },
+  bachas:            { label: 'Bachas',          mod: () => import('./views/bachas.js?v=20261116-1346'),      roles: ['solicitante', 'auditor', 'compras', 'admin', 'direccion', 'tecnico'], drog: true, grupo: 'drogueria', badge: 'bch' },
 };
 // Íconos de los módulos (trazo, toman el color del texto)
 const ICONOS = {
@@ -65,6 +65,8 @@ const ORDEN_MODULOS = ['drogueria', 'compras', 'it', 'rrhh', 'analytics'];
 const IT_PARA_TODOS = true;
 // (en la demo se puede ocultar IT con localStorage 'demo-sin-it', para sacar capturas como las ve hoy una sucursal)
 const demoConIT = () => { try { return api.modo === 'demo' && !localStorage.getItem('demo-sin-it'); } catch { return api.modo === 'demo'; } };
+// Responsable de IT: administrador con soporte. Es el único que maneja usuarios y contraseñas.
+const esJefe = u => !!(u?.soporte && u?.rol === 'admin');
 const itVisible = () => IT_PARA_TODOS || demoConIT() || me?.soporte;
 const DROGUERIA_PARA_TODOS = true;
 const drogVisible = () => !!(me?.soporte || me?.rol === 'direccion' || ((DROGUERIA_PARA_TODOS || api.modo === 'demo') && me?.drogueria));
@@ -72,7 +74,7 @@ const drogVisible = () => !!(me?.soporte || me?.rol === 'direccion' || ((DROGUER
 const soloLectura = () => me?.rol === 'direccion';
 // cómo se muestra el usuario: las sucursales por su nombre; gerencia y dirección, por la persona
 const nombreVisible = () => (me.rol === 'direccion' ? me.nombre || me.email : me.sucursal || me.nombre || me.email);
-const ROL = { solicitante: 'Sucursal', auditor: 'Auditoría (RRHH)', compras: 'Compras', admin: 'Administrador', direccion: 'Gerencia y dirección', analista: 'Analytics' };
+const ROL = { solicitante: 'Sucursal', auditor: 'Auditoría (RRHH)', compras: 'Compras', admin: 'Administrador', direccion: 'Gerencia y dirección', analista: 'Analytics', tecnico: 'Soporte IT' };
 const grupoDe = v => v.grupo || 'compras';
 
 // Logos (las OC, PDF y mails a proveedores siguen con el logo oficial logo-grassi.png)
@@ -133,7 +135,7 @@ async function badges() {
   // Droguería: turnos de hoy que ya pasaron sin cargar, y bachas demoradas
   if (drogVisible()) {
     t('temp', async () => {
-      const { hoyAR, turnosDe, estadoTurno, cargarFeriados } = await import('./views/drog-comun.js?v=20261114-1439');
+      const { hoyAR, turnosDe, estadoTurno, cargarFeriados } = await import('./views/drog-comun.js?v=20261116-1346');
       await cargarFeriados(api);
       const hoy = hoyAR(), [ps, ls] = await Promise.all([api.tempPuntos(), api.tempLecturas(hoy, hoy)]);
       return turnosDe(hoy).filter(tu => ['ahora', 'atrasado'].includes(estadoTurno(hoy, tu, ls.filter(l => l.turno === tu).length, ps.length))).length;
@@ -255,9 +257,9 @@ function cuenta() {
       h('div', {}, h('strong', {}, nombreVisible()), h('small', { class: 'muted', style: 'display:block' }, `${ROL[me.rol]} · ${me.email}`)),
       h('div', { class: 'field' }, h('span', { class: 'field-label' }, 'Tema de la pantalla'), selectorTema()),
       enIframe ? h('a', { class: 'link', href: location.href, target: '_blank', rel: 'noopener' }, 'Abrir la app en pestaña nueva ↗') : null,
-      me.soporte ? null : h('small', { class: 'muted' }, `¿Problemas con la contraseña? Llamá a IT: ${IT_TEL}.`)),
+      esJefe(me) ? null : h('small', { class: 'muted' }, `¿Problemas con la contraseña? Llamá a IT: ${IT_TEL}.`)),
     actions: api.modo !== 'demo' ? [
-      me.soporte ? { label: 'Cambiar contraseña', onClick: () => { setTimeout(() => cambiarClave(), 0); } } : null,
+      esJefe(me) ? { label: 'Cambiar contraseña', onClick: () => { setTimeout(() => cambiarClave(), 0); } } : null,
       { label: 'Salir', kind: 'primary btn-salir', onClick: async () => { await api.logout(); inicio(); } }].filter(Boolean) : [{ label: 'Cerrar' }] });
 }
 
@@ -273,7 +275,7 @@ function cambiarClave(recuperacion = false) {
         // Las contraseñas solo se cambian por la vía de IT (la base ignora cualquier otro cambio):
         // IT cambia la suya por el mismo camino con el que cambia las de los demás.
         const yo = me || await api.me().catch(() => null);
-        if (api.modo !== 'demo' && !yo?.soporte) { toast(`Las contraseñas las define IT. Llamá al ${IT_TEL}.`, 'bad'); return false; }
+        if (api.modo !== 'demo' && !esJefe(yo)) { toast(`Las contraseñas las define IT. Llamá al ${IT_TEL}.`, 'bad'); return false; }
         if (api.modo === 'demo') await api.cambiarClave(p1.value); else await api.ponerClave(yo.id, p1.value);
         toast('Contraseña actualizada'); if (recuperacion) inicio();
       } catch (e) { toast(e.message, 'bad'); return false; }

@@ -1,8 +1,8 @@
 // Usuarios (solo IT): ver quién tiene acceso y ponerle una contraseña nueva a cualquiera.
 // Las contraseñas no se pueden ver: se definen acá y se anotan en el Registro de accesos.
-import { h, toast, empty, modal, field } from '../ui.js?v=20261114-1439';
+import { h, toast, empty, modal, field } from '../ui.js?v=20261116-1346';
 
-const ROL = { solicitante: 'Sucursal', auditor: 'Auditoría', compras: 'Compras', admin: 'Administrador' };
+const ROL = { solicitante: 'Sucursal', auditor: 'Auditoría', compras: 'Compras', admin: 'Administrador', direccion: 'Gerencia y dirección', analista: 'Analytics', tecnico: 'IT · Soporte' };
 // sin letras que se confunden (l/I/1, O/0) para dictarla por teléfono
 const LETRAS = 'abcdefghjkmnpqrstuvwxyz', MAYUS = 'ABCDEFGHJKMNPQRSTUVWXYZ', NUMS = '23456789';
 function generar() {
@@ -44,7 +44,7 @@ export async function render({ api }) {
       h('tbody', {}, rows.map(u => h('tr', {},
         h('td', {}, h('strong', {}, u.sucursal || (u.soporte ? 'IT' : '—'))),
         h('td', { class: 'mono' }, u.email),
-        h('td', {}, h('span', { class: `pill ${u.rol === 'solicitante' ? 'pill-muted' : 'pill-info'}` }, u.soporte ? 'IT · Administrador' : ROL[u.rol] || u.rol)),
+        h('td', {}, h('span', { class: `pill ${u.rol === 'solicitante' ? 'pill-muted' : 'pill-info'}` }, u.soporte && u.rol === 'admin' ? 'IT · Responsable' : ROL[u.rol] || u.rol)),
         h('td', { class: 'num' }, h('button', { class: 'btn', onclick: () => ponerClave(u) }, 'Poner contraseña'))))))
       : empty('Sin resultados', 'No hay usuarios que coincidan.'));
   }

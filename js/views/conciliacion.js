@@ -1,6 +1,6 @@
 // Droguería · Conciliación: lo que la droguería despachó (Quantio) contra lo que cada farmacia ingresó (Plex).
 // Hasta que Galbop habilite las APIs, en la demo trabaja con datos de prueba y en producción muestra el aviso de conexión pendiente.
-import { h, money, n, fecha, modal, empty, descargarCSV } from '../ui.js?v=20261114-1439';
+import { h, money, n, fecha, modal, empty, descargarCSV } from '../ui.js?v=20261116-1346';
 
 const ESTADOS = {
   ok:           ['Conciliado', 'ok'],

@@ -1,6 +1,6 @@
 // Modo demo: misma interfaz que api-supabase.js, con datos en el navegador.
 // Genera 11 meses de historia (dic-2025 a oct-2026) para que los indicadores tengan contenido.
-import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261114-1439';
+import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261116-1346';
 
 const KEY = 'insumos-demo-v1';
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -428,7 +428,7 @@ export const api = {
   async reset() { construir(); },
   async me() {
     const s = who.sucursal_id ? suc(who.sucursal_id) : null;
-    return tick({ ...who, email: s?.email || `${who.rol}@grupograssi.com`, sucursal: s?.nombre || null, soporte: who.rol === 'admin', drogueria: who.sucursal_id === 7, analytics: ['admin', 'direccion', 'analista'].includes(who.rol) });
+    return tick({ ...who, email: s?.email || `${who.rol}@grupograssi.com`, sucursal: s?.nombre || null, soporte: who.rol === 'admin' || who.rol === 'tecnico', drogueria: who.rol === 'tecnico' || who.sucursal_id === 7, analytics: ['admin', 'direccion', 'analista'].includes(who.rol) });
   },
   usuariosDemo() {
     return [
@@ -438,6 +438,7 @@ export const api = {
       { key: 'admin', label: 'Administrador', rol: 'admin', sucursal_id: null, nombre: 'Admin' },
       { key: 'direccion', label: 'Gerencia y dirección', rol: 'direccion', sucursal_id: null, nombre: 'Dirección' },
       { key: 'analista', label: 'Contabilidad (solo Analytics)', rol: 'analista', sucursal_id: null, nombre: 'Contabilidad' },
+      { key: 'tecnico', label: 'IT · soporte (IT y Droguería)', rol: 'tecnico', sucursal_id: null, nombre: 'Soporte IT', soporte: true, drogueria: true },
     ];
   },
   async cambiarUsuario(u) { who = { id: 'demo', rol: u.rol, sucursal_id: u.sucursal_id, nombre: u.nombre }; save(); },
@@ -445,7 +446,7 @@ export const api = {
   async cambiarClave() {},
   async usuarios() {
     return this.usuariosDemo().map((u, i) => { const s = u.sucursal_id ? suc(u.sucursal_id) : null;
-      return { id: u.key, email: s?.email || `${u.rol}@grupograssi.com`, rol: u.rol, soporte: u.rol === 'admin', sucursal: s?.nombre || (u.rol === 'auditor' ? 'RRHH' : null) }; });
+      return { id: u.key, email: s?.email || `${u.rol}@grupograssi.com`, rol: u.rol, soporte: u.rol === 'admin' || u.rol === 'tecnico', sucursal: s?.nombre || (u.rol === 'auditor' ? 'RRHH' : null) }; });
   },
   async ponerClave(id, clave) { if (String(clave).length < 10) throw new Error('La contraseña tiene que tener al menos 10 caracteres, con letras y números'); return { ok: true, simulado: true }; },
   alRecuperar() {},
@@ -527,7 +528,7 @@ export const api = {
   async recibirOC(id, items) { need('compras', 'admin', 'auditor'); const e = _recibir(id, items); save(); return e; },
   async guardarFotoProducto(id, file) {
     need('compras', 'admin');
-    const { achicarImagen } = await import('./ui.js?v=20261114-1439');
+    const { achicarImagen } = await import('./ui.js?v=20261116-1346');
     const blob = await achicarImagen(file, 320, 0.7);
     const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
     db.productos.find(p => p.id === id).foto_url = url; save(); return url;

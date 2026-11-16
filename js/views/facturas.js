@@ -1,5 +1,5 @@
 // Facturas recibidas en comprobantes@ (o cargadas a mano). Registro + auditoría manual contra la OC.
-import { h, money, n, empty, toast, modal, field, tabs, fecha, fechaHora, ocNum, sum } from '../ui.js?v=20261114-1439';
+import { h, money, n, empty, toast, modal, field, tabs, fecha, fechaHora, ocNum, sum } from '../ui.js?v=20261116-1346';
 
 const ESTADOS = {
   recibida:   ['Sin auditar', 'warn'],
@@ -10,6 +10,9 @@ const ESTADOS = {
 };
 const pillF = e => { const [t, c] = ESTADOS[e] || [e, 'muted']; return h('span', { class: `pill pill-${c}` }, t); };
 const FILTROS = [['pendientes', 'Sin auditar', ['recibida']], ['observadas', 'Observadas', ['observada', 'rechazada']], ['ok', 'OK', ['ok']], ['todas', 'Todas', null]];
+
+// número de comprobante sin ceros a la izquierda ni signos: '0001-00000042' y '1-42' son la misma factura
+const numNorm = v => (String(v || '').match(/\d+/g) || []).map(x => x.replace(/^0+/, '')).join('-');
 
 export async function render({ api, me, cat, refresh }) {
   const puede = ['compras', 'auditor', 'admin'].includes(me.rol);
@@ -111,12 +114,17 @@ export async function render({ api, me, cat, refresh }) {
       actions: [
         { label: 'Abrir archivo', onClick: () => { if (url) window.open(url, '_blank', 'noopener'); else toast('El archivo no está disponible', 'warn'); return false; } },
         puede ? { label: 'Guardar', kind: 'primary', onClick: async () => {
+          // misma factura dos veces: mismo proveedor, mismo tipo y mismo número (0001-00000042 = 1-42)
+          const n = numNorm(vals.numero);
+          const repetida = n && vals.proveedor_id && !['descartada', 'rechazada'].includes(vals.estado) && facturas.find(x => x.id !== f.id && x.proveedor_id === +vals.proveedor_id
+            && (x.tipo || '') === (vals.tipo || '') && numNorm(x.numero) === n && !['descartada', 'rechazada'].includes(x.estado));
+          if (repetida) { toast(`Esa factura ya está cargada: ${repetida.tipo || ''} ${repetida.numero}, recibida el ${fecha(repetida.recibida_at)}. Si este archivo es una copia, marcalo como Descartada.`, 'bad'); return false; }
           try {
             await api.guardarFactura(f.id, { ...vals, proveedor_id: vals.proveedor_id ? +vals.proveedor_id : null,
               neto: vals.neto === '' ? null : Number(vals.neto), total: vals.total === '' ? null : Number(vals.total), fecha: vals.fecha || null,
               numero: vals.numero.trim() || null, observaciones: vals.observaciones.trim() || null });
             toast('Factura guardada'); refresh();
-          } catch (e) { toast(e.message, 'bad'); return false; }
+          } catch (e) { toast(/facturas_numero_unico/.test(e.message) ? 'Esa factura ya está cargada para este proveedor (mismo tipo y número). Si este archivo es una copia, marcalo como Descartada.' : e.message, 'bad'); return false; }
         } } : null,
       ].filter(Boolean) });
   }
