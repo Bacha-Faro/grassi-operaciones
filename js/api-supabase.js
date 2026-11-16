@@ -1,7 +1,7 @@
 // Adaptador Supabase: misma interfaz que api-demo.js.
 // Requiere el script UMD de supabase-js cargado en index.html (window.supabase).
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261116-1346';
-import { achicarImagen } from './ui.js?v=20261116-1346';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261116-1838';
+import { achicarImagen } from './ui.js?v=20261116-1838';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const ok = ({ data, error }) => { if (error) throw new Error(error.message); return data; };

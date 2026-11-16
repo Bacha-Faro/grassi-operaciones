@@ -987,3 +987,14 @@ body.solo-lectura:not([data-mod="it"]) .modal input, body.solo-lectura:not([data
 .modal-body { overflow-x: auto; }
 .modal-foot button:disabled { opacity: .55; cursor: progress; }
 @media (max-width: 860px) { .tab-mod .mod-txt { white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 0.68rem; letter-spacing: -0.01em; } }
+
+/* Celular y tablet (pantalla táctil): todo lo que se toca mide al menos 40 px de alto */
+@media (pointer: coarse) {
+  select, .tab, .subnav-item, input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]), .btn { min-height: 40px; }
+  button.mini { min-width: 40px; min-height: 40px; }
+  input[type=checkbox], input[type=radio] { width: 22px; height: 22px; }
+  summary { padding-block: 10px; }
+  /* enlaces y barras finas: la zona que responde al dedo es más grande que lo que se ve */
+  button.link, .cob-barra, .tab-editar, a.top-iso { position: relative; }
+  button.link::after, .cob-barra::after, .tab-editar::after, a.top-iso::after { content: ''; position: absolute; inset: -10px -6px; }
+}

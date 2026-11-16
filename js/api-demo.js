@@ -1,6 +1,6 @@
 // Modo demo: misma interfaz que api-supabase.js, con datos en el navegador.
 // Genera 11 meses de historia (dic-2025 a oct-2026) para que los indicadores tengan contenido.
-import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261116-1346';
+import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261116-1838';
 
 const KEY = 'insumos-demo-v1';
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -229,7 +229,7 @@ function mensaje(ticket_id, autor_nombre, de_it, interno, texto, at) {
   const m = { id: nextId('ticket_mensajes'), ticket_id, autor_nombre, de_it, interno, texto, created_at: at || new Date().toISOString() };
   db.ticket_mensajes.push(m); return m;
 }
-const esIT = () => who.rol === 'admin';
+const esIT = () => who.rol === 'admin' || who.rol === 'tecnico';
 const miSucTk = () => who.sucursal_id || (who.rol === 'auditor' ? RRHH_SUC : null);
 const tkVisible = t => esIT() || t.sucursal_id === miSucTk();
 const tkRowDemo = t => ({ ...t, sucursal: suc(t.sucursal_id)?.nombre, categoria: db.it_categorias.find(c => c.id === t.categoria_id)?.nombre, equipo: (db.it_equipos || []).find(e => e.id === t.equipo_id)?.nombre || null });
@@ -528,7 +528,7 @@ export const api = {
   async recibirOC(id, items) { need('compras', 'admin', 'auditor'); const e = _recibir(id, items); save(); return e; },
   async guardarFotoProducto(id, file) {
     need('compras', 'admin');
-    const { achicarImagen } = await import('./ui.js?v=20261116-1346');
+    const { achicarImagen } = await import('./ui.js?v=20261116-1838');
     const blob = await achicarImagen(file, 320, 0.7);
     const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
     db.productos.find(p => p.id === id).foto_url = url; save(); return url;
