@@ -1,6 +1,6 @@
 // Droguería · Tablero: cómo vienen hoy las lecturas, temperaturas de las últimas dos semanas y dónde están las bachas.
-import { h, empty, cargarScript } from '../ui.js?v=20261113-1943';
-import { hoyAR, sumarDias, fechaLarga, fechaCorta, turnosDe, estadoTurno, fmt, rangoTxt, pillBacha, cargarFeriados, feriadoDe } from './drog-comun.js?v=20261113-1943';
+import { h, empty, cargarScript } from '../ui.js?v=20261114-1439';
+import { hoyAR, sumarDias, fechaLarga, fechaCorta, turnosDe, estadoTurno, fmt, rangoTxt, pillBacha, cargarFeriados, feriadoDe } from './drog-comun.js?v=20261114-1439';
 
 const TONO = { hecho: 'ok', ahora: 'warn', atrasado: 'bad', proximo: 'muted' };
 const TXT = { hecho: 'Cargado', ahora: 'Toca ahora', atrasado: 'Pendiente', proximo: 'Más tarde' };

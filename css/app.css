@@ -980,3 +980,10 @@ body.solo-lectura:not([data-mod="it"]) .modal input, body.solo-lectura:not([data
 .conc-lado span { font-size: 0.88rem; }
 .conciliacion .filters input[type=date] { width: auto; }
 @media (max-width: 640px) { .conc-lados { grid-template-columns: 1fr; } }
+
+/* Auditoría 14/11: en el celular una ventana nunca es más ancha que la pantalla (la vista de la orden se desplaza adentro) */
+.modal-bg { grid-template-columns: minmax(0, 1fr); }
+.modal { justify-self: center; min-width: 0; max-width: 100%; }
+.modal-body { overflow-x: auto; }
+.modal-foot button:disabled { opacity: .55; cursor: progress; }
+@media (max-width: 860px) { .tab-mod .mod-txt { white-space: nowrap; max-width: 100%; overflow: hidden; text-overflow: ellipsis; font-size: 0.68rem; letter-spacing: -0.01em; } }

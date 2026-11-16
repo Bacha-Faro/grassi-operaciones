@@ -1,6 +1,6 @@
 // Droguería · Temperatura y humedad: carga de las lecturas del día por turno y planilla del mes (para ANMAT).
-import { h, toast, empty, tabs } from '../ui.js?v=20261113-1943';
-import { hoyAR, sumarDias, fechaLarga, fechaCorta, turnosDe, estadoTurno, fmt, rangoTxt, fuera, TODOS_TURNOS, cargarFeriados, feriadoDe } from './drog-comun.js?v=20261113-1943';
+import { h, toast, empty, tabs } from '../ui.js?v=20261114-1439';
+import { hoyAR, sumarDias, fechaLarga, fechaCorta, turnosDe, estadoTurno, fmt, rangoTxt, fuera, TODOS_TURNOS, cargarFeriados, feriadoDe } from './drog-comun.js?v=20261114-1439';
 
 const ESTADO_TXT = { hecho: ['Cargado', 'ok'], ahora: ['Toca ahora', 'warn'], atrasado: ['Pendiente', 'bad'], proximo: ['Más tarde', 'muted'] };
 
@@ -23,7 +23,7 @@ export async function render({ api, refresh }) {
       fecha < hoy ? h('button', { class: 'btn', onclick: () => { fecha = sumarDias(fecha, 1); pintarCarga(); } }, 'Día siguiente ›') : null,
       fecha !== hoy ? h('button', { class: 'link', onclick: () => { fecha = hoy; pintarCarga(); } }, 'Volver a hoy') : null);
     if (!turnos.length) return cont.replaceChildren(selector, feriadoDe(fecha)
-      ? empty(`${fechaLarga(fecha)}: feriado`, `${feriadoDe(fecha).nombre}. Los feriados no hay lecturas.`)
+      ? empty(`${fechaLarga(fecha)}: feriado`, `${feriadoDe(fecha).nombre}. Los feriados no se toman lecturas.`)
       : empty(`${fechaLarga(fecha)}: domingo`, 'Los domingos no hay lecturas.'));
 
     const bloques = turnos.map(turno => {

@@ -74,7 +74,17 @@ export function modal({ title, body, actions = [], wide = false, onClose }) {
       actions.length ? h('footer', { class: 'modal-foot' },
         actions.map(a => h('button', {
           class: `btn ${a.kind || ''}`,
-          onclick: async ev => { const r = await a.onClick?.(ev); if (r !== false) close(); },
+          // mientras la acción está en curso se bloquean los botones: un doble toque no la ejecuta dos veces
+          onclick: async ev => {
+            if (wrap.dataset.ocupado) return;
+            const botones = [...wrap.querySelectorAll('.modal-foot button')];
+            wrap.dataset.ocupado = '1'; botones.forEach(x => { x.disabled = true; });
+            let r;
+            try { r = await a.onClick?.(ev); }
+            catch (e) { r = false; toast(e?.message || 'No se pudo completar la acción', 'bad'); }
+            finally { delete wrap.dataset.ocupado; botones.forEach(x => { x.disabled = false; }); }
+            if (r !== false) close();
+          },
         }, a.label))) : null));
   document.addEventListener('keydown', onKey);
   document.body.append(wrap);

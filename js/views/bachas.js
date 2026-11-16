@@ -1,6 +1,6 @@
 // Droguería · Bachas: dónde está cada una, salidas a sucursales y retornos (se pueden registrar varias juntas).
-import { h, toast, modal, field, empty, tabs, fechaHora } from '../ui.js?v=20261113-1943';
-import { hoyAR, sumarDias, fechaCorta, codigoBacha, pillBacha } from './drog-comun.js?v=20261113-1943';
+import { h, toast, modal, field, empty, tabs, fechaHora } from '../ui.js?v=20261114-1439';
+import { hoyAR, sumarDias, fechaCorta, codigoBacha, pillBacha } from './drog-comun.js?v=20261114-1439';
 
 const FILTROS = [['todas', 'Todas'], ['disponible', 'En Droguería'], ['afuera', 'En sucursales'], ['vencida', 'Demoradas']];
 const DIAS_RETORNO = 7;   // una semana para que la bacha vuelva a la Droguería

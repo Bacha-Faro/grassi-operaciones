@@ -1,7 +1,7 @@
 // Adaptador Supabase: misma interfaz que api-demo.js.
 // Requiere el script UMD de supabase-js cargado en index.html (window.supabase).
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261113-1943';
-import { achicarImagen } from './ui.js?v=20261113-1943';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261114-1439';
+import { achicarImagen } from './ui.js?v=20261114-1439';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const ok = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
@@ -71,9 +71,10 @@ export const api = {
   async periodos() { return ok(await sb.from('periodos').select('*').order('desde')); },
 
   async crearSolicitud({ periodo_id, sucursal_id, solicitante_nombre, observaciones, urgente = false, motivo_urgencia = null, items }) {
-    const s = ok(await sb.from('solicitudes').insert({ periodo_id, sucursal_id, solicitante_nombre, observaciones, urgente, motivo_urgencia,
-      solicitante_id: perfil?.id }).select('id').single());
-    ok(await sb.from('solicitud_items').insert(items.map(i => ({ solicitud_id: s.id, producto_id: i.producto_id, cantidad_solicitada: i.cantidad }))));
+    // el pedido y sus ítems se guardan juntos en la base (o todo o nada)
+    const id = ok(await sb.rpc('crear_solicitud', { p_periodo: periodo_id, p_sucursal: sucursal_id, p_nombre: solicitante_nombre, p_observaciones: observaciones || null,
+      p_urgente: !!urgente, p_motivo: motivo_urgencia || null, p_items: items.map(i => ({ producto_id: i.producto_id, cantidad: i.cantidad })) }));
+    const s = { id };
     // aviso por mail a RRHH de cada pedido nuevo: si falla, el pedido ya quedó guardado igual
     sb.functions.invoke('enviar-mail', { body: { tipo: 'nueva_solicitud', solicitud_id: s.id } }).catch(() => {});
     return s.id;
@@ -145,13 +146,8 @@ export const api = {
     ok(await sb.from('ordenes_compra').update({ estado: 'enviada', enviada_at: new Date().toISOString(), enviada_a: nota || 'Comprada por otro medio' })
       .eq('id', id).eq('estado', 'borrador'));
   },
-  async anularOC(id) {
-    const oc = ok(await sb.from('ordenes_compra').select('estado').eq('id', id).single());
-    if (oc.estado !== 'borrador') throw new Error('Solo se anula una OC en borrador');
-    const sols = ok(await sb.from('solicitud_items').update({ oc_id: null }).eq('oc_id', id).select('solicitud_id'));
-    ok(await sb.from('solicitudes').update({ estado: 'aprobada' }).in('id', [...new Set(sols.map(x => x.solicitud_id))]));
-    ok(await sb.from('ordenes_compra').update({ estado: 'anulada' }).eq('id', id).eq('estado', 'borrador'));
-  },
+  // anula un borrador en un solo paso en la base: libera los ítems y devuelve cada pedido a su estado
+  async anularOC(id) { ok(await sb.rpc('anular_oc', { p_id: id })); },
   // recepción por sucursal: sin ocId = las de mi sucursal; con ocId = todas las de esa orden (equipo)
   async recepciones(ocId = null) { return ok(await sb.rpc('recepciones', { p_oc: ocId })) || []; },
   async confirmarRecepcion(solicitudId, ocId, items, obs) {
