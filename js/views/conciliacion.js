@@ -1,6 +1,6 @@
 // Droguería · Conciliación: lo que la droguería despachó (Quantio) contra lo que cada farmacia ingresó (Plex).
-// Hasta que Galbop habilite las APIs, en la demo trabaja con datos de prueba y en producción muestra el aviso de conexión pendiente.
-import { h, money, n, fecha, modal, empty, descargarCSV } from '../ui.js?v=20261116-1838';
+// En producción los datos los sube el sincronizador de la compu de IT (herramientas/sincronizar_conciliacion.py); en la demo, datos de prueba.
+import { h, money, n, fecha, modal, empty, descargarCSV } from '../ui.js?v=20261117-1353';
 
 const ESTADOS = {
   ok:           ['Conciliado', 'ok'],
@@ -9,15 +9,22 @@ const ESTADOS = {
   demorado:     ['Ingresado con demora', 'warn'],
   sin_confirmar:['Sin confirmar en Plex', 'warn'],
   en_camino:    ['En camino', 'info'],
+  anulado_ingresado: ['Anulado pero ingresado', 'bad'],
+  anulado:      ['Anulado en Quantio', 'muted'],
 };
+const SIN_PROBLEMA = new Set(['ok', 'en_camino', 'anulado']);
 const PLEX_TXT = { N: 'Pendiente de confirmar', C: 'Confirmado', A: 'Anulado', U: 'Actualizado' };
 const DEMORA_MAX = 2; // días: más que esto se marca como demora
 const dias = (a, b) => Math.round((new Date(`${b}T12:00:00`) - new Date(`${a}T12:00:00`)) / 86400e3);
 const hoyISO = () => new Date(Date.now() - 3 * 3600e3).toISOString().slice(0, 10);
 const sumarDias = (f, d) => { const t = new Date(`${f}T12:00:00`); t.setDate(t.getDate() + d); return t.toISOString().slice(0, 10); };
 
+// unidades recibidas de un renglón: Plex por producto; en la demo (sin dato por renglón) se asume lo despachado
+const recibidaDe = (c, r) => !c.ingreso || c.ingreso.estado === 'A' ? null : r.recibida ?? r.cantidad;
+
 export function estadoDe(c, hoy = hoyISO()) {
   const i = c.ingreso;
+  if (c.anulado) return i && i.estado !== 'A' ? 'anulado_ingresado' : 'anulado';
   if (!i || i.estado === 'A') return dias(c.fecha, hoy) <= DEMORA_MAX ? 'en_camino' : 'sin_ingresar';
   if (i.unidades_recibidas !== c.unidades) return 'diferencia';
   if (i.estado === 'N') return 'sin_confirmar';
@@ -35,18 +42,28 @@ export async function render({ api, cat }) {
   async function cargar() {
     cont.replaceChildren(h('p', { class: 'muted' }, 'Cargando…'));
     datos = await api.conciliacion({ desde, hasta });
-    datos.filas.forEach(c => { c._estado = estadoDe(c); c._dif = c.ingreso ? c.ingreso.unidades_recibidas - c.unidades : null; });
+    const nombres = Object.fromEntries(cat.sucursales.map(s => [s.id, s.nombre]));
+    datos.filas.forEach(c => {
+      c.sucursal ||= nombres[c.sucursal_id] || 'Sin farmacia';
+      c._estado = estadoDe(c);
+      c._dif = c.ingreso && c.ingreso.estado !== 'A' && !c.anulado ? c.ingreso.unidades_recibidas - c.unidades : null;
+    });
+    const s = datos.sync, viejo = s?.fin && Date.now() - new Date(s.fin) > 6 * 3600e3;
     aviso.replaceChildren(datos.modo === 'demo'
       ? h('p', { class: 'aviso aviso-warn' }, h('strong', {}, 'Datos de prueba. '), 'Así se va a ver cuando estén conectados Quantio (lo que despacha la droguería) y Plex (lo que ingresa cada farmacia). Los números no son reales.')
       : datos.modo === 'sin_conexion'
         ? h('p', { class: 'aviso aviso-muted' }, h('strong', {}, 'Conexión pendiente. '), 'Esperando que el proveedor de Plex y Quantio habilite el acceso a sus sistemas. Cuando esté, esta pantalla se llena sola.')
-        : null);
+        : s?.fin ? h('p', { class: `aviso aviso-${s.ok === false ? 'bad' : viejo ? 'warn' : 'muted'}` },
+            h('strong', {}, s.ok === false ? 'La última sincronización falló. ' : 'Datos de Quantio y Plex. '),
+            `Última actualización: ${new Date(s.fin).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}`,
+            s.ok === false ? ` · ${s.mensaje || ''}` : viejo ? ' · hace más de 6 horas: revisar que la compu de IT esté prendida con la VPN.' : '')
+          : null);
     pintar();
   }
 
   const filtradas = () => datos.filas.filter(c => (!fSuc || String(c.sucursal_id) === fSuc)
-    && (fEstado === 'todos' || (fEstado === 'problemas' ? c._estado !== 'ok' && c._estado !== 'en_camino' : c._estado === fEstado))
-    && (!q || c.comprobante.toLowerCase().includes(q) || c.renglones.some(r => r.producto.toLowerCase().includes(q) || r.lote.toLowerCase().includes(q))));
+    && (fEstado === 'todos' || (fEstado === 'problemas' ? !SIN_PROBLEMA.has(c._estado) : c._estado === fEstado))
+    && (!q || c.comprobante.toLowerCase().includes(q) || c.renglones.some(r => (r.producto || '').toLowerCase().includes(q) || (r.lote || '').toLowerCase().includes(q))));
 
   function detalle(c) {
     const i = c.ingreso;
@@ -64,23 +81,28 @@ export async function render({ api, cat }) {
           ? `Faltan ${n(-c._dif)} unidad${c._dif < -1 ? 'es' : ''}: la farmacia recibió menos de lo despachado. Revisar con la farmacia y la droguería antes de cerrar.`
           : `Sobran ${n(c._dif)} unidad${c._dif > 1 ? 'es' : ''}: la farmacia cargó más de lo despachado.`) : null,
         h('div', { class: 'table-wrap' }, h('table', { class: 'tbl' },
-          h('thead', {}, h('tr', {}, ['Producto', 'Lote', 'Vence', 'Cant.', 'Precio', 'Subtotal'].map((x, k) => h('th', { class: k >= 3 ? 'num' : '' }, x)))),
-          h('tbody', {}, c.renglones.map(r => h('tr', {}, h('td', {}, r.producto), h('td', { class: 'mono' }, r.lote), h('td', {}, fecha(r.vence)),
-            h('td', { class: 'num' }, n(r.cantidad)), h('td', { class: 'num' }, money(r.precio)), h('td', { class: 'num' }, money(r.cantidad * r.precio))))))),
-        h('small', { class: 'muted' }, 'El detalle por producto y lote viene de Quantio. De Plex se toma el total de unidades recibidas del comprobante.')),
+          h('thead', {}, h('tr', {}, ['Producto', 'Lote', 'Vence', 'Despachado', 'Recibido', 'Precio', 'Subtotal'].map((x, k) => h('th', { class: k >= 3 ? 'num' : '' }, x)))),
+          h('tbody', {}, c.renglones.map(r => {
+            const rec = recibidaDe(c, r), dr = rec === null ? 0 : rec - r.cantidad;
+            return h('tr', {}, h('td', {}, r.producto), h('td', { class: 'mono' }, r.lote || '—'), h('td', {}, r.vence ? fecha(r.vence) : '—'),
+              h('td', { class: 'num' }, n(r.cantidad)), h('td', { class: `num${dr ? ' txt-bad' : ''}` }, rec === null ? '—' : `${n(rec)}${dr ? ` (${dr > 0 ? '+' : ''}${dr})` : ''}`),
+              h('td', { class: 'num' }, money(r.precio)), h('td', { class: 'num' }, money(r.cantidad * r.precio)));
+          })))),
+        h('small', { class: 'muted' }, 'Despachado y precio vienen de Quantio; recibido, lote y vencimiento, de lo que cargó la farmacia en Plex.')),
       actions: [{ label: 'Cerrar' }] });
   }
 
   function pintar() {
-    const todas = datos.filas;
+    const todas = datos.filas.filter(c => c._estado !== 'anulado');
     if (!todas.length) return cont.replaceChildren(datos.modo === 'sin_conexion'
       ? empty('Sin datos todavía', 'La conciliación empieza a funcionar cuando se conecten Quantio y Plex.')
       : empty('No hay comprobantes en esas fechas'));
     const cuenta = e => todas.filter(c => c._estado === e).length;
-    const ingresadas = todas.filter(c => c.ingreso && c.ingreso.estado !== 'A');
+    const ingresadas = todas.filter(c => c.ingreso && c.ingreso.estado !== 'A' && !c.anulado);
     const demoraProm = ingresadas.length ? ingresadas.reduce((a, c) => a + dias(c.fecha, c.ingreso.fecha), 0) / ingresadas.length : null;
     const faltan = todas.reduce((a, c) => a + (c._dif < 0 ? -c._dif : 0), 0);
     const exigibles = todas.filter(c => c._estado !== 'en_camino').length;
+    const anIng = cuenta('anulado_ingresado');
     const kpi = (v, l, tono) => h('div', { class: `kpi ${tono || ''}` }, h('strong', {}, v), h('span', {}, l));
     const kpis = h('div', { class: 'kpis tk-kpis' },
       kpi(n(todas.length), 'comprobantes despachados'),
@@ -89,6 +111,7 @@ export async function render({ api, cat }) {
       kpi(n(faltan), 'unidades faltantes', faltan ? 'bad' : ''),
       kpi(cuenta('sin_ingresar'), `sin ingresar (más de ${DEMORA_MAX} días)`, cuenta('sin_ingresar') ? 'bad' : ''),
       kpi(cuenta('sin_confirmar'), 'sin confirmar en Plex', cuenta('sin_confirmar') ? 'warn' : ''),
+      anIng ? kpi(anIng, 'anulados en Quantio pero ingresados', 'bad') : null,
       kpi(demoraProm === null ? '—' : `${demoraProm.toFixed(1).replace('.', ',')} días`, 'demora promedio de ingreso', demoraProm > DEMORA_MAX ? 'warn' : ''));
 
     // resumen por farmacia
@@ -99,7 +122,7 @@ export async function render({ api, cat }) {
       h('div', { class: 'table-wrap' }, h('table', { class: 'tbl hover rep-tbl' },
         h('thead', {}, h('tr', {}, ['Farmacia', 'Despachados', 'Conciliados', 'Con diferencia', 'Faltan (unid.)', 'Sin ingresar', 'Demora prom.'].map((x, k) => h('th', { class: k ? 'num' : '' }, x)))),
         h('tbody', {}, Object.entries(porSuc).sort((a, b) => a[0].localeCompare(b[0], 'es', { numeric: true })).map(([s, cs]) => {
-          const ing = cs.filter(c => c.ingreso), ex = cs.filter(c => c._estado !== 'en_camino').length;
+          const ing = cs.filter(c => c.ingreso && c.ingreso.estado !== 'A'), ex = cs.filter(c => c._estado !== 'en_camino').length;
           const d = cs.filter(c => c._estado === 'diferencia').length, si = cs.filter(c => c._estado === 'sin_ingresar').length;
           const fa = cs.reduce((a, c) => a + (c._dif < 0 ? -c._dif : 0), 0);
           const dp = ing.length ? ing.reduce((a, c) => a + dias(c.fecha, c.ingreso.fecha), 0) / ing.length : null;
@@ -111,7 +134,7 @@ export async function render({ api, cat }) {
             h('td', { class: `num${dp > DEMORA_MAX ? ' txt-warn' : ''}` }, dp === null ? '—' : `${dp.toFixed(1).replace('.', ',')} d`));
         })))));
 
-    const rows = filtradas().sort((a, b) => b.fecha.localeCompare(a.fecha) || a.sucursal.localeCompare(b.sucursal, 'es', { numeric: true }));
+    const rows = filtradas().filter(c => fEstado === 'anulado' || c._estado !== 'anulado').sort((a, b) => b.fecha.localeCompare(a.fecha) || a.sucursal.localeCompare(b.sucursal, 'es', { numeric: true }));
     const lista = h('section', { class: 'block' },
       h('div', { class: 'block-head' }, h('h2', {}, `Comprobantes (${rows.length})`)),
       rows.length ? h('div', { class: 'table-wrap' }, h('table', { class: 'tbl hover' },
@@ -134,6 +157,13 @@ export async function render({ api, cat }) {
       ...rows.map(c => [fecha(c.fecha), c.tipo, c.comprobante, c.sucursal, c.unidades, c.total, c.ingreso ? fecha(c.ingreso.fecha) : '', c.ingreso ? PLEX_TXT[c.ingreso.estado] : '',
         c.ingreso?.unidades_recibidas ?? '', c._dif ?? '', c.ingreso ? dias(c.fecha, c.ingreso.fecha) : '', ESTADOS[c._estado][0]])]);
   };
+  const descargarDif = () => {
+    const rows = filtradas();
+    const dif = rows.flatMap(c => c.renglones.filter(r => { const x = recibidaDe(c, r); return x !== null && x !== r.cantidad; })
+      .map(r => [fecha(c.fecha), c.comprobante, c.sucursal, r.id || '', r.producto, r.cantidad, recibidaDe(c, r), recibidaDe(c, r) - r.cantidad]));
+    descargarCSV(`Conciliacion diferencias por producto ${desde} a ${hasta}`,
+      [['Despacho', 'Comprobante', 'Farmacia', 'Código', 'Producto', 'Despachado', 'Recibido', 'Diferencia'], ...dif]);
+  };
 
   const farmacias = cat.sucursales.filter(s => s.tipo === 'sucursal');
   const selSuc = h('select', { 'aria-label': 'Farmacia', onchange: e => { fSuc = e.target.value; pintar(); } },
@@ -146,7 +176,8 @@ export async function render({ api, cat }) {
     h('header', { class: 'view-head' },
       h('div', {}, h('p', { class: 'eyebrow' }, 'Droguería'), h('h1', {}, 'Conciliación'),
         h('p', { class: 'muted' }, 'Lo que despachó la droguería contra lo que ingresó cada farmacia: faltantes, comprobantes sin cargar y demoras.')),
-      h('div', { class: 'toolbar' }, h('button', { class: 'btn', onclick: descargar }, 'Descargar CSV'))),
+      h('div', { class: 'toolbar' }, h('button', { class: 'btn', onclick: descargarDif, title: 'Solo los productos donde lo recibido no coincide con lo despachado' }, 'Diferencias por producto'),
+        h('button', { class: 'btn', onclick: descargar }, 'Descargar CSV'))),
     aviso,
     h('div', { class: 'toolbar filters' },
       h('label', { class: 'check-mini' }, 'Desde ', inDesde), h('label', { class: 'check-mini' }, 'Hasta ', inHasta),

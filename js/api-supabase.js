@@ -1,7 +1,7 @@
 // Adaptador Supabase: misma interfaz que api-demo.js.
 // Requiere el script UMD de supabase-js cargado en index.html (window.supabase).
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261116-1838';
-import { achicarImagen } from './ui.js?v=20261116-1838';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261117-1353';
+import { achicarImagen } from './ui.js?v=20261117-1353';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const ok = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
@@ -318,7 +318,27 @@ export const api = {
 
   // ---------- Grassi Analytics: tableros de Power BI (los links solo los lee quien está habilitado) ----------
   // Conciliación Droguería → farmacias: se llena cuando estén conectadas las APIs de Quantio y Plex (Galbop)
-  async conciliacion() { return { modo: 'sin_conexion', filas: [] }; },
+  // remitos de Quantio cruzados con Plex: los sube el sincronizador de la compu de IT (herramientas/sincronizar_conciliacion.py)
+  async conciliacion({ desde, hasta } = {}) {
+    const sync = ok(await sb.from('conc_sync').select('*').maybeSingle());
+    const filas = [];
+    for (let i = 0; ; i += 1000) {
+      let q = sb.from('conc_remitos').select('*').order('numero').range(i, i + 999);
+      if (desde) q = q.gte('fecha', desde);
+      if (hasta) q = q.lte('fecha', hasta);
+      const r = ok(await q);
+      filas.push(...r);
+      if (r.length < 1000) break;
+    }
+    if (!filas.length && !sync?.fin) return { modo: 'sin_conexion', filas: [], sync };
+    const diaLocal = ts => new Date(new Date(ts).getTime() - 3 * 3600e3).toISOString().slice(0, 10);
+    return { modo: 'real', sync, filas: filas.map(r => ({
+      id: r.numero, fecha: r.fecha, tipo: 'remito', comprobante: `R 0001-${String(r.numero).padStart(8, '0')}`,
+      sucursal_id: r.sucursal_id, unidades: r.unidades, total: +r.total, renglones: r.renglones || [], anulado: r.anulado,
+      ingreso: r.plex_estado ? { fecha: r.plex_fecha ? diaLocal(r.plex_fecha) : r.fecha, hora: r.plex_fecha, estado: r.plex_estado,
+        unidades_facturadas: r.plex_facturadas ?? 0, unidades_recibidas: r.plex_recibidas ?? 0 } : null,
+    })) };
+  },
   async feriados() { return ok(await sb.from('feriados').select('*').order('fecha')); },
   async tableros() { return ok(await sb.from('analytics_tableros').select('*').order('orden').order('titulo')); },
   async guardarTablero(t) {

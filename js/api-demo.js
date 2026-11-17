@@ -1,6 +1,6 @@
 // Modo demo: misma interfaz que api-supabase.js, con datos en el navegador.
 // Genera 11 meses de historia (dic-2025 a oct-2026) para que los indicadores tengan contenido.
-import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261116-1838';
+import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261117-1353';
 
 const KEY = 'insumos-demo-v1';
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -374,6 +374,10 @@ export const api = {
         }
       }
     }
+    // un par de remitos anulados en Quantio (uno, igual ingresado en la farmacia: tiene que aparecer como problema)
+    filas.filter(f => f.ingreso).slice(-40, -39).forEach(f => { f.anulado = true; });
+    filas.filter(f => !f.ingreso && f.fecha < sumar(hoy, -3)).slice(0, 1).forEach(f => { f.anulado = true; });
+    filas.forEach(f => f.renglones.forEach((r, j) => { if (f.ingreso) r.recibida = r.cantidad + (j === 0 ? f.ingreso.unidades_recibidas - f.unidades : 0); }));
     return tick({ modo: 'demo', filas: filas.filter(f => (!desde || f.fecha >= desde) && (!hasta || f.fecha <= hasta)) });
   },
   async feriados() { return tick([{ fecha: '2026-11-23', nombre: 'Día de la Soberanía Nacional', tipo: 'feriado' }, { fecha: '2026-12-08', nombre: 'Inmaculada Concepción de María', tipo: 'feriado' }, { fecha: '2026-12-25', nombre: 'Navidad', tipo: 'feriado' }]); },
@@ -528,7 +532,7 @@ export const api = {
   async recibirOC(id, items) { need('compras', 'admin', 'auditor'); const e = _recibir(id, items); save(); return e; },
   async guardarFotoProducto(id, file) {
     need('compras', 'admin');
-    const { achicarImagen } = await import('./ui.js?v=20261116-1838');
+    const { achicarImagen } = await import('./ui.js?v=20261117-1353');
     const blob = await achicarImagen(file, 320, 0.7);
     const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
     db.productos.find(p => p.id === id).foto_url = url; save(); return url;
