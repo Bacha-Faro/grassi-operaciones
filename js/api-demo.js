@@ -1,6 +1,6 @@
 // Modo demo: misma interfaz que api-supabase.js, con datos en el navegador.
 // Genera 11 meses de historia (dic-2025 a oct-2026) para que los indicadores tengan contenido.
-import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261117-1353';
+import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261117-1553';
 
 const KEY = 'insumos-demo-v1';
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -380,6 +380,8 @@ export const api = {
     filas.forEach(f => f.renglones.forEach((r, j) => { if (f.ingreso) r.recibida = r.cantidad + (j === 0 ? f.ingreso.unidades_recibidas - f.unidades : 0); }));
     return tick({ modo: 'demo', filas: filas.filter(f => (!desde || f.fecha >= desde) && (!hasta || f.fecha <= hasta)) });
   },
+  // la demo pública no muestra números de la droguería (son datos internos)
+  async indicadoresDrogueria() { return tick({ modo: 'demo' }); },
   async feriados() { return tick([{ fecha: '2026-11-23', nombre: 'Día de la Soberanía Nacional', tipo: 'feriado' }, { fecha: '2026-12-08', nombre: 'Inmaculada Concepción de María', tipo: 'feriado' }, { fecha: '2026-12-25', nombre: 'Navidad', tipo: 'feriado' }]); },
   async tableros() {
     if (!['admin', 'direccion', 'analista'].includes(who.rol)) return tick([]);
@@ -532,7 +534,7 @@ export const api = {
   async recibirOC(id, items) { need('compras', 'admin', 'auditor'); const e = _recibir(id, items); save(); return e; },
   async guardarFotoProducto(id, file) {
     need('compras', 'admin');
-    const { achicarImagen } = await import('./ui.js?v=20261117-1353');
+    const { achicarImagen } = await import('./ui.js?v=20261117-1553');
     const blob = await achicarImagen(file, 320, 0.7);
     const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
     db.productos.find(p => p.id === id).foto_url = url; save(); return url;

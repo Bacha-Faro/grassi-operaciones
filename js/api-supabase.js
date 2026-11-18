@@ -1,7 +1,7 @@
 // Adaptador Supabase: misma interfaz que api-demo.js.
 // Requiere el script UMD de supabase-js cargado en index.html (window.supabase).
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261117-1353';
-import { achicarImagen } from './ui.js?v=20261117-1353';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261117-1553';
+import { achicarImagen } from './ui.js?v=20261117-1553';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const ok = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
@@ -338,6 +338,13 @@ export const api = {
       ingreso: r.plex_estado ? { fecha: r.plex_fecha ? diaLocal(r.plex_fecha) : r.fecha, hora: r.plex_fecha, estado: r.plex_estado,
         unidades_facturadas: r.plex_facturadas ?? 0, unidades_recibidas: r.plex_recibidas ?? 0 } : null,
     })) };
+  },
+  // indicadores de la Droguería: los sube la compu de IT (herramientas/subir_indicadores.py); solo IT y Dirección
+  async indicadoresDrogueria() {
+    const filas = ok(await sb.from('ind_datasets').select('id, filas, fecha_datos, actualizado_at'));
+    if (!filas.length) return { modo: 'sin_datos' };
+    return { modo: 'real', fecha: filas[0].fecha_datos, actualizado: filas.reduce((m, r) => r.actualizado_at > m ? r.actualizado_at : m, ''),
+      ds: Object.fromEntries(filas.map(r => [r.id, r.filas])) };
   },
   async feriados() { return ok(await sb.from('feriados').select('*').order('fecha')); },
   async tableros() { return ok(await sb.from('analytics_tableros').select('*').order('orden').order('titulo')); },
