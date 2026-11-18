@@ -1,7 +1,7 @@
 // Droguería · Indicadores: servicio a farmacias, tiempos, stock, robot y compras.
 // Los números los calcula la compu de IT con los datos de Quantio (herramientas/subir_indicadores.py) y los sube
 // de lunes a sábado a la noche; esta pantalla solo los muestra. Ven IT y Dirección.
-import { h, money, n, empty, tabs, cargarScript, descargarCSV, fecha } from '../ui.js?v=20261117-1553';
+import { h, money, n, empty, tabs, cargarScript, descargarCSV, fecha } from '../ui.js?v=20261118-1707';
 
 const charts = [];
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
@@ -43,7 +43,9 @@ const tabla = (cols, filas) => h('div', { class: 'table-wrap' }, h('table', { cl
 
 export async function render({ api }) {
   charts.splice(0).forEach(c => c.destroy());
-  const [d] = await Promise.all([api.indicadoresDrogueria(), cargarScript('vendor/chart.umd.js').catch(() => null)]);
+  const hace7 = new Date(Date.now() - 7 * 86400e3).toISOString().slice(0, 10), hoyISO = new Date().toISOString().slice(0, 10);
+  const [d, tPuntos, tLect] = await Promise.all([api.indicadoresDrogueria(), api.tempPuntos().catch(() => null), api.tempLecturas(hace7, hoyISO).catch(() => null),
+    cargarScript('vendor/chart.umd.js').catch(() => null)]);
   if (!d || d.modo !== 'real') {
     return h('div', { class: 'view' },
       h('header', { class: 'view-head' }, h('div', {}, h('p', { class: 'eyebrow' }, 'Droguería'), h('h1', {}, 'Indicadores'))),
@@ -57,9 +59,117 @@ export async function render({ api }) {
   const clase = (g, c) => clases.find(r => r.grupo === g && r.clase === c);
   const sumaClases = (g, f) => clases.filter(r => r.grupo === g && f(r.clase)).reduce((a, r) => a + (+r.valor || 0), 0);
   const viejo = d.actualizado && Date.now() - new Date(d.actualizado) > 36 * 3600e3;
-  let tab = sessionStorage.getItem('ind-tab') || 'servicio';
+  let tab = sessionStorage.getItem('ind-tab') || 'resumen';
   let lista = 'En falta', robot = 'Sumar';
   const cuerpo = h('div', { class: 'tab-cont' });
+
+  const nd = (n, b) => b ? `${f0(n)} de ${f0(b)}` : 'sin base';
+  // tarjeta del resumen: nivel (P0…P3), valor, qué es, detalle; sin dato = gris con la fase en que se suma
+  const tarjeta = (nivel, val, label, sub, t) => h('div', { class: `kpi ind-card${t ? ' kpi-' + t : ''}` },
+    h('span', { class: 'ind-nivel' }, nivel), h('span', { class: 'kpi-val' }, val), h('span', { class: 'kpi-label' }, label), sub ? h('small', {}, sub) : null);
+  const sinDato = (nivel, label, cuando) => h('div', { class: 'kpi ind-card ind-sin-dato' },
+    h('span', { class: 'ind-nivel' }, nivel), h('span', { class: 'kpi-val' }, 'Sin dato'), h('span', { class: 'kpi-label' }, label), h('small', {}, cuando));
+
+  function temperatura() {
+    if (!tPuntos || !tLect) return null;
+    const fuera = tLect.filter(l => l.fuera_rango);
+    const habiles = [];
+    for (let i = 1; i <= 7; i++) { const x = new Date(Date.now() - i * 86400e3); if (x.getDay() >= 1 && x.getDay() <= 5) habiles.push(x.toISOString().slice(0, 10)); }
+    const esperadas = habiles.length * 4 * tPuntos.length;
+    const cargadas = tLect.filter(l => habiles.includes(l.fecha)).length;
+    return { fuera, esperadas, cargadas, puntos: Object.fromEntries(tPuntos.map(p => [p.id, p.nombre])) };
+  }
+
+  function resumen() {
+    const T = temperatura();
+    const ven90 = sumaClases('vencimiento', c => c === 'Vencido con stock' || c === 'Vence en 90 días');
+    const horasInd = d.actualizado ? (Date.now() - new Date(d.actualizado)) / 3600e3 : null;
+    const horasConc = d.conc?.fin ? (Date.now() - new Date(d.conc.fin)) / 3600e3 : null;
+    const datosOk = horasInd != null && horasInd < 36 && (horasConc == null || (horasConc < 6 && d.conc.ok !== false));
+    const EXC = (D.excepciones || []).slice();
+    if (T) T.fuera.forEach(l => EXC.push({ prioridad: 'P0', tipo: 'Temperatura fuera de rango', detalle: `${T.puntos[l.punto_id] || 'Punto'} · ${f1(l.temperatura)} °C${l.humedad != null ? ` · ${f0(l.humedad)}% HR` : ''} · ${fISO(l.fecha)} ${l.turno}${l.accion ? ' · ' + l.accion : ' · sin acción registrada'}`, farmacia: 'Droguería', horas: null }));
+    const ORD = { P0: 0, P1: 1, P2: 2, P3: 3 };
+    EXC.sort((a, b) => ORD[a.prioridad] - ORD[b.prioridad] || (b.horas ?? -1) - (a.horas ?? -1));
+    let filtro = 'todas';
+    const zona = h('div');
+    const pintar = () => {
+      const L = EXC.filter(e => filtro === 'todas' || e.prioridad === filtro);
+      zona.replaceChildren(L.length ? tabla([
+        { t: 'Prioridad', f: e => h('span', { class: `pill ${e.prioridad === 'P0' ? 'pill-bad' : e.prioridad === 'P1' ? 'pill-warn' : 'pill-muted'}` }, e.prioridad) },
+        { t: 'Qué pasa', f: e => h('strong', {}, e.tipo) }, { t: 'Dónde', f: e => e.farmacia }, { t: 'Detalle', f: e => e.detalle },
+        { t: 'Antigüedad', num: 1, f: e => e.horas == null ? '—' : `${f1(e.horas)} h háb.` }], L.slice(0, 60))
+        : h('p', { class: 'muted' }, 'Nada pendiente con esta prioridad.'),
+        L.length > 60 ? h('p', { class: 'muted' }, `Se muestran 60 de ${f0(L.length)}.`) : null);
+    };
+    pintar();
+    const cuenta = p => EXC.filter(e => e.prioridad === p).length;
+    return h('div', { class: 'tab-cont' },
+      h('p', { class: 'muted' }, 'P0 sanitario · P1 servicio y flujo · P2 control. Las metas son las propuestas piloto de la especificación: se calibran con dos semanas de datos. Las tarjetas en gris se suman cuando se registre la entrada de mercadería en la app.'),
+      h('div', { class: 'kpis ind-resumen' },
+        tarjeta('P1', pc(K.otif), 'OTIF aproximado: a tiempo para su ola, completo y recibido sin diferencias en plazo', K.otif_base ? nd(K.otif_n, K.otif_base) + ' pedidos con plazo vencido' : 'sin base', tono(K.otif, 0.95, 0.90)),
+        tarjeta('P1', pc(K.fill_lineas), 'renglones pedidos que tenían stock', `${f0(K.faltantes_renglones)} renglones sin stock en 90 días`, tono(K.fill_lineas, 0.97, 0.94)),
+        tarjeta('P1', f0(K.falta_A), 'faltantes críticos: clase A sin stock que faltaron en pedidos', null, K.falta_A > 0 ? 'bad' : 'good'),
+        sinDato('P1', 'mercadería pendiente de ingreso', 'Fase 2: registro de llegada'),
+        sinDato('P1', 'ingresada sin guardar', 'Fase 2: registro de guardado'),
+        sinDato('P1', 'dock-to-stock P90 (llegada → disponible)', 'Fase 2: registro de llegada'),
+        tarjeta('P1', f0(K.sin_stock_con_venta), 'artículos del robot sin stock que se piden', `${f0(K.sin_stock)} marcados sin stock en total`, K.sin_stock_con_venta > 50 ? 'warn' : ''),
+        tarjeta('P1', pc(K.listo_a_tiempo), 'pedidos listos antes de la hora de su ola (línea de base, las olas todavía no rigen)', nd(K.listo_n, K.listo_base), tono(K.listo_a_tiempo, 0.95, 0.85)),
+        tarjeta('P0', mill(ven90), 'vencido o por vencer en 90 días', `${mill(clase('vencimiento', 'Vencido con stock')?.valor)} ya vencido con stock`, ven90 > 0 ? 'warn' : 'good'),
+        T ? tarjeta('P0', f0(T.fuera.length), 'lecturas de temperatura fuera de rango (7 días)', `${nd(T.cargadas, T.esperadas)} lecturas de lunes a viernes`, T.fuera.length ? 'bad' : T.cargadas < T.esperadas ? 'warn' : 'good')
+          : sinDato('P0', 'temperatura fuera de rango', 'Sin acceso al módulo de Temperatura'),
+        sinDato('P1', 'carga / capacidad por ola', 'Fase 3: horas-persona por tarea'),
+        tarjeta('P1', datosOk ? 'Al día' : 'Revisar', 'actualización de los datos',
+          `Indicadores: ${horasInd == null ? '—' : `hace ${f0(horasInd)} h`}${horasConc == null ? '' : ` · Conciliación: hace ${f0(horasConc)} h${d.conc.ok === false ? ' (con error)' : ''}`}`, datosOk ? 'good' : 'warn')),
+      h('section', { class: 'block' },
+        h('div', { class: 'block-head' }, h('h2', {}, 'Excepciones para resolver'),
+          h('select', { 'aria-label': 'Prioridad', onchange: e => { filtro = e.target.value; pintar(); } },
+            h('option', { value: 'todas' }, `Todas (${f0(EXC.length)})`), ['P0', 'P1', 'P2'].map(p => h('option', { value: p }, `${p} (${f0(cuenta(p))})`)))),
+        h('p', { class: 'muted' }, 'Foto del momento de la exportación (19:15). Los pedidos procesados sin remito tienen stock reservado: conviene remitirlos o anularlos.'),
+        zona));
+  }
+
+  function olas() {
+    const O = D.olas || [], OF = (D.olas_farmacia || []).slice().sort((a, b) => a.a_tiempo - b.a_tiempo), LL = D.llegada_hora || [];
+    const [c1, cv1] = caja(260);
+    const horas = [...new Set(LL.map(r => r.hora))].sort((a, b) => a - b);
+    const DIAS = ['lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+    const out = h('div', { class: 'tab-cont' },
+      h('p', { class: 'aviso aviso-warn' }, h('strong', {}, 'Propuesta, todavía no rige. '),
+        'Es la línea de base: con los pedidos y remitos reales de los últimos 90 días, cuánto se hubiera cumplido si las olas ya existieran. Un pedido va a la primera ola de su farmacia cuyo corte no pasó (10 minutos de tolerancia); si ese día había ola y llegó tarde, cuenta como fuera de corte.'),
+      h('div', { class: 'kpis' },
+        kpi(pc(K.listo_a_tiempo), 'remitos listos antes de la hora de su ola', nd(K.listo_n, K.listo_base), tono(K.listo_a_tiempo, 0.95, 0.85)),
+        kpi(pc(K.fuera_corte), 'pedidos que entran después del corte de su día', nd(K.fuera_corte_n, K.listo_base), tono(K.fuera_corte, 0.05, 0.10)),
+        kpi(pc(K.completos), 'pedidos completos', 'sin renglones en cero ni faltantes de preparación', tono(K.completos, 0.95, 0.90)),
+        kpi(pc(K.entrega_a_tiempo), 'recibidos en la farmacia dentro del plazo', 'Río Cuarto: el mismo día · interior: hasta el día hábil siguiente al retiro')),
+      h('section', { class: 'block' }, h('div', { class: 'block-head' }, h('h2', {}, 'Olas propuestas')),
+        tabla([
+          { t: 'Ola', f: r => h('strong', {}, r.ola) }, { t: 'Días', f: r => r.dias }, { t: 'Corte', f: r => r.corte }, { t: 'Listo', f: r => r.listo }, { t: 'Sale', f: r => r.salida },
+          { t: 'Farmacias', f: r => r.destinos },
+          { t: 'Pedidos', num: 1, f: r => f0(r.pedidos) },
+          { t: 'Renglones por día', num: 1, f: r => `${f0(r.renglones_dia)} (P90 ${f0(r.renglones_p90)})` },
+          { t: 'Fuera de corte', num: 1, f: r => pc(r.fuera_corte, 0), cls: r => r.fuera_corte > 0.10 ? 'txt-bad' : r.fuera_corte > 0.05 ? 'txt-warn' : '' },
+          { t: 'Listos a tiempo', num: 1, f: r => pc(r.a_tiempo, 0), cls: r => r.a_tiempo < 0.85 ? 'txt-bad' : r.a_tiempo < 0.95 ? 'txt-warn' : '' },
+          { t: 'Atraso (mediana)', num: 1, f: r => r.atraso_med_h == null ? '—' : hs(r.atraso_med_h) },
+          { t: 'Completos', num: 1, f: r => pc(r.completos, 0) }], O),
+        h('p', { class: 'muted' }, 'Renglones por día: lo que hay que preparar en esa ola los días que sale (promedio y el día cargado del 10% más alto). El atraso es en horas hábiles, solo de los pedidos que no llegaron.')),
+      h('div', {},
+        h('section', { class: 'block' }, h('div', { class: 'block-head' }, h('h2', {}, 'A qué hora llegan los pedidos')),
+          h('p', { class: 'muted' }, 'Pedidos de los últimos 90 días por hora de entrada. Sirve para fijar cortes que no corten la mayoría de los pedidos.'), c1),
+        h('section', { class: 'block' }, h('div', { class: 'block-head' }, h('h2', {}, 'Por farmacia')),
+          tabla([{ t: 'Farmacia', f: r => h('strong', {}, r.farmacia) }, { t: 'Pedidos', num: 1, f: r => f0(r.pedidos) },
+            { t: 'Fuera de corte', num: 1, f: r => pc(r.fuera_corte, 0), cls: r => r.fuera_corte > 0.10 ? 'txt-bad' : '' },
+            { t: 'Listos a tiempo', num: 1, f: r => pc(r.a_tiempo, 0), cls: r => r.a_tiempo < 0.85 ? 'txt-bad' : '' },
+            { t: 'Atraso', num: 1, f: r => r.atraso_med_h == null ? '—' : hs(r.atraso_med_h) },
+            { t: 'Completos', num: 1, f: r => pc(r.completos, 0) }, { t: 'Recibidos en plazo', num: 1, f: r => pc(r.entrega_a_tiempo, 0) }], OF))));
+    requestAnimationFrame(() => {
+      const o = opts({}, f0); o.plugins.legend.display = true; o.scales.x.stacked = true; o.scales.y.stacked = true;
+      const suma = (dias, x) => LL.filter(r => dias.includes(r.dia) && r.hora === x).reduce((s, r) => s + r.pedidos, 0);
+      chart(cv1, { type: 'bar', data: { labels: horas.map(x => `${x} h`), datasets: [
+        { label: 'Lunes a viernes', data: horas.map(x => suma(DIAS.slice(0, 5), x)), backgroundColor: css('--s1'), borderRadius: 2 },
+        { label: 'Sábado', data: horas.map(x => suma(['sáb'], x)), backgroundColor: css('--s2'), borderRadius: 2 }] }, options: o });
+    });
+    return out;
+  }
 
   function servicio() {
     const [c1, cv1] = caja(), [c2, cv2] = caja(), [c3, cv3] = caja(250);
@@ -238,7 +348,7 @@ export async function render({ api }) {
       h('p', { class: 'muted' }, 'La fecha de carga en Quantio no es la de llegada de la mercadería, y pocas órdenes de compra quedan vinculadas a su factura: por eso todavía no se mide el cumplimiento de las órdenes de compra.'));
   }
 
-  const VISTAS = { servicio: ['Servicio y tiempos', servicio], farmacias: ['Farmacias', farmacias], stock: ['Stock', stock], robot: ['Robot', robotTab], compras: ['Compras', compras] };
+  const VISTAS = { resumen: ['Resumen', resumen], olas: ['Olas y cortes', olas], servicio: ['Servicio y tiempos', servicio], farmacias: ['Farmacias', farmacias], stock: ['Stock', stock], robot: ['Robot', robotTab], compras: ['Compras', compras] };
   if (!VISTAS[tab]) tab = 'servicio';
   const barra = h('div');
   function mostrar() {

@@ -1,6 +1,6 @@
 // Recepción por sucursal: cada punto controla la factura/remito contra lo que llegó
 // y confirma en la app (todo OK o marcando diferencias). El equipo puede registrarlo en nombre de una sucursal.
-import { h, n, toast, modal, fecha, fechaHora, docNum, field } from '../ui.js?v=20261117-1553';
+import { h, n, toast, modal, fecha, fechaHora, docNum, field } from '../ui.js?v=20261118-1707';
 
 // r = { solicitud_id, oc_id, proveedor, interno, sucursal, enviada_at, recepcion, items: [{id, producto, unidad, aprobada, recibida}] }
 export function abrirRecepcion({ api, r, onDone }) {

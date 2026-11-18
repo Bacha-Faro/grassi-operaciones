@@ -1008,3 +1008,8 @@ body.solo-lectura:not([data-mod="it"]) .modal input, body.solo-lectura:not([data
 .ind-notas { border-top: 1px solid var(--line); padding-top: 12px; color: var(--muted); }
 .ind-notas summary { cursor: pointer; font-weight: 600; color: var(--fg); }
 .ind-notas ul { margin: 10px 0 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 6px; max-width: 90ch; line-height: 1.5; }
+
+.ind-card { position: relative; }
+.ind-nivel { position: absolute; top: 10px; right: 12px; font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--muted); }
+.ind-sin-dato { opacity: .6; border-style: dashed; }
+.ind-sin-dato .kpi-val { color: var(--muted); }
