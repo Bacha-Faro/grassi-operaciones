@@ -1,6 +1,6 @@
 // Modo demo: misma interfaz que api-supabase.js, con datos en el navegador.
 // Genera 11 meses de historia (dic-2025 a oct-2026) para que los indicadores tengan contenido.
-import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261118-1707';
+import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261119-0154';
 
 const KEY = 'insumos-demo-v1';
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -249,6 +249,52 @@ function cambiarEstadoTk(t, estado, extra = {}) {
 // ---------- Droguería: bachas y temperatura de ejemplo ----------
 const fechaAR = (d = new Date()) => new Date(d.getTime() - 3 * 3600e3).toISOString().slice(0, 10);
 const TURNOS_DIA = d => { const w = new Date(`${d}T12:00:00`).getDay(); return w === 0 ? [] : w === 6 ? ['08:10', '12:00'] : ['08:10', '12:00', '15:30', '18:50']; };
+// ---------- Droguería: recepción y expedición de ejemplo ----------
+function semillaRecepcion() {
+  let x = 77; const r = () => ((x = (x * 1103515245 + 12345) % 2147483648) / 2147483648);
+  const PROV = ['Distribuidora Norte', 'Laboratorio Andino', 'Droguería Central', 'Perfumería Mayorista Sur', 'Insumos Médicos del Centro'];
+  const OPS = ['Operario 1', 'Operario 2', 'Operario 3'];
+  db.drog_recep = []; db.drog_recep_ev = []; db.drog_salidas = []; db.seq.drog_recep = 0; db.seq.drog_recep_ev = 0; db.seq.drog_salidas = 0;
+  const ahora = Date.now(), ESTADOS = ['recibido', 'en_control', 'listo_ingreso', 'ingresado', 'disponible'];
+  for (let i = 0; i < 26; i++) {
+    const llegada = ahora - (i < 5 ? i * 2.5 : 12 + i * 9) * 3600e3;
+    const hasta = i < 5 ? i % 5 : 4;
+    const rec = { id: nextId('drog_recep'), llegada_at: new Date(llegada).toISOString(), proveedor: PROV[Math.floor(r() * PROV.length)], comprobante: `R 0001-${String(40000 + i * 37).padStart(8, '0')}`,
+      bultos: 1 + Math.floor(r() * 12), frio: r() < 0.15, temperatura: null, incidencia: r() < 0.1 ? 'faltan_bultos' : 'ninguna', nota: null, estado: ESTADOS[hasta], operario: OPS[i % 3], usuario_nombre: 'Recepción',
+      control_at: null, listo_at: null, ingresado_at: null, disponible_at: null, rechazado_at: null };
+    if (rec.frio) rec.temperatura = 4 + Math.round(r() * 30) / 10;
+    let tt = llegada;
+    db.drog_recep_ev.push({ id: nextId('drog_recep_ev'), recepcion_id: rec.id, estado: 'recibido', operario: rec.operario, nota: null, usuario_nombre: 'Recepción', created_at: rec.llegada_at });
+    ['control_at', 'listo_at', 'ingresado_at', 'disponible_at'].slice(0, hasta).forEach((k, j) => {
+      tt += (0.3 + r() * (j === 3 ? 6 : 2.5)) * 3600e3; rec[k] = new Date(Math.min(tt, ahora)).toISOString();
+      db.drog_recep_ev.push({ id: nextId('drog_recep_ev'), recepcion_id: rec.id, estado: ESTADOS[j + 1], operario: OPS[(i + j) % 3], nota: null, usuario_nombre: 'Recepción', created_at: rec[k] });
+    });
+    db.drog_recep.push(rec);
+  }
+  // salidas de los últimos días: lo programado, casi todo confirmado por la farmacia
+  for (let d = 6; d >= 1; d--) {
+    const f = fechaAR(new Date(ahora - d * 86400e3)), dia = new Date(f + 'T12:00:00').getDay();
+    const prog = [['rc12', 'Río Cuarto 12 h', [1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5]], ['rc17', 'Río Cuarto 17 h', [1, 2, 3, 4, 5, 6], [1, 2, 3, 4, 5]], ['mol', 'Moldes', [7], [1, 3, 5]], ['r3vm2', 'Río Tercero y Villa Mercedes 2', [11, 10], [1, 3, 5]]];
+    for (const [ola, nombre, sucs, dias] of prog) {
+      if (!dias.includes(dia)) continue;
+      for (const s of sucs) {
+        const sal = new Date(`${f}T${ola === 'rc12' ? '12' : ola === 'mol' ? '15' : ola === 'rc17' ? '17' : '18'}:${String(Math.floor(r() * 40)).padStart(2, '0')}:00-03:00`).getTime();
+        const conf = r() < 0.9, bien = r() > 0.05, bul = 1 + Math.floor(r() * 6);
+        db.drog_salidas.push({ id: nextId('drog_salidas'), fecha: f, ola, ola_nombre: nombre, sucursal_id: s, salio_at: new Date(sal).toISOString(), bultos: bul, bachas: Math.floor(r() * 4),
+          operario: OPS[s % 3], nota: null, usuario_nombre: 'Expedición', recibido_at: conf ? new Date(sal + (0.5 + r() * (ola.startsWith('rc') ? 2 : 20)) * 3600e3).toISOString() : null,
+          recibido_por: conf ? `Suc ${s}` : null, recibido_ok: conf ? bien : null, bultos_recibidos: conf && !bien ? bul - 1 : null, nota_recepcion: conf && !bien ? 'Faltó un bulto' : null });
+      }
+    }
+  }
+}
+function semillaGrabot() {
+  const h = n => new Date(Date.now() - n * 3600e3).toISOString();
+  db.grabot = [
+    { id: 1, created_at: h(2), nombre: 'Empleado de prueba', sector: 'Suc 3', contacto: 'suc3@ejemplo.com', mensaje: 'No me deja entrar, dice mail o contraseña incorrectos.', tipo: 'acceso', origen: 'ingreso', estado: 'nuevo', nota_it: null, atendido_por: null, atendido_at: null },
+    { id: 2, created_at: h(30), nombre: 'Encargada de prueba', sector: 'Suc 5', contacto: null, mensaje: 'Estaría bueno poder ver el estado del pedido desde el celular.', tipo: 'sugerencia', origen: 'ingreso', estado: 'leido', nota_it: null, atendido_por: 'Soporte IT', atendido_at: h(20) },
+  ];
+  db.seq.grabot = 2;
+}
 function semillaDrogueria() {
   db.bachas = Array.from({ length: 100 }, (_, i) => ({ id: i + 1, codigo: `BCH-${String(i + 1).padStart(4, '0')}`, activa: true, nota: null }));
   db.bacha_mov = []; db.seq.bacha_mov = 0;
@@ -309,7 +355,7 @@ function semillaRRHH() {
   db.rrhh_ausencias.push({ id: nextId('rrhh_ausencias'), empleado_id: 5, tipo: 'evento', desde: d2, hasta: d2, dias: 1, periodo: null, titulo: 'Entrega de título', nota: null, aproximada: false, usuario_nombre: 'RRHH', created_at: new Date().toISOString() });
 }
 const esRRHH = () => ['auditor', 'admin', 'direccion'].includes(who.rol);
-const esDrog = () => ['admin', 'direccion'].includes(who.rol) || who.sucursal_id === 7;
+const esDrog = () => ['admin', 'direccion', 'tecnico'].includes(who.rol) || who.sucursal_id === 7;
 
 // ---------- vistas de lectura ----------
 const suc = id => db.sucursales.find(s => s.id === id);
@@ -430,7 +476,7 @@ export const api = {
   async rrhhBorrarAusencia(id) { need('auditor', 'admin'); db.rrhh_ausencias = db.rrhh_ausencias.filter(a => a.id !== id); save(); },
 
   modo: 'demo',
-  async init() { if (!load()) construir(); if (!db.tickets) { semillaTickets(); save(); } if (!db.bachas) { semillaDrogueria(); save(); } if (!db.rrhh_empleados) { semillaRRHH(); save(); } if (!db.it_equipos) { semillaIT2(); save(); } },
+  async init() { if (!load()) construir(); if (!db.tickets) { semillaTickets(); save(); } if (!db.bachas) { semillaDrogueria(); save(); } if (!db.rrhh_empleados) { semillaRRHH(); save(); } if (!db.it_equipos) { semillaIT2(); save(); } if (!db.drog_recep) { semillaRecepcion(); save(); } if (!db.grabot) { semillaGrabot(); save(); } },
   async reset() { construir(); },
   async me() {
     const s = who.sucursal_id ? suc(who.sucursal_id) : null;
@@ -534,7 +580,7 @@ export const api = {
   async recibirOC(id, items) { need('compras', 'admin', 'auditor'); const e = _recibir(id, items); save(); return e; },
   async guardarFotoProducto(id, file) {
     need('compras', 'admin');
-    const { achicarImagen } = await import('./ui.js?v=20261118-1707');
+    const { achicarImagen } = await import('./ui.js?v=20261119-0154');
     const blob = await achicarImagen(file, 320, 0.7);
     const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
     db.productos.find(p => p.id === id).foto_url = url; save(); return url;
@@ -742,6 +788,80 @@ export const api = {
     if (tipo === 'salida' && !sucursal_id) throw new Error('Elegí la sucursal');
     db.bacha_mov.push({ id: nextId('bacha_mov'), bacha_id, tipo, sucursal_id: tipo === 'salida' ? +sucursal_id : null, retorno_esperado: tipo === 'salida' ? retorno_esperado : null,
       observacion: observacion || null, usuario_nombre: who.nombre, created_at: new Date().toISOString() });
+    save(); return tick(true);
+  },
+  // ---- Droguería: recepción de proveedores y expedición ----
+  async recepcionesDrog({ desde } = {}) {
+    if (!esDrog()) return tick([]);
+    const d = desde || new Date(Date.now() - 7 * 86400e3).toISOString();
+    return tick(db.drog_recep.filter(r => !['disponible', 'rechazado'].includes(r.estado) || r.llegada_at >= d).map(r => ({ ...r })));
+  },
+  async recepcionEventos(id) { return tick(db.drog_recep_ev.filter(e => e.recepcion_id === id)); },
+  async registrarRecepcion(r) {
+    if (!esDrog()) throw new Error('Sin permiso');
+    if (!r.proveedor?.trim()) throw new Error('Falta el proveedor');
+    if (!r.operario?.trim()) throw new Error('Falta quién recibe');
+    if (r.frio && (r.temperatura === '' || r.temperatura == null)) throw new Error('Falta la temperatura');
+    const rec = { id: nextId('drog_recep'), llegada_at: r.llegada_at || new Date().toISOString(), proveedor: r.proveedor.trim(), comprobante: r.comprobante || null, bultos: +r.bultos, frio: !!r.frio,
+      temperatura: r.frio ? +r.temperatura : null, incidencia: r.incidencia || 'ninguna', nota: r.nota || null, estado: 'recibido', operario: r.operario.trim(), usuario_nombre: who.nombre,
+      control_at: null, listo_at: null, ingresado_at: null, disponible_at: null, rechazado_at: null };
+    db.drog_recep.push(rec);
+    db.drog_recep_ev.push({ id: nextId('drog_recep_ev'), recepcion_id: rec.id, estado: 'recibido', operario: rec.operario, nota: rec.nota, usuario_nombre: who.nombre, created_at: rec.llegada_at });
+    save(); return tick(rec);
+  },
+  async avanzarRecepcion(id, estado, operario, nota = null) {
+    if (!esDrog()) throw new Error('Sin permiso');
+    if (!operario?.trim()) throw new Error('Falta quién lo hizo');
+    const r = db.drog_recep.find(x => x.id === id), ORD = ['recibido', 'en_control', 'listo_ingreso', 'ingresado', 'disponible'];
+    if (estado === 'rechazado') {
+      if (!['recibido', 'en_control', 'listo_ingreso'].includes(r.estado)) throw new Error('Solo se puede rechazar antes de ingresarla a Quantio');
+      if (!nota?.trim()) throw new Error('Contá por qué se rechaza');
+      r.estado = 'rechazado'; r.rechazado_at = new Date().toISOString();
+    } else {
+      if (ORD.indexOf(estado) !== ORD.indexOf(r.estado) + 1) throw new Error(`No se puede pasar de ${r.estado} a ${estado}`);
+      r.estado = estado; r[{ en_control: 'control_at', listo_ingreso: 'listo_at', ingresado: 'ingresado_at', disponible: 'disponible_at' }[estado]] = new Date().toISOString();
+    }
+    db.drog_recep_ev.push({ id: nextId('drog_recep_ev'), recepcion_id: id, estado, operario: operario.trim(), nota: nota || null, usuario_nombre: who.nombre, created_at: new Date().toISOString() });
+    save(); return tick(true);
+  },
+  async salidasDrog(desde, hasta = desde) { return tick(db.drog_salidas.filter(s => s.fecha >= desde && s.fecha <= hasta && (esDrog() || s.sucursal_id === who.sucursal_id))); },
+  async registrarSalida(s) {
+    if (!esDrog()) throw new Error('Sin permiso');
+    if (!s.operario?.trim()) throw new Error('Falta quién despacha');
+    if (db.drog_salidas.some(x => x.fecha === s.fecha && x.ola === s.ola && x.sucursal_id === +s.sucursal_id)) throw new Error('Esa salida ya estaba registrada');
+    const n = { id: nextId('drog_salidas'), fecha: s.fecha, ola: s.ola, ola_nombre: s.ola_nombre, sucursal_id: +s.sucursal_id, salio_at: new Date().toISOString(), bultos: +s.bultos, bachas: +(s.bachas || 0),
+      operario: s.operario.trim(), nota: s.nota || null, usuario_nombre: who.nombre, recibido_at: null, recibido_por: null, recibido_ok: null, bultos_recibidos: null, nota_recepcion: null };
+    db.drog_salidas.push(n); save(); return tick(n);
+  },
+  async borrarSalida(id) {
+    const s = db.drog_salidas.find(x => x.id === id);
+    if (!esDrog() || s?.recibido_at) throw new Error('No se puede borrar: la farmacia ya la confirmó');
+    db.drog_salidas = db.drog_salidas.filter(x => x.id !== id); save(); return tick(true);
+  },
+  async grabotDejar(m) {
+    if (m.trampa) return tick(0);
+    if ((m.nombre || '').trim().length < 2) throw new Error('Decinos tu nombre');
+    if ((m.mensaje || '').trim().length < 5) throw new Error('Contanos un poco más');
+    const n = { id: nextId('grabot'), created_at: new Date().toISOString(), nombre: m.nombre.trim(), sector: m.sector?.trim() || null, contacto: m.contacto?.trim() || null,
+      mensaje: m.mensaje.trim(), tipo: m.tipo || 'consulta', origen: 'ingreso', estado: 'nuevo', nota_it: null, atendido_por: null, atendido_at: null };
+    db.grabot.push(n); save(); return tick(n.id);
+  },
+  async grabotMensajes() { return tick(esIT() ? db.grabot.slice().sort((a, b) => b.created_at.localeCompare(a.created_at)) : []); },
+  async grabotAtender(id, estado, nota = null) {
+    if (!esIT()) throw new Error('Sin permiso');
+    const m = db.grabot.find(x => x.id === id); if (!m) throw new Error('No existe ese mensaje');
+    Object.assign(m, { estado, nota_it: nota?.trim() || m.nota_it, atendido_por: who.nombre, atendido_at: new Date().toISOString() }); save(); return tick(true);
+  },
+  async misEntregas() {
+    const desde = new Date(Date.now() - 3 * 86400e3).toISOString();
+    return tick(db.drog_salidas.filter(s => s.sucursal_id === who.sucursal_id && (!s.recibido_at || s.recibido_at >= desde)).sort((a, b) => b.salio_at.localeCompare(a.salio_at)));
+  },
+  async confirmarEntrega(id, okRecibido, bultos, nota = null) {
+    const s = db.drog_salidas.find(x => x.id === id);
+    if (!s || s.sucursal_id !== who.sucursal_id) throw new Error('Solo la farmacia que la recibe puede confirmarla');
+    if (s.recibido_at) throw new Error('Ya estaba confirmada');
+    if (!okRecibido && !nota?.trim()) throw new Error('Contá qué llegó mal');
+    Object.assign(s, { recibido_at: new Date().toISOString(), recibido_ok: okRecibido, bultos_recibidos: bultos === '' || bultos == null ? null : +bultos, nota_recepcion: nota || null, recibido_por: who.nombre });
     save(); return tick(true);
   },
   async tempPuntos() { return tick(esDrog() ? db.temp_puntos.filter(p => p.activo) : []); },

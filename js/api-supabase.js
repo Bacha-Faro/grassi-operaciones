@@ -1,7 +1,7 @@
 // Adaptador Supabase: misma interfaz que api-demo.js.
 // Requiere el script UMD de supabase-js cargado en index.html (window.supabase).
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261118-1707';
-import { achicarImagen } from './ui.js?v=20261118-1707';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261119-0154';
+import { achicarImagen } from './ui.js?v=20261119-0154';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const ok = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
@@ -305,6 +305,36 @@ export const api = {
   async bachaMovimiento({ bacha_id, tipo, sucursal_id = null, retorno_esperado = null, observacion = null }) {
     ok(await sb.from('bacha_movimientos').insert({ bacha_id, tipo, sucursal_id, retorno_esperado, observacion: observacion || null }));
   },
+  // ---- GraBot: mensajes para IT desde la pantalla de ingreso (sin usuario) ----
+  async grabotDejar(m) { return ok(await sb.rpc('grabot_dejar', { p_nombre: m.nombre, p_sector: m.sector || null, p_contacto: m.contacto || null, p_mensaje: m.mensaje, p_tipo: m.tipo || 'consulta', p_trampa: m.trampa || null })); },
+  async grabotMensajes() { return ok(await sb.from('it_grabot').select('*').order('created_at', { ascending: false }).limit(300)); },
+  async grabotAtender(id, estado, nota = null) { ok(await sb.rpc('grabot_atender', { p_id: id, p_estado: estado, p_nota: nota })); },
+  // ---- Droguería: recepción de proveedores y expedición a farmacias ----
+  async recepcionesDrog({ desde } = {}) {
+    // abiertas (cualquier fecha) + cerradas desde 'desde'
+    const [abiertas, cerradas] = await Promise.all([
+      sb.from('drog_recepciones').select('*').not('estado', 'in', '(disponible,rechazado)').order('llegada_at'),
+      sb.from('drog_recepciones').select('*').in('estado', ['disponible', 'rechazado']).gte('llegada_at', desde || new Date(Date.now() - 7 * 86400e3).toISOString()).order('llegada_at', { ascending: false }).limit(500)]);
+    return [...ok(abiertas), ...ok(cerradas)].map(r => ({ ...r, temperatura: r.temperatura === null ? null : +r.temperatura }));
+  },
+  async recepcionEventos(id) { return ok(await sb.from('drog_recepcion_eventos').select('*').eq('recepcion_id', id).order('created_at')); },
+  async registrarRecepcion(r) {
+    return ok(await sb.from('drog_recepciones').insert({ proveedor: r.proveedor, comprobante: r.comprobante || null, bultos: +r.bultos, frio: !!r.frio,
+      temperatura: r.frio ? +r.temperatura : null, incidencia: r.incidencia || 'ninguna', nota: r.nota || null, operario: r.operario, llegada_at: r.llegada_at || undefined }).select().single());
+  },
+  async avanzarRecepcion(id, estado, operario, nota = null) { ok(await sb.rpc('avanzar_recepcion', { p_id: id, p_estado: estado, p_operario: operario, p_nota: nota })); },
+  async salidasDrog(desde, hasta = desde) { return ok(await sb.from('drog_salidas').select('*').gte('fecha', desde).lte('fecha', hasta).order('salio_at')); },
+  async registrarSalida(s) {
+    return ok(await sb.from('drog_salidas').insert({ fecha: s.fecha, ola: s.ola, ola_nombre: s.ola_nombre, sucursal_id: +s.sucursal_id, bultos: +s.bultos,
+      bachas: +(s.bachas || 0), operario: s.operario, nota: s.nota || null }).select().single());
+  },
+  async borrarSalida(id) { ok(await sb.from('drog_salidas').delete().eq('id', id)); },
+  // la farmacia: lo que le salió y todavía no confirmó, más lo confirmado en los últimos 3 días
+  async misEntregas() {
+    const desde = new Date(Date.now() - 3 * 86400e3).toISOString();
+    return ok(await sb.from('drog_salidas').select('*').or(`recibido_at.is.null,recibido_at.gte.${desde}`).order('salio_at', { ascending: false }).limit(30));
+  },
+  async confirmarEntrega(id, okRecibido, bultos, nota = null) { ok(await sb.rpc('confirmar_entrega', { p_id: id, p_ok: okRecibido, p_bultos: bultos === '' || bultos == null ? null : +bultos, p_nota: nota })); },
   async tempPuntos() { return ok(await sb.from('temp_puntos').select('*').eq('activo', true).order('orden')).map(p => ({ ...p, t_min: +p.t_min, t_max: +p.t_max, h_min: p.h_min === null ? null : +p.h_min, h_max: p.h_max === null ? null : +p.h_max })); },
   async tempLecturas(desde, hasta) {
     return ok(await sb.from('temp_lecturas').select('*').gte('fecha', desde).lte('fecha', hasta).order('fecha').order('turno'))

@@ -1013,3 +1013,81 @@ body.solo-lectura:not([data-mod="it"]) .modal input, body.solo-lectura:not([data
 .ind-nivel { position: absolute; top: 10px; right: 12px; font-size: 11px; font-weight: 700; letter-spacing: .04em; color: var(--muted); }
 .ind-sin-dato { opacity: .6; border-style: dashed; }
 .ind-sin-dato .kpi-val { color: var(--muted); }
+
+/* Droguería · recepción y expedición */
+.kpi-bad { border-color: var(--bad); } .kpi-bad .kpi-val { color: var(--bad); }
+.rc-tablero { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.rc-col { background: var(--sunk); border-radius: var(--r); padding: 10px; display: flex; flex-direction: column; gap: 8px; min-height: 120px; }
+.rc-col h2 { font-size: 0.9rem; margin: 2px 4px 4px; }
+.rc-vacio { font-size: 0.85rem; padding: 4px; }
+.rc-card { background: var(--surface); border: 1px solid var(--line); border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; }
+.rc-card.rc-tarde { border-left: 4px solid var(--bad); } .rc-card.rc-inc:not(.rc-tarde) { border-left: 4px solid var(--warn); }
+.rc-card-info { all: unset; cursor: pointer; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px; }
+.rc-card-info:focus-visible { outline: 2px solid var(--accent); }
+.rc-card-info small { font-size: 0.78rem; line-height: 1.35; }
+.rc-tags { display: flex; flex-wrap: wrap; gap: 4px; } .rc-tags:empty { display: none; }
+.rc-sig { border-radius: 0; border-width: 1px 0 0; padding-block: 9px; white-space: normal; }
+@media (max-width: 1100px) { .rc-tablero { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .rc-tablero { grid-template-columns: minmax(0, 1fr); } .rc-sig { padding-block: 12px; } }
+.ex-olas { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; align-items: start; }
+.ex-ola { background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.ex-ola header { display: flex; flex-direction: column; gap: 2px; } .ex-ola h2 { font-size: 1rem; margin: 0; } .ex-ola header span { font-size: 0.82rem; }
+.ex-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.ex-suc { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; border-left: 4px solid var(--line); background: var(--sunk); }
+.ex-suc > div { display: flex; flex-direction: column; min-width: 0; } .ex-det { font-size: 0.8rem; color: var(--muted); }
+.ex-ok { border-left-color: var(--ok); } .ex-info { border-left-color: var(--info); } .ex-warn { border-left-color: var(--warn); } .ex-bad { border-left-color: var(--bad); }
+.ex-warn small.muted { color: var(--warn); font-weight: 600; }
+.btn.ex-sm { padding: 6px 10px; font-size: 0.85rem; flex: none; }
+.ex-bacha-row { display: flex; gap: 8px; } .ex-bacha-row input { flex: 1; }
+.ex-chips { display: flex; flex-wrap: wrap; gap: 6px; } .ex-chips:empty { display: none; } .ex-chips button { border: 0; cursor: pointer; }
+.en-camino { border: 1px solid var(--info); background: var(--info-soft); border-radius: var(--r); padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+.en-camino h2 { font-size: 1rem; margin: 0; }
+.en-camino li { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; padding: 8px 0; border-top: 1px solid var(--line); }
+.en-camino ul { list-style: none; margin: 0; padding: 0; }
+@media (max-width: 640px) {
+  .drog-rx .kpis { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .drog-rx .kpi { padding: 10px 12px; } .drog-rx .kpi-val { font-size: 1.25rem; }
+  .drog-rx .view-head .toolbar { width: 100%; display: flex; gap: 8px; } .drog-rx .view-head .toolbar .btn.primary { flex: 1; }
+  .drog-rx .ex-olas { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* ingreso: el formulario más separado del logo animado */
+.login-form { margin-top: 36px; }
+@media (max-width: 900px) { .login-form { margin-top: 20px; } }
+
+/* GraBot */
+.gb { position: fixed; right: 20px; bottom: 20px; z-index: 50; display: flex; flex-direction: column; align-items: flex-end; gap: 12px; }
+.gb-boton { display: inline-flex; align-items: center; gap: 8px; height: 52px; padding: 0 18px 0 12px; border-radius: 26px; border: 0; cursor: pointer;
+  background: var(--navy); color: #fff; font: 700 0.95rem var(--f-display); box-shadow: 0 8px 24px rgb(0 0 0 / 0.22); transition: transform .15s ease; }
+.gb-boton:hover { transform: translateY(-2px); } .gb-boton:focus-visible { outline: 3px solid var(--accent); outline-offset: 3px; }
+.gb-boton.on .gb-etq { display: none; } .gb-boton.on { padding: 0 12px; }
+.gb-cara { flex: none; } .gb-ojo { animation: gb-parpadeo 5s infinite; transform-origin: center; transform-box: fill-box; }
+@keyframes gb-parpadeo { 0%, 94%, 100% { transform: scaleY(1); } 97% { transform: scaleY(0.1); } }
+@media (prefers-reduced-motion: reduce) { .gb-ojo { animation: none; } }
+.gb-panel { width: min(360px, calc(100vw - 32px)); max-height: min(560px, calc(100dvh - 110px)); display: flex; flex-direction: column; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 16px; box-shadow: 0 16px 40px rgb(0 0 0 / 0.22); overflow: hidden; }
+.gb-panel[hidden] { display: none; }
+.gb-head { display: flex; align-items: center; gap: 10px; padding: 12px 14px; background: var(--navy); color: #fff; }
+.gb-head div { display: flex; flex-direction: column; flex: 1; } .gb-head small { opacity: .8; font-size: 0.78rem; }
+.gb-avatar { width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center; background: rgb(255 255 255 / 0.14); flex: none; }
+.gb-cerrar { background: none; border: 0; color: #fff; font-size: 1rem; cursor: pointer; width: 32px; height: 32px; border-radius: 6px; }
+.gb-cerrar:hover { background: rgb(255 255 255 / 0.14); }
+.gb-charla { padding: 14px; display: flex; flex-direction: column; gap: 8px; overflow-y: auto; }
+.gb-msg { max-width: 85%; padding: 9px 12px; border-radius: 14px; font-size: 0.92rem; line-height: 1.4; white-space: pre-wrap; overflow-wrap: anywhere; }
+.gb-bot { background: var(--sunk); align-self: flex-start; border-bottom-left-radius: 4px; }
+.gb-yo { background: var(--accent); color: var(--accent-ink); align-self: flex-end; border-bottom-right-radius: 4px; }
+.gb-chips { display: flex; flex-wrap: wrap; gap: 6px; } .gb-chips[hidden] { display: none; }
+.gb-chip { border: 1px solid var(--accent); color: var(--accent); background: var(--surface); border-radius: 16px; padding: 6px 12px; font-weight: 600; cursor: pointer; font-size: 0.86rem; align-self: flex-start; }
+.gb-chip:hover { background: var(--accent); color: var(--accent-ink); }
+.gb-form { display: flex; flex-direction: column; gap: 8px; } .gb-form[hidden] { display: none; }
+.gb-form textarea { resize: vertical; min-height: 70px; }
+.gb-trampa { position: absolute; left: -9999px; width: 1px; height: 1px; opacity: 0; }
+@media (max-width: 640px) { .gb { right: 12px; bottom: 12px; } .gb-boton { height: 48px; } }
+/* GraBot en el módulo de IT */
+.gb-titulo { display: flex; align-items: center; gap: 10px; } .gb-titulo .gb-avatar { background: var(--navy); color: #fff; }
+.gb-lista { list-style: none; margin: 14px 0 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.gb-item { all: unset; box-sizing: border-box; width: 100%; cursor: pointer; display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--r); }
+.gb-item.nuevo { border-left: 4px solid var(--bad); } .gb-item:hover { border-color: var(--muted); } .gb-item:focus-visible { outline: 2px solid var(--accent); }
+.gb-item-top { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; } .gb-item-pills { margin-left: auto; display: flex; gap: 4px; }
+.gb-item-txt { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.gb-cita { margin: 0; padding: 12px 14px; background: var(--sunk); border-left: 3px solid var(--accent); border-radius: 6px; white-space: pre-wrap; }

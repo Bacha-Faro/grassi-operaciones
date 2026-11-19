@@ -1,10 +1,10 @@
 // Inicio de Grassi Operaciones: una tarjeta por módulo con lo pendiente y "Para hacer hoy" con todo junto.
-import { h } from '../ui.js?v=20261118-1707';
+import { h, modal, field, toast } from '../ui.js?v=20261119-0154';
 
 const saludo = () => { const hr = new Date().getHours(); return hr < 13 ? 'Buen día' : hr < 20 ? 'Buenas tardes' : 'Buenas noches'; };
 const hoy = () => new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
 
-export async function render({ me, go, modulos, vistas, badges, primera, MODULOS, logoModulo }) {
+export async function render({ api, cat, me, go, modulos, vistas, badges, primera, MODULOS, logoModulo }) {
   const puede = v => vistas.includes(v);
   const sucursal = me.rol === 'solicitante';
   const nombre = sucursal ? null : (me.nombre || '').split(' ')[0] || null;
@@ -21,10 +21,13 @@ export async function render({ me, go, modulos, vistas, badges, primera, MODULOS
       puede('tickets') && ['tkit', 'Tickets nuevos', 'tickets'],
       puede('tickets') && ['tkcrit', 'Críticos sin responder', 'tickets', 'bad'],
       puede('soporte') && ['tk', 'Esperan tu respuesta', 'soporte'],
+      puede('grabot') && ['gb', 'Mensajes de GraBot sin leer', 'grabot'],
     ].filter(Boolean),
     drogueria: [
       puede('temperatura') && ['temp', 'Lecturas de temperatura por cargar', 'temperatura'],
       puede('bachas') && ['bch', 'Bachas demoradas', 'bachas', 'bad'],
+      puede('drog-recepcion') && ['rcp', 'Recepciones demoradas', 'drog-recepcion', 'bad'],
+      puede('drog-expedicion') && ['exp', 'Salidas atrasadas sin registrar', 'drog-expedicion', 'bad'],
     ].filter(Boolean),
     analytics: [],
     rrhh: [
@@ -63,12 +66,49 @@ export async function render({ me, go, modulos, vistas, badges, primera, MODULOS
     pendientes.replaceChildren(...(items.length ? items : [h('li', { class: 'muted hoy-vacio' }, 'Todo al día: no hay nada pendiente.')]));
   });
 
+  // farmacias: la mercadería que despachó la Droguería y falta confirmar (así se mide la entrega real)
+  const enCamino = h('div');
+  if (sucursal && me.sucursal_id && api?.misEntregas) pintarEnCamino(api, enCamino, me.sucursal_id).catch(() => {});
+
   return h('div', { class: 'view inicio' },
     h('header', { class: 'view-head' }, h('div', {},
       h('p', { class: 'eyebrow' }, hoy()),
       h('h1', {}, nombre ? `${saludo()}, ${nombre}` : saludo()),
       sucursal ? h('p', { class: 'muted' }, me.sucursal) : null)),
+    enCamino,
     h('div', { class: 'inicio-grid' },
       h('div', { class: `mod-cards n${modulos.length}` }, modulos.map(tarjeta)),
       h('aside', { class: 'hoy' }, h('h2', {}, 'Para hacer hoy'), pendientes)));
+}
+
+const hora = iso => new Date(iso).toLocaleString('es-AR', { weekday: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'America/Argentina/Buenos_Aires' });
+
+async function pintarEnCamino(api, caja, suc) {
+  const lista = (await api.misEntregas()).filter(s => !s.recibido_at && s.sucursal_id === suc);
+  if (!lista.length) { caja.replaceChildren(); return; }
+  const recibir = (s, ok) => {
+    const bultos = h('input', { type: 'number', min: 0, max: 999, inputmode: 'numeric', value: s.bultos });
+    const nota = h('input', { maxlength: 500, placeholder: 'Ej.: faltó una caja, llegó una bacha abierta…' });
+    if (ok) return guardar(s, true, s.bultos, null).catch(() => {});
+    modal({ title: 'Llegó con problemas',
+      body: h('div', { class: 'stack' }, h('p', { class: 'muted' }, `Salió con ${s.bultos} bulto${s.bultos === 1 ? '' : 's'}${s.bachas ? ` y ${s.bachas} bacha${s.bachas === 1 ? '' : 's'}` : ''}.`),
+        field('Bultos que llegaron', bultos), field('Qué pasó', nota)),
+      actions: [{ label: 'Cancelar' }, { label: 'Confirmar', kind: 'primary', onClick: async () => {
+        if (!nota.value.trim()) { toast('Contá qué llegó mal', 'bad'); return false; }
+        await guardar(s, false, bultos.value, nota.value.trim());
+      } }] });
+  };
+  async function guardar(s, ok, bultos, nota) {
+    try { await api.confirmarEntrega(s.id, ok, bultos, nota); toast(ok ? 'Gracias, quedó confirmada' : 'Avisamos a la Droguería'); await pintarEnCamino(api, caja, suc); }
+    catch (e) { toast(e.message, 'bad'); throw e; }
+  }
+  caja.replaceChildren(h('section', { class: 'en-camino' },
+    h('h2', {}, lista.length === 1 ? 'Mercadería en camino' : `Mercadería en camino · ${lista.length} envíos`),
+    h('p', { class: 'muted' }, 'Cuando llegue, tocá "Llegó bien" o avisá si vino con problemas.'),
+    h('ul', {}, lista.map(s => h('li', {},
+      h('span', {}, h('strong', {}, `${s.bultos} bulto${s.bultos === 1 ? '' : 's'}${s.bachas ? ` + ${s.bachas} bacha${s.bachas === 1 ? '' : 's'}` : ''}`),
+        h('small', { class: 'muted' }, ` · ${s.ola_nombre || 'Droguería'} · salió ${hora(s.salio_at)}`)),
+      h('span', { class: 'toolbar' },
+        h('button', { class: 'btn ok', onclick: () => recibir(s, true) }, 'Llegó bien'),
+        h('button', { class: 'btn ghost-bad', onclick: () => recibir(s, false) }, 'Llegó con problemas')))))));
 }
