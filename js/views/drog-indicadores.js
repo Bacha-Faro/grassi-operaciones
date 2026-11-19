@@ -1,7 +1,7 @@
 // Droguería · Indicadores: servicio a farmacias, tiempos, stock, robot y compras.
 // Los números los calcula la compu de IT con los datos de Quantio (herramientas/subir_indicadores.py) y los sube
 // de lunes a sábado a la noche; esta pantalla solo los muestra. Ven IT y Dirección.
-import { h, money, n, empty, tabs, cargarScript, descargarCSV, fecha } from '../ui.js?v=20261119-0206';
+import { h, money, n, empty, tabs, modal, cargarScript, descargarCSV, fecha } from '../ui.js?v=20261119-0323';
 
 const charts = [];
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
@@ -44,7 +44,8 @@ const tabla = (cols, filas) => h('div', { class: 'table-wrap' }, h('table', { cl
 export async function render({ api }) {
   charts.splice(0).forEach(c => c.destroy());
   const hace7 = new Date(Date.now() - 7 * 86400e3).toISOString().slice(0, 10), hoyISO = new Date().toISOString().slice(0, 10);
-  const [d, tPuntos, tLect] = await Promise.all([api.indicadoresDrogueria(), api.tempPuntos().catch(() => null), api.tempLecturas(hace7, hoyISO).catch(() => null),
+  const [d, tPuntos, tLect, recep] = await Promise.all([api.indicadoresDrogueria(), api.tempPuntos().catch(() => null), api.tempLecturas(hace7, hoyISO).catch(() => null),
+    api.recepcionesDrog ? api.recepcionesDrog().catch(() => null) : null,
     cargarScript('vendor/chart.umd.js').catch(() => null)]);
   if (!d || d.modo !== 'real') {
     return h('div', { class: 'view' },
@@ -80,6 +81,25 @@ export async function render({ api }) {
     return { fuera, esperadas, cargadas, puntos: Object.fromEntries(tPuntos.map(p => [p.id, p.nombre])) };
   }
 
+  // tarjetas que salen del registro de llegadas (Droguería → Recepción), en vivo
+  function recepcion() {
+    if (!recep || !recep.length) return [
+      sinDato('P1', 'mercadería pendiente de ingreso', 'Se mide desde que se registren llegadas en Recepción'),
+      sinDato('P1', 'ingresada sin guardar', 'Se mide desde que se registren llegadas en Recepción'),
+      sinDato('P1', 'dock-to-stock P90 (llegada → disponible)', 'Se mide desde que se registren llegadas en Recepción')];
+    const hh = (a, b = Date.now()) => (new Date(b) - new Date(a)) / 3600e3;
+    const pend = recep.filter(r => ['recibido', 'en_control', 'listo_ingreso'].includes(r.estado));
+    const sinGuardar = recep.filter(r => r.estado === 'ingresado');
+    const dts = recep.filter(r => r.estado === 'disponible' && r.disponible_at).map(r => hh(r.llegada_at, r.disponible_at)).sort((a, b) => a - b);
+    const p90 = dts.length ? dts[Math.max(0, Math.ceil(dts.length * 0.9) - 1)] : null;
+    const viejaPend = pend.length ? Math.max(...pend.map(r => hh(r.llegada_at))) : 0;
+    return [
+      tarjeta('P1', f0(pend.length), 'llegadas pendientes de ingreso a Quantio', pend.length ? `la más vieja llegó hace ${hs(viejaPend)}` : 'nada esperando', pend.some(r => hh(r.llegada_at) > 8) ? 'bad' : pend.length ? 'warn' : 'good'),
+      tarjeta('P1', f0(sinGuardar.length), 'ingresadas en Quantio sin guardar en su lugar', sinGuardar.length ? `la más vieja, hace ${hs(Math.max(...sinGuardar.map(r => hh(r.ingresado_at || r.llegada_at))))}` : 'nada esperando', sinGuardar.some(r => hh(r.ingresado_at || r.llegada_at) > 4) ? 'warn' : 'good'),
+      p90 == null ? sinDato('P1', 'dock-to-stock P90 (llegada → disponible)', 'Todavía ninguna llegada quedó disponible en los últimos 7 días')
+        : tarjeta('P1', hs(p90), 'dock-to-stock P90: el 90% de lo recibido quedó disponible en menos de eso', `${f0(dts.length)} llegadas en 7 días · mediana ${hs(median(dts))}`, tono(p90, 8, 24))];
+  }
+
   function resumen() {
     const T = temperatura();
     const ven90 = sumaClases('vencimiento', c => c === 'Vencido con stock' || c === 'Vence en 90 días');
@@ -104,14 +124,12 @@ export async function render({ api }) {
     pintar();
     const cuenta = p => EXC.filter(e => e.prioridad === p).length;
     return h('div', { class: 'tab-cont' },
-      h('p', { class: 'muted' }, 'P0 sanitario · P1 servicio y flujo · P2 control. Las metas son las propuestas piloto de la especificación: se calibran con dos semanas de datos. Las tarjetas en gris se suman cuando se registre la entrada de mercadería en la app.'),
+      h('p', { class: 'muted' }, 'P0 sanitario · P1 servicio y flujo · P2 control. Las metas son las propuestas piloto de la especificación: se calibran con dos semanas de datos. Las tarjetas de recepción se calculan en vivo con lo que se registra en Droguería → Recepción; las demás, con Quantio a las 19:15.'),
       h('div', { class: 'kpis ind-resumen' },
         tarjeta('P1', pc(K.otif), 'OTIF aproximado: a tiempo para su ola, completo y recibido sin diferencias en plazo', K.otif_base ? nd(K.otif_n, K.otif_base) + ' pedidos con plazo vencido' : 'sin base', tono(K.otif, 0.95, 0.90)),
         tarjeta('P1', pc(K.fill_lineas), 'renglones pedidos que tenían stock', `${f0(K.faltantes_renglones)} renglones sin stock en 90 días`, tono(K.fill_lineas, 0.97, 0.94)),
         tarjeta('P1', f0(K.falta_A), 'faltantes críticos: clase A sin stock que faltaron en pedidos', null, K.falta_A > 0 ? 'bad' : 'good'),
-        sinDato('P1', 'mercadería pendiente de ingreso', 'Fase 2: registro de llegada'),
-        sinDato('P1', 'ingresada sin guardar', 'Fase 2: registro de guardado'),
-        sinDato('P1', 'dock-to-stock P90 (llegada → disponible)', 'Fase 2: registro de llegada'),
+        ...recepcion(),
         tarjeta('P1', f0(K.sin_stock_con_venta), 'artículos del robot sin stock que se piden', `${f0(K.sin_stock)} marcados sin stock en total`, K.sin_stock_con_venta > 50 ? 'warn' : ''),
         tarjeta('P1', pc(K.listo_a_tiempo), 'pedidos listos antes de la hora de su ola (línea de base, las olas todavía no rigen)', nd(K.listo_n, K.listo_base), tono(K.listo_a_tiempo, 0.95, 0.85)),
         tarjeta('P0', mill(ven90), 'vencido o por vencer en 90 días', `${mill(clase('vencimiento', 'Vencido con stock')?.valor)} ya vencido con stock`, ven90 > 0 ? 'warn' : 'good'),
@@ -345,10 +363,82 @@ export async function render({ api }) {
       h('section', { class: 'block' }, h('div', { class: 'block-head' }, h('h2', {}, 'Proveedores del último año')),
         tabla([{ t: 'Proveedor', f: r => h('strong', {}, r.proveedor) }, { t: 'Comprobantes', num: 1, f: r => f0(r.comprobantes) }, { t: 'Renglones', num: 1, f: r => f0(r.renglones) },
           { t: 'Unidades', num: 1, f: r => f0(r.unidades) }, { t: 'Monto', num: 1, f: r => mill(r.monto) }, { t: 'Días a la carga', num: 1, f: r => f1(r.dias_carga) }, { t: 'Órdenes de compra', num: 1, f: r => f0(r.ordenes_compra) }], P)),
-      h('p', { class: 'muted' }, 'La fecha de carga en Quantio no es la de llegada de la mercadería, y pocas órdenes de compra quedan vinculadas a su factura: por eso todavía no se mide el cumplimiento de las órdenes de compra.'));
+      h('p', { class: 'muted' }, 'La fecha de carga en Quantio no es la de llegada de la mercadería: la llegada real se registra en Droguería → Recepción. El cumplimiento de cada orden de compra está en la pestaña "Órdenes de compra".'));
   }
 
-  const VISTAS = { resumen: ['Resumen', resumen], olas: ['Olas y cortes', olas], servicio: ['Servicio y tiempos', servicio], farmacias: ['Farmacias', farmacias], stock: ['Stock', stock], robot: ['Robot', robotTab], compras: ['Compras', compras] };
+  // ---- auditoría de compras: orden de compra contra factura (oc_fc.py)
+  const TIPOS_DIF = { 'Falta': 'warn', 'De más': 'warn', 'No pedido': 'info', 'Precio mayor': 'bad', 'Costo anómalo': 'bad', 'Descuento cambió': 'info' };
+  const ESTADO_OC = { 'Completa': 'ok', 'Incompleta': 'warn', 'Con diferencias': 'bad', 'Sin facturas': 'bad', 'En curso': 'muted' };
+  const pill = (t, tono) => h('span', { class: `pill pill-${tono}` }, t);
+  function ordenes() {
+    const OC = D.oc_resumen, DIF = D.oc_dif || [], SIN = D.fc_sin_oc || [];
+    if (!OC) return h('div', { class: 'tab-cont' }, empty('Todavía no hay datos de órdenes de compra', 'Se calculan con la próxima actualización de los indicadores (de lunes a sábado a las 19:15).'));
+    let fProv = '', fEst = '', fTipo = '';
+    const cerradas = OC.filter(r => r.estado !== 'En curso');
+    const ped = cerradas.reduce((a, r) => a + r.unid_pedidas, 0), fac = cerradas.reduce((a, r) => a + r.unid_facturadas, 0);
+    const completas = cerradas.filter(r => r.estado === 'Completa').length;
+    const cuenta = t => DIF.filter(d => d.tipo === t).length;
+    const provs = [...new Set(OC.map(r => r.proveedor))].sort();
+    const zonaOC = h('div'), zonaDif = h('div');
+    const filtrar = () => OC.filter(r => (!fProv || r.proveedor === fProv) && (!fEst || r.estado === fEst));
+    const verOC = r => {
+      const L = DIF.filter(d => d.oc === r.oc && d.proveedor === r.proveedor);
+      modal({ title: `Orden de compra ${r.oc} · ${r.proveedor}`, wide: true, body: h('div', { class: 'stack' },
+        h('p', {}, `${fISO(r.fecha)}${r.detalle ? ' · ' + r.detalle : ''}`),
+        h('p', { class: 'muted' }, r.facturas ? `Facturas asociadas: ${r.detalle_facturas}` : 'Sin facturas asociadas todavía.'),
+        h('div', { class: 'kpis' }, kpi(`${f0(r.unid_facturadas)} / ${f0(r.unid_pedidas)}`, 'unidades facturadas / pedidas', pc(r.cumplimiento)),
+          kpi(mill(r.importe_oc), 'importe de la orden (precio de lista)'), kpi(mill(r.importe_fc), 'importe facturado (con bonificación)', r.desc_tipico != null ? `descuento típico ${pc(r.desc_tipico)}` : null)),
+        L.length ? tabla([{ t: 'Diferencia', f: d => pill(d.tipo, TIPOS_DIF[d.tipo]) }, { t: 'Producto', f: d => d.producto }, { t: 'Pedido', num: 1, f: d => f0(d.pedido) }, { t: 'Facturado', num: 1, f: d => f0(d.facturado) },
+          { t: 'Precio OC', num: 1, f: d => d.precio_oc != null ? money(d.precio_oc) : '—' }, { t: 'Costo facturado', num: 1, f: d => d.costo_fc != null ? money(d.costo_fc) : '—' },
+          { t: 'Descuento', num: 1, f: d => d.desc != null ? pc(d.desc) + (d.desc_anterior != null ? ` (antes ${pc(d.desc_anterior)})` : '') : '—' }], L)
+          : h('p', { class: 'muted' }, 'Sin diferencias entre lo pedido y lo facturado.')) });
+    };
+    const pintarOC = () => {
+      const F = filtrar();
+      zonaOC.replaceChildren(F.length ? h('div', { class: 'table-wrap' }, h('table', { class: 'tbl hover' },
+        h('thead', {}, h('tr', {}, ['OC', 'Proveedor', 'Fecha', 'Estado', 'Pedido', 'Facturado', 'Cumpl.', 'Días a la 1.ª factura', 'Diferencias'].map((t, i) => h('th', { class: [0, 4, 5, 6, 7].includes(i) ? 'num' : '' }, t)))),
+        h('tbody', {}, F.slice(0, 300).map(r => h('tr', { onclick: () => verOC(r) },
+          h('td', { class: 'num' }, String(r.oc)), h('td', {}, h('strong', {}, r.proveedor), r.detalle ? h('small', { class: 'muted ind-sub' }, r.detalle) : null), h('td', {}, fISO(r.fecha)),
+          h('td', {}, pill(r.estado, ESTADO_OC[r.estado] || 'muted')),
+          h('td', { class: 'num' }, f0(r.unid_pedidas)), h('td', { class: 'num' }, f0(r.unid_facturadas)),
+          h('td', { class: `num ${r.cumplimiento != null && r.cumplimiento < 0.9 && r.estado !== 'En curso' ? 'txt-warn' : ''}` }, pc(r.cumplimiento, 0)), h('td', { class: 'num' }, r.dias_primera_fc != null ? f0(r.dias_primera_fc) : '—'),
+          h('td', {}, h('span', { class: 'rc-tags' }, ...[['faltan', 'Falta'], ['de_mas', 'De más'], ['no_pedidos', 'No pedido'], ['precio_mayor', 'Precio mayor'], ['costo_anomalo', 'Costo anómalo'], ['desc_cambio', 'Descuento cambió']]
+            .filter(([k]) => r[k]).map(([k, t]) => pill(`${t} ${r[k]}`, TIPOS_DIF[t]))))))))) : h('p', { class: 'muted' }, 'Ninguna orden con esos filtros.'),
+        F.length > 300 ? h('p', { class: 'muted' }, `Se muestran 300 de ${F.length}. Descargá el CSV para ver todas.`) : null);
+    };
+    const pintarDif = () => {
+      const F = DIF.filter(d => (!fProv || d.proveedor === fProv) && (!fTipo || d.tipo === fTipo));
+      zonaDif.replaceChildren(F.length ? tabla([{ t: 'Diferencia', f: d => pill(d.tipo, TIPOS_DIF[d.tipo]) }, { t: 'OC', num: 1, f: d => String(d.oc) }, { t: 'Proveedor', f: d => d.proveedor }, { t: 'Producto', f: d => d.producto },
+        { t: 'Pedido', num: 1, f: d => f0(d.pedido) }, { t: 'Facturado', num: 1, f: d => f0(d.facturado) }, { t: 'Precio OC', num: 1, f: d => d.precio_oc != null ? money(d.precio_oc) : '—' },
+        { t: 'Costo facturado', num: 1, f: d => d.costo_fc != null ? money(d.costo_fc) : '—' }, { t: 'Descuento', num: 1, f: d => d.desc != null ? pc(d.desc) + (d.desc_anterior != null ? ` (antes ${pc(d.desc_anterior)})` : '') : '—' }], F.slice(0, 200))
+        : h('p', { class: 'muted' }, 'Sin diferencias con esos filtros.'), F.length > 200 ? h('p', { class: 'muted' }, `Se muestran 200 de ${F.length}. Descargá el CSV para ver todas.`) : null);
+    };
+    const sel = (opciones, onChange, todos) => h('select', { onchange: e => onChange(e.target.value) }, h('option', { value: '' }, todos), opciones.map(o => h('option', { value: o }, o)));
+    pintarOC(); pintarDif();
+    return h('div', { class: 'tab-cont' },
+      h('div', { class: 'kpis' },
+        kpi(f0(cerradas.length), 'órdenes de compra analizadas', `de los últimos 120 días (sin contar ${OC.length - cerradas.length} en curso)`),
+        kpi(pc(ped ? fac / ped : null), 'de las unidades pedidas se facturaron', `${f0(fac)} de ${f0(ped)}`, tono(ped ? fac / ped : null, 0.95, 0.85)),
+        kpi(pc(cerradas.length ? completas / cerradas.length : null, 0), 'órdenes completas', `${f0(completas)} sin faltantes ni sobrantes`),
+        kpi(f0(cuenta('Precio mayor') + cuenta('Costo anómalo')), 'renglones con precio mayor o costo anómalo', `${f0(cuenta('Precio mayor'))} con precio mayor a la OC · ${f0(cuenta('Costo anómalo'))} con costo anómalo`, cuenta('Precio mayor') + cuenta('Costo anómalo') ? 'bad' : 'good'),
+        kpi(f0(SIN.length), 'facturas sin orden de compra', SIN.length ? `${mill(SIN.reduce((a, r) => a + (r.total || 0), 0))} en total` : null)),
+      h('div', { class: 'toolbar filters' }, sel(provs, v => { fProv = v; pintarOC(); pintarDif(); }, 'Todos los proveedores'), sel(Object.keys(ESTADO_OC), v => { fEst = v; pintarOC(); }, 'Todos los estados'),
+        h('button', { class: 'btn', onclick: () => descargarCSV(`Ordenes de compra ${K.hoy || ''}`, [['OC', 'Proveedor', 'Fecha', 'Detalle', 'Renglones', 'Unidades pedidas', 'Unidades facturadas', 'Cumplimiento', 'Importe OC', 'Importe facturado', 'Descuento típico', 'Facturas', 'Detalle facturas', 'Días a la primera factura', 'Faltan', 'De más', 'No pedidos', 'Precio mayor', 'Costo anómalo', 'Descuento cambió', 'Estado'],
+          ...filtrar().map(r => [r.oc, r.proveedor, r.fecha, r.detalle, r.renglones, r.unid_pedidas, r.unid_facturadas, r.cumplimiento, r.importe_oc, r.importe_fc, r.desc_tipico, r.facturas, r.detalle_facturas, r.dias_primera_fc, r.faltan, r.de_mas, r.no_pedidos, r.precio_mayor, r.costo_anomalo, r.desc_cambio, r.estado])]) }, 'Descargar órdenes')),
+      h('section', { class: 'block' }, h('div', { class: 'block-head' }, h('h2', {}, 'Órdenes de compra'), h('span', { class: 'muted' }, 'Tocá una orden para ver producto por producto.')), zonaOC),
+      h('section', { class: 'block' }, h('div', { class: 'block-head' }, h('h2', {}, 'Diferencias por renglón'),
+        h('div', { class: 'toolbar filters' }, sel(Object.keys(TIPOS_DIF), v => { fTipo = v; pintarDif(); }, 'Todas las diferencias'),
+          h('button', { class: 'btn', onclick: () => descargarCSV(`Diferencias OC contra factura ${K.hoy || ''}`, [['Diferencia', 'OC', 'Proveedor', 'Fecha OC', 'Código', 'Producto', 'Pedido', 'Facturado', 'Precio OC', 'Costo facturado', 'Descuento', 'Descuento anterior'],
+            ...DIF.filter(d => (!fProv || d.proveedor === fProv) && (!fTipo || d.tipo === fTipo)).map(d => [d.tipo, d.oc, d.proveedor, d.fecha_oc, d.codigo, d.producto, d.pedido, d.facturado, d.precio_oc, d.costo_fc, d.desc, d.desc_anterior])]) }, 'Descargar'))), zonaDif),
+      h('section', { class: 'block' }, h('div', { class: 'block-head' }, h('h2', {}, 'Facturas sin orden de compra'),
+        h('button', { class: 'btn', onclick: () => descargarCSV(`Facturas sin OC ${K.hoy || ''}`, [['Proveedor', 'Comprobante', 'Fecha', 'Renglones', 'Unidades', 'Total'], ...SIN.map(r => [r.proveedor, r.comprobante, r.fecha, r.renglones, r.unidades, r.total])]) }, 'Descargar')),
+        h('p', { class: 'muted' }, 'Compras que no se pudieron asociar a ninguna orden: reposiciones diarias a droguerías, urgencias o pedidos hechos por fuera de Quantio. No son un error en sí, pero conviene que sean pocas y conocidas.'),
+        SIN.length ? tabla([{ t: 'Proveedor', f: r => h('strong', {}, r.proveedor) }, { t: 'Comprobante', f: r => r.comprobante }, { t: 'Fecha', f: r => fISO(r.fecha) }, { t: 'Renglones', num: 1, f: r => f0(r.renglones) },
+          { t: 'Unidades', num: 1, f: r => f0(r.unidades) }, { t: 'Total', num: 1, f: r => mill(r.total) }], SIN.slice().sort((a, b) => b.total - a.total).slice(0, 40)) : h('p', { class: 'muted' }, 'Ninguna.')),
+      h('p', { class: 'muted' }, 'Cómo se arma: Quantio casi nunca guarda qué factura corresponde a cada orden, así que a cada factura se le asigna la orden del mismo proveedor, emitida hasta 30 días antes, con la que comparte más productos (al menos la mitad). La orden trae el precio de lista y la factura el costo con la bonificación, por eso se controla el descuento contra la compra anterior del mismo producto.'));
+  }
+
+  const VISTAS = { resumen: ['Resumen', resumen], olas: ['Olas y cortes', olas], servicio: ['Servicio y tiempos', servicio], farmacias: ['Farmacias', farmacias], stock: ['Stock', stock], robot: ['Robot', robotTab], compras: ['Compras', compras], oc: ['Órdenes de compra', ordenes] };
   if (!VISTAS[tab]) tab = 'servicio';
   const barra = h('div');
   function mostrar() {
@@ -372,7 +462,8 @@ export async function render({ api }) {
         h('li', {}, h('strong', {}, 'Nivel de servicio: '), 'renglones del pedido procesado con cantidad mayor a cero. Quantio no guarda la cantidad original del pedido online, así que no se mide el faltante parcial.'),
         h('li', {}, h('strong', {}, 'Pedido perfecto: '), 'nivel de servicio × exactitud de preparación × remitos recibidos en Plex sin diferencias (pantalla Conciliación).'),
         h('li', {}, h('strong', {}, 'Stock: '), 'valuado a último costo. Rotación = costo de lo despachado en el año ÷ valor del stock de hoy. Cobertura = stock ÷ venta diaria de los últimos 90 días. En falta = sin stock y faltó en algún pedido. Crítico = clase A o B con menos de 7 días. Frenado = sin salida en 90 días o más. Sobrestock = más de 120 días.'),
-        h('li', {}, h('strong', {}, 'Lo que falta: '), 'productividad por preparador (Quantio no registra quién arma el pedido) y cumplimiento de órdenes de compra.'))));
+        h('li', {}, h('strong', {}, 'Órdenes de compra: '), 'cada factura se asocia a la orden del mismo proveedor (hasta 30 días antes) con la que comparte más productos; se compara lo pedido con lo facturado y el descuento contra la compra anterior.'),
+        h('li', {}, h('strong', {}, 'Lo que falta: '), 'productividad por preparador (Quantio no registra quién arma el pedido).'))));
 }
 
 function median(a) {

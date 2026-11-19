@@ -1,9 +1,9 @@
 // Droguería · Expedición a farmacias: por cada salida del cronograma (reparto propio en Río Cuarto y comisionistas de zona)
 // se registra qué salió para cada farmacia; la farmacia confirma desde la app que lo recibió (así se mide la entrega real).
-import { h, toast, modal, field, empty, confirmar, fechaHora } from '../ui.js?v=20261119-0206';
-import { hoyAR, horaAR, sumarDias, fechaLarga, codigoBacha } from './drog-comun.js?v=20261119-0206';
-import { salidasDelDia, salidaPorId, EXTRA } from '../olas.js?v=20261119-0206';
-import { campoOperario } from './drog-recepcion.js?v=20261119-0206';
+import { h, toast, modal, field, empty, confirmar, fechaHora } from '../ui.js?v=20261119-0323';
+import { hoyAR, horaAR, sumarDias, fechaLarga, codigoBacha } from './drog-comun.js?v=20261119-0323';
+import { salidasDelDia, salidaPorId, EXTRA } from '../olas.js?v=20261119-0323';
+import { campoOperario } from './drog-recepcion.js?v=20261119-0323';
 
 const hhmm = iso => new Date(iso).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', hourCycle: 'h23', timeZone: 'America/Argentina/Buenos_Aires' });
 

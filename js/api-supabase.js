@@ -1,7 +1,7 @@
 // Adaptador Supabase: misma interfaz que api-demo.js.
 // Requiere el script UMD de supabase-js cargado en index.html (window.supabase).
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261119-0206';
-import { achicarImagen } from './ui.js?v=20261119-0206';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261119-0323';
+import { achicarImagen } from './ui.js?v=20261119-0323';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const ok = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
@@ -311,16 +311,41 @@ export const api = {
   async grabotAtender(id, estado, nota = null) { ok(await sb.rpc('grabot_atender', { p_id: id, p_estado: estado, p_nota: nota })); },
   // ---- Droguería: recepción de proveedores y expedición a farmacias ----
   async recepcionesDrog({ desde } = {}) {
-    // abiertas (cualquier fecha) + cerradas desde 'desde'
+    // abiertas (cualquier fecha) + cerradas desde 'desde'; cada una con sus facturas/remitos y cómo están en Quantio
+    const sel = '*, comps:drog_recepcion_comprobantes(*)';
     const [abiertas, cerradas] = await Promise.all([
-      sb.from('drog_recepciones').select('*').not('estado', 'in', '(disponible,rechazado)').order('llegada_at'),
-      sb.from('drog_recepciones').select('*').in('estado', ['disponible', 'rechazado']).gte('llegada_at', desde || new Date(Date.now() - 7 * 86400e3).toISOString()).order('llegada_at', { ascending: false }).limit(500)]);
-    return [...ok(abiertas), ...ok(cerradas)].map(r => ({ ...r, temperatura: r.temperatura === null ? null : +r.temperatura }));
+      sb.from('drog_recepciones').select(sel).not('estado', 'in', '(disponible,rechazado)').order('llegada_at'),
+      sb.from('drog_recepciones').select(sel).in('estado', ['disponible', 'rechazado']).gte('llegada_at', desde || new Date(Date.now() - 7 * 86400e3).toISOString()).order('llegada_at', { ascending: false }).limit(500)]);
+    const lista = [...ok(abiertas), ...ok(cerradas)];
+    const ids = [...new Set(lista.flatMap(r => (r.comps || []).map(c => c.q_compra_id)).filter(Boolean))];
+    const qs = ids.length ? ok(await sb.from('q_compras').select('id, letra, emision, carga_at, usuario, renglones, unidades, estado').in('id', ids)) : [];
+    const porId = new Map(qs.map(q => [q.id, q]));
+    return lista.map(r => ({ ...r, temperatura: r.temperatura === null ? null : +r.temperatura,
+      comps: (r.comps || []).sort((a, b) => a.id - b.id).map(c => ({ ...c, q: c.q_compra_id ? porId.get(c.q_compra_id) || null : null })) }));
+  },
+  async qProveedores() { return ok(await sb.from('q_proveedores').select('id, nombre').order('nombre')); },
+  async agregarComprobante(recepcion_id, c) { ok(await sb.from('drog_recepcion_comprobantes').insert({ recepcion_id, letra: c.letra || null, pv: c.pv, numero: c.numero })); },
+  async quitarComprobante(id) { ok(await sb.from('drog_recepcion_comprobantes').delete().eq('id', id)); },
+  // control con Quantio: facturas cargadas en Quantio desde que se empezó a registrar, y cuáles tienen recepción
+  async controlQuantio() {
+    const primera = ok(await sb.from('drog_recepcion_comprobantes').select('created_at').order('created_at').limit(1))[0];
+    const ultima = ok(await sb.from('q_compras').select('actualizado_at').order('actualizado_at', { ascending: false }).limit(1))[0];
+    if (!primera) return { desde: null, compras: [], vinculadas: [], sync: ultima?.actualizado_at || null };
+    const desde = primera.created_at;
+    const [compras, vinc] = await Promise.all([
+      sb.from('q_compras').select('*').gte('carga_at', desde).neq('estado', 'A').order('carga_at', { ascending: false }).limit(1000),
+      sb.from('drog_recepcion_comprobantes').select('q_compra_id').not('q_compra_id', 'is', null).gte('created_at', new Date(new Date(desde) - 30 * 86400e3).toISOString())]);
+    return { desde, compras: ok(compras), vinculadas: ok(vinc).map(x => x.q_compra_id), sync: ultima?.actualizado_at || null };
   },
   async recepcionEventos(id) { return ok(await sb.from('drog_recepcion_eventos').select('*').eq('recepcion_id', id).order('created_at')); },
   async registrarRecepcion(r) {
-    return ok(await sb.from('drog_recepciones').insert({ proveedor: r.proveedor, comprobante: r.comprobante || null, bultos: +r.bultos, frio: !!r.frio,
+    const n = ok(await sb.from('drog_recepciones').insert({ proveedor: r.proveedor, proveedor_id: r.proveedor_id || null, comprobante: r.comprobante || null, bultos: +r.bultos, frio: !!r.frio,
       temperatura: r.frio ? +r.temperatura : null, incidencia: r.incidencia || 'ninguna', nota: r.nota || null, operario: r.operario, llegada_at: r.llegada_at || undefined }).select().single());
+    if (r.comprobantes?.length) {
+      const { error } = await sb.from('drog_recepcion_comprobantes').insert(r.comprobantes.map(c => ({ recepcion_id: n.id, letra: c.letra || null, pv: c.pv, numero: c.numero })));
+      if (error) throw new Error(`La llegada quedó registrada, pero no las facturas (${error.message}). Agregalas desde la ficha.`);
+    }
+    return n;
   },
   async avanzarRecepcion(id, estado, operario, nota = null) { ok(await sb.rpc('avanzar_recepcion', { p_id: id, p_estado: estado, p_operario: operario, p_nota: nota })); },
   async salidasDrog(desde, hasta = desde) { return ok(await sb.from('drog_salidas').select('*').gte('fecha', desde).lte('fecha', hasta).order('salio_at')); },

@@ -1,6 +1,6 @@
 // Modo demo: misma interfaz que api-supabase.js, con datos en el navegador.
 // Genera 11 meses de historia (dic-2025 a oct-2026) para que los indicadores tengan contenido.
-import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261119-0206';
+import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261119-0323';
 
 const KEY = 'insumos-demo-v1';
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -287,6 +287,27 @@ function semillaRecepcion() {
     }
   }
 }
+// facturas de compra "de Quantio" para la trazabilidad de la demo: las recepciones ya ingresadas tienen su factura cargada
+function semillaCompras() {
+  const PROV = ['Distribuidora Norte', 'Laboratorio Andino', 'Droguería Central', 'Perfumería Mayorista Sur', 'Insumos Médicos del Centro'];
+  db.q_prov = PROV.map((nombre, i) => ({ id: 101 + i, nombre }));
+  db.q_compras = []; db.drog_rc = []; db.seq.drog_rc = 0;
+  let nro = 52000;
+  const nuevaQ = (prov_id, emision, carga_at) => { const q = { id: 9000 + (++nro % 1000), proveedor_id: prov_id, tipo: 'FC', letra: 'A', pv: 300 + prov_id % 7, numero: nro,
+    emision, carga_at, estado: 'C', usuario: 'compras', renglones: 3 + nro % 20, unidades: 20 + nro % 90 }; db.q_compras.push(q); return q; };
+  for (const r of db.drog_recep) {
+    const pid = 101 + PROV.indexOf(r.proveedor);
+    r.proveedor_id = pid;
+    const cargada = r.ingresado_at || (r.estado === 'disponible' ? r.disponible_at : null);
+    const q = nuevaQ(pid, r.llegada_at.slice(0, 10), cargada);
+    if (!cargada) db.q_compras.pop();
+    db.drog_rc.push({ id: nextId('drog_rc'), recepcion_id: r.id, letra: 'A', pv: q.pv, numero: q.numero, q_compra_id: cargada ? q.id : null, vinculado_at: cargada, created_at: r.llegada_at });
+    r.comprobante = `A ${String(q.pv).padStart(4, '0')}-${String(q.numero).padStart(8, '0')}`;
+  }
+  // facturas cargadas en Quantio que no tienen recepción registrada
+  const h = n => new Date(Date.now() - n * 3600e3).toISOString();
+  [[102, 30], [103, 52], [101, 75]].forEach(([pid, hs]) => nuevaQ(pid, h(hs + 20).slice(0, 10), h(hs)));
+}
 function semillaGrabot() {
   const h = n => new Date(Date.now() - n * 3600e3).toISOString();
   db.grabot = [
@@ -476,7 +497,7 @@ export const api = {
   async rrhhBorrarAusencia(id) { need('auditor', 'admin'); db.rrhh_ausencias = db.rrhh_ausencias.filter(a => a.id !== id); save(); },
 
   modo: 'demo',
-  async init() { if (!load()) construir(); if (!db.tickets) { semillaTickets(); save(); } if (!db.bachas) { semillaDrogueria(); save(); } if (!db.rrhh_empleados) { semillaRRHH(); save(); } if (!db.it_equipos) { semillaIT2(); save(); } if (!db.drog_recep) { semillaRecepcion(); save(); } if (!db.grabot) { semillaGrabot(); save(); } },
+  async init() { if (!load()) construir(); if (!db.tickets) { semillaTickets(); save(); } if (!db.bachas) { semillaDrogueria(); save(); } if (!db.rrhh_empleados) { semillaRRHH(); save(); } if (!db.it_equipos) { semillaIT2(); save(); } if (!db.drog_recep) { semillaRecepcion(); save(); } if (!db.grabot) { semillaGrabot(); save(); } if (!db.q_compras) { semillaCompras(); save(); } },
   async reset() { construir(); },
   async me() {
     const s = who.sucursal_id ? suc(who.sucursal_id) : null;
@@ -580,7 +601,7 @@ export const api = {
   async recibirOC(id, items) { need('compras', 'admin', 'auditor'); const e = _recibir(id, items); save(); return e; },
   async guardarFotoProducto(id, file) {
     need('compras', 'admin');
-    const { achicarImagen } = await import('./ui.js?v=20261119-0206');
+    const { achicarImagen } = await import('./ui.js?v=20261119-0323');
     const blob = await achicarImagen(file, 320, 0.7);
     const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
     db.productos.find(p => p.id === id).foto_url = url; save(); return url;
@@ -794,7 +815,29 @@ export const api = {
   async recepcionesDrog({ desde } = {}) {
     if (!esDrog()) return tick([]);
     const d = desde || new Date(Date.now() - 7 * 86400e3).toISOString();
-    return tick(db.drog_recep.filter(r => !['disponible', 'rechazado'].includes(r.estado) || r.llegada_at >= d).map(r => ({ ...r })));
+    const q = id => db.q_compras.find(x => x.id === id) || null;
+    return tick(db.drog_recep.filter(r => !['disponible', 'rechazado'].includes(r.estado) || r.llegada_at >= d)
+      .map(r => ({ ...r, comps: db.drog_rc.filter(c => c.recepcion_id === r.id).map(c => ({ ...c, q: c.q_compra_id ? q(c.q_compra_id) : null })) })));
+  },
+  async qProveedores() { return tick(esDrog() ? db.q_prov.slice().sort((a, b) => a.nombre.localeCompare(b.nombre)) : []); },
+  async agregarComprobante(recepcion_id, c) {
+    if (!esDrog()) throw new Error('Sin permiso');
+    if (db.drog_rc.some(x => x.recepcion_id === recepcion_id && x.pv === c.pv && x.numero === c.numero)) throw new Error('Ese comprobante ya está cargado');
+    const r = db.drog_recep.find(x => x.id === recepcion_id);
+    const q = db.q_compras.find(x => x.proveedor_id === r.proveedor_id && x.pv === c.pv && x.numero === c.numero);
+    db.drog_rc.push({ id: nextId('drog_rc'), recepcion_id, letra: c.letra || null, pv: c.pv, numero: c.numero, q_compra_id: q?.id || null, vinculado_at: q ? new Date().toISOString() : null, created_at: new Date().toISOString() });
+    save(); return tick(true);
+  },
+  async quitarComprobante(id) {
+    const c = db.drog_rc.find(x => x.id === id), r = c && db.drog_recep.find(x => x.id === c.recepcion_id);
+    if (!esDrog() || !r || ['disponible', 'rechazado'].includes(r.estado)) throw new Error('Ya no se puede quitar');
+    db.drog_rc = db.drog_rc.filter(x => x.id !== id); save(); return tick(true);
+  },
+  async controlQuantio() {
+    if (!esDrog()) return tick({ desde: null, compras: [], vinculadas: [], sync: null });
+    const desde = db.drog_rc.map(c => c.created_at).sort()[0] || null;
+    return tick({ desde, compras: desde ? db.q_compras.filter(q => q.carga_at && q.carga_at >= desde) : [], vinculadas: db.drog_rc.map(c => c.q_compra_id).filter(Boolean),
+      sync: new Date(Date.now() - 50 * 60e3).toISOString() });
   },
   async recepcionEventos(id) { return tick(db.drog_recep_ev.filter(e => e.recepcion_id === id)); },
   async registrarRecepcion(r) {
@@ -805,8 +848,10 @@ export const api = {
     const rec = { id: nextId('drog_recep'), llegada_at: r.llegada_at || new Date().toISOString(), proveedor: r.proveedor.trim(), comprobante: r.comprobante || null, bultos: +r.bultos, frio: !!r.frio,
       temperatura: r.frio ? +r.temperatura : null, incidencia: r.incidencia || 'ninguna', nota: r.nota || null, estado: 'recibido', operario: r.operario.trim(), usuario_nombre: who.nombre,
       control_at: null, listo_at: null, ingresado_at: null, disponible_at: null, rechazado_at: null };
+    rec.proveedor_id = r.proveedor_id || null;
     db.drog_recep.push(rec);
     db.drog_recep_ev.push({ id: nextId('drog_recep_ev'), recepcion_id: rec.id, estado: 'recibido', operario: rec.operario, nota: rec.nota, usuario_nombre: who.nombre, created_at: rec.llegada_at });
+    for (const c of r.comprobantes || []) await this.agregarComprobante(rec.id, c);
     save(); return tick(rec);
   },
   async avanzarRecepcion(id, estado, operario, nota = null) {

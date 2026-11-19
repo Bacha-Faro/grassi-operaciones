@@ -1,5 +1,5 @@
 // Grassi Analytics · Tableros: los tableros de Power BI de gestión, dentro de la app. Los carga IT; los ven IT, gerencia y dirección.
-import { h, toast, modal, field, empty, confirmar } from '../ui.js?v=20261119-0206';
+import { h, toast, modal, field, empty, confirmar } from '../ui.js?v=20261119-0323';
 
 const ES_PBI = /^https:\/\/app\.powerbi\.com\//;
 
