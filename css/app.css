@@ -1098,3 +1098,6 @@ body.solo-lectura:not([data-mod="it"]) .modal input, body.solo-lectura:not([data
 .rc-agregar { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; } .rc-agregar .field { width: 100%; }
 .hint.txt-warn { font-weight: 600; }
 .ind-sub { display: block; font-size: 0.78rem; max-width: 40ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* solo lectura: también los botones secundarios de las pantallas nuevas de la Droguería */
+body.solo-lectura:not([data-mod="it"]) .main .btn.ghost-bad, body.solo-lectura:not([data-mod="it"]) .modal .btn.ghost-bad,
+body.solo-lectura .rc-agregar, body.solo-lectura .rc-sig { display: none !important; }

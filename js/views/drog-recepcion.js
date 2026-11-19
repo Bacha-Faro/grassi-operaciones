@@ -1,7 +1,7 @@
 // Droguería · Recepción de proveedores: se registra cada llegada y se avanza por estados hasta que la mercadería
 // queda disponible (dock-to-stock). Pensada para la compu de recepción y para el celular de cada operario:
 // "quién lo hizo" se elige en cada paso, porque la compu de recepción la usan varios.
-import { h, toast, modal, field, empty, tabs, fechaHora } from '../ui.js?v=20261119-0323';
+import { h, toast, modal, field, empty, tabs, fechaHora } from '../ui.js?v=20261119-1503';
 
 export const ESTADOS = [
   ['recibido', 'Recibido', 'Pasar a control'],
