@@ -1,3 +1,3 @@
-import { SUPABASE_URL } from './config.js?v=20261119-0154';
-const mod = SUPABASE_URL ? await import('./api-supabase.js?v=20261119-0154') : await import('./api-demo.js?v=20261119-0154');
+import { SUPABASE_URL } from './config.js?v=20261119-0206';
+const mod = SUPABASE_URL ? await import('./api-supabase.js?v=20261119-0206') : await import('./api-demo.js?v=20261119-0206');
 export const api = mod.api;
