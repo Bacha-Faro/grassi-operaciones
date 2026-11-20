@@ -1,6 +1,6 @@
 // Droguería · Conciliación: lo que la droguería despachó (Quantio) contra lo que cada farmacia ingresó (Plex).
 // En producción los datos los sube el sincronizador de la compu de IT (herramientas/sincronizar_conciliacion.py); en la demo, datos de prueba.
-import { h, money, n, fecha, modal, empty, descargarCSV } from '../ui.js?v=20261120-1316';
+import { h, money, n, fecha, modal, empty, descargarCSV } from '../ui.js?v=20261120-1345';
 
 const ESTADOS = {
   ok:           ['Conciliado', 'ok'],

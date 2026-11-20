@@ -1102,36 +1102,47 @@ body.solo-lectura:not([data-mod="it"]) .modal input, body.solo-lectura:not([data
 body.solo-lectura:not([data-mod="it"]) .main .btn.ghost-bad, body.solo-lectura:not([data-mod="it"]) .modal .btn.ghost-bad,
 body.solo-lectura .rc-agregar, body.solo-lectura .rc-sig { display: none !important; }
 
-/* ===== Ingreso: los módulos como piezas de rompecabezas que encastran =====
+/* ===== Ingreso: los módulos como piezas de rompecabezas =====
    Grilla: Droguería | Soporte IT / De compras | RRHH / Analytics (ancho completo).
-   Cada pieza tiene "lengüetas" (pz-encastre) que entran en el "hueco" de la vecina. El fondo de la pieza es su ::after,
-   recortado con máscara donde van los huecos; las lengüetas quedan afuera de la máscara. Fondo opaco (--pz) para que
-   lengüeta y pieza se vean como una sola forma. */
-.login-mods { gap: 6px; --pz-r: 16px; --pz-c: 9px; --pz-g: 6px; }
-.login-mod.pieza { --pz: color-mix(in srgb, #fff 8%, var(--navy)); background: transparent; border: 0; overflow: visible; border-radius: 14px; isolation: isolate;
-  animation: encastra 0.75s calc(0.3s + var(--i) * 0.13s) cubic-bezier(0.2, 0.9, 0.25, 1.15) both; transition: transform 0.25s, filter 0.25s; }
-.login-mod.pieza::after { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: linear-gradient(90deg, var(--c) 0 4px, var(--pz) 4px); transition: background 0.25s;
-  -webkit-mask: var(--h1, linear-gradient(#000 0 0)), var(--h2, linear-gradient(#000 0 0)); mask: var(--h1, linear-gradient(#000 0 0)), var(--h2, linear-gradient(#000 0 0));
-  -webkit-mask-composite: source-in; mask-composite: intersect; }
-.login-mod.pieza::before { display: none; }
-.login-mod.pieza:hover { --pz: color-mix(in srgb, #fff 13%, var(--navy)); background: transparent; transform: translateY(-3px); filter: drop-shadow(0 8px 16px rgb(0 0 0 / 0.28)); z-index: 2; }
-.pz-encastre { display: none; position: absolute; width: calc(var(--pz-r) * 2); height: calc(var(--pz-r) * 2); border-radius: 50%; background: var(--pz); z-index: 1; transition: background 0.25s; }
-.pz-der { top: calc(50% - var(--pz-r)); right: calc(-1 * (var(--pz-c) + var(--pz-r))); }
-.pz-abajo { left: calc(50% - var(--pz-r)); bottom: calc(-1 * (var(--pz-c) + var(--pz-r))); }
-.login-mod.mod-drogueria .pz-der, .login-mod.mod-drogueria .pz-abajo, .login-mod.mod-it .pz-abajo,
-.login-mod.mod-compras .pz-der, .login-mod.mod-compras .pz-abajo, .login-mod.mod-rrhh .pz-abajo { display: block; }
-/* huecos (un poco más grandes que la lengüeta): en el borde de la pieza vecina */
-.login-mod.mod-it, .login-mod.mod-rrhh { --h1: radial-gradient(circle calc(var(--pz-r) + 1.5px) at calc(var(--pz-c) - var(--pz-g)) 50%, #0000 97%, #000); }
-.login-mod.mod-compras, .login-mod.mod-rrhh { --h2: radial-gradient(circle calc(var(--pz-r) + 1.5px) at 50% calc(var(--pz-c) - var(--pz-g)), #0000 97%, #000); }
-.login-mod.mod-analytics { --h1: radial-gradient(circle calc(var(--pz-r) + 1.5px) at calc((100% - var(--pz-g)) / 4) calc(var(--pz-c) - var(--pz-g)), #0000 97%, #000);
-  --h2: radial-gradient(circle calc(var(--pz-r) + 1.5px) at calc(100% - (100% - var(--pz-g)) / 4) calc(var(--pz-c) - var(--pz-g)), #0000 97%, #000); }
-/* cada pieza entra desde un lado distinto y "encastra" con un pequeño rebote */
-.login-mod.mod-drogueria { --dx: -26px; --dy: -14px; --rz: -5deg; } .login-mod.mod-it { --dx: 26px; --dy: -14px; --rz: 5deg; }
-.login-mod.mod-compras { --dx: -26px; --dy: 10px; --rz: 4deg; } .login-mod.mod-rrhh { --dx: 26px; --dy: 10px; --rz: -4deg; }
-.login-mod.mod-analytics { --dx: 0px; --dy: 26px; --rz: 0deg; }
-@keyframes encastra { 0% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--rz)); } 70% { opacity: 1; transform: translate(0, 0) rotate(0); } 85% { transform: scale(1.015); } 100% { opacity: 1; transform: none; } }
-@media (max-width: 860px) { .login-mods { gap: 6px; --pz-r: 11px; --pz-c: 6px; } }
-@media (prefers-reduced-motion: reduce) { .login-mod.pieza { animation: none; } }
+   La forma de cada pieza es un SVG (svg.pz-forma) que dibuja app.js a la medida de la tarjeta: lengüetas con cuello
+   y cabeza redonda que entran en el hueco de la vecina. Los huecos caen donde la tarjeta no tiene texto. */
+.login-mods { gap: 5px; }
+.login-mod.pieza { --pz-s: 34px; background: transparent; border: 0; border-radius: 0; overflow: visible; isolation: isolate; z-index: 0; animation: none;
+  transition: transform 0.3s cubic-bezier(0.3, 0.8, 0.3, 1.3), filter 0.3s; }
+.login-mod.pieza::before, .login-mod.pieza::after { display: none; }
+.login-mod.pieza:hover { background: transparent; }
+/* espacio para los huecos: a la derecha de Droguería y De compras, arriba de las de abajo */
+.login-mod.mod-drogueria, .login-mod.mod-compras { padding-right: calc(20px + var(--pz-s) * 0.9); }
+.pz-forma { position: absolute; z-index: -1; overflow: visible; pointer-events: none; }
+.pz-fondo { fill: color-mix(in srgb, #fff 8%, var(--navy)); transition: fill 0.3s; }
+.pz-brillo { transition: opacity 0.3s; }
+.pz-borde { fill: none; stroke: var(--c); stroke-opacity: 0.4; stroke-width: 1.3; stroke-linejoin: round; transition: stroke-opacity 0.3s; }
+.login-mod.pieza:hover { transform: translateY(-5px) rotate(-0.6deg); filter: drop-shadow(0 12px 18px rgb(0 0 0 / 0.35)); z-index: 3; }
+.login-mod.pieza:hover .pz-fondo { fill: color-mix(in srgb, #fff 13%, var(--navy)); }
+.login-mod.pieza:hover .pz-borde { stroke-opacity: 0.95; }
+/* armado: cada pieza llega desde afuera, girando, y encastra; al encastrar el borde destella */
+.login-mod.mod-drogueria { --lr: -2.4deg; --dx: -140px; --dy: -70px; --rz: -16deg; --lx: -7px; --ly: -6px; }
+.login-mod.mod-it { --lr: 2.4deg; --dx: 150px; --dy: -60px; --rz: 14deg; --lx: 7px; --ly: -6px; }
+.login-mod.mod-compras { --lr: -2deg; --dx: -160px; --dy: 30px; --rz: 12deg; --lx: -8px; --ly: 2px; }
+.login-mod.mod-rrhh { --lr: 2.6deg; --dx: 140px; --dy: 60px; --rz: -18deg; --lx: 8px; --ly: 2px; }
+.login-mod.mod-analytics { --lr: 0.8deg; --dx: 20px; --dy: 140px; --rz: 7deg; --lx: 0px; --ly: 8px; }
+.login-mod.pieza.entra { animation: pz-arma 1s calc(0.25s + var(--i) * 0.16s) cubic-bezier(0.22, 0.9, 0.28, 1.12) backwards; }
+@keyframes pz-arma { 0% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--rz)) scale(0.92); filter: drop-shadow(0 16px 22px rgb(0 0 0 / 0.4)); }
+  15% { opacity: 1; } 72% { transform: translate(0, 0) rotate(0) scale(1.03); filter: drop-shadow(0 6px 10px rgb(0 0 0 / 0.3)); }
+  86% { transform: scale(0.99); } 100% { opacity: 1; transform: none; filter: none; } }
+.login-mod.pieza.entra .pz-borde { animation: pz-click 0.7s calc(0.25s + var(--i) * 0.16s + 0.72s) ease-out backwards; }
+@keyframes pz-click { 0% { stroke-opacity: 0.4; stroke-width: 1.3; } 25% { stroke-opacity: 1; stroke-width: 2.6; } 100% { stroke-opacity: 0.4; stroke-width: 1.3; } }
+/* en reposo: de vez en cuando una pieza se levanta del tablero y vuelve a encastrar */
+.login-mod.pieza.juega { animation: pz-juega 1.5s cubic-bezier(0.4, 0, 0.2, 1); z-index: 2; }
+.login-mod.pieza.juega .pz-borde { animation: pz-click 0.6s 1s ease-out; }
+@keyframes pz-juega { 0% { transform: none; filter: none; }
+  35% { transform: translate(var(--lx), var(--ly)) rotate(var(--lr)) scale(1.02); filter: drop-shadow(0 12px 16px rgb(0 0 0 / 0.35)); }
+  60% { transform: translate(calc(var(--lx) * 0.8), calc(var(--ly) * 0.8)) rotate(calc(var(--lr) * -0.4)) scale(1.02); }
+  85% { transform: translate(0, 0) scale(0.99); filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.2)); } 100% { transform: none; filter: none; } }
+@media (max-width: 860px) { .login-mods { gap: 4px; }
+  .login-mod.mod-drogueria, .login-mod.mod-compras { padding-right: calc(12px + var(--pz-s) * 0.85); }
+  .login-mod.mod-compras, .login-mod.mod-rrhh { padding-top: calc(10px + var(--pz-s) * 0.5); } }
+@media (prefers-reduced-motion: reduce) { .login-mod.pieza, .login-mod.pieza .pz-borde, .login-mod.pieza.juega { animation: none; } }
 
 /* ===== Barra de módulos: piezas de rompecabezas apiladas =====
    Cada módulo encastra con el de abajo (lengüeta = ::after, hueco = máscara arriba). El módulo abierto toma su color
