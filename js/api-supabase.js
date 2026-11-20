@@ -1,7 +1,7 @@
 // Adaptador Supabase: misma interfaz que api-demo.js.
 // Requiere el script UMD de supabase-js cargado en index.html (window.supabase).
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261120-1345';
-import { achicarImagen } from './ui.js?v=20261120-1345';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=20261120-1456';
+import { achicarImagen } from './ui.js?v=20261120-1456';
 
 const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const ok = ({ data, error }) => { if (error) throw new Error(error.message); return data; };
@@ -396,11 +396,17 @@ export const api = {
   },
   // indicadores de la Droguería: los sube la compu de IT (herramientas/subir_indicadores.py); solo IT y Dirección
   async indicadoresDrogueria() {
-    const filas = ok(await sb.from('ind_datasets').select('id, filas, fecha_datos, actualizado_at'));
+    const filas = ok(await sb.from('ind_datasets').select('id, filas, fecha_datos, actualizado_at').neq('id', 'mapa'));
     if (!filas.length) return { modo: 'sin_datos' };
     const { data: conc } = await sb.from('conc_sync').select('fin, ok, mensaje').maybeSingle();   // solo IT la ve; si no, queda vacío
     return { modo: 'real', fecha: filas[0].fecha_datos, actualizado: filas.reduce((m, r) => r.actualizado_at > m ? r.actualizado_at : m, ''),
       conc: conc || null, ds: Object.fromEntries(filas.map(r => [r.id, r.filas])) };
+  },
+  // foto del depósito para el mapa (la manda herramientas/mapa_deposito.py cada 15 minutos)
+  async mapaDeposito() {
+    const { data, error } = await sb.from('ind_datasets').select('filas, actualizado_at').eq('id', 'mapa').maybeSingle();
+    if (error) throw new Error(error.message);
+    return { foto: data?.filas?.[0] || null, actualizado: data?.actualizado_at || null };
   },
   async feriados() { return ok(await sb.from('feriados').select('*').order('fecha')); },
   async tableros() { return ok(await sb.from('analytics_tableros').select('*').order('orden').order('titulo')); },

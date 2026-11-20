@@ -1,6 +1,6 @@
 // Modo demo: misma interfaz que api-supabase.js, con datos en el navegador.
 // Genera 11 meses de historia (dic-2025 a oct-2026) para que los indicadores tengan contenido.
-import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261120-1345';
+import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261120-1456';
 
 const KEY = 'insumos-demo-v1';
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -173,6 +173,47 @@ const NOMBRES = ['Laura Gómez', 'Martín Ríos', 'Carla Funes', 'Diego Sosa', '
 // ---------- IT Grassi · tickets de ejemplo ----------
 const IT_CATS = ['PC y notebooks', 'Impresoras y etiquetadoras', 'Posnet y cobros', 'Internet y red', 'Sistema de gestión', 'Usuarios y accesos', 'Teléfonos y celulares', 'Pedido o compra'];
 const RRHH_SUC = 9;   // en la demo, RRHH carga sus tickets como "Centro (Planta Alta)"
+// foto del depósito para el mapa (demo): pedidos, estaciones y equipo inventados, armados alrededor de la hora actual
+function mapaDemo() {
+  const az = (() => { let x = 7; return () => (x = (x * 16807) % 2147483647) / 2147483647; })();
+  const p2 = n => String(n).padStart(2, '0');
+  const ar = new Date(Date.now() - 3 * 3600e3), hoy = ar.toISOString().slice(0, 10), H = ar.getUTCHours(), M = ar.getUTCMinutes();
+  const hora = (h, m) => `${p2(h)}:${p2(m)}`;
+  const FARM = ['Suc 1 Gral. Paz', 'Suc 2 Centro', 'Suc 3 Fotheringham', 'Suc 4 Banda Norte', 'Suc 5 Alberdi', 'Suc 6 Belgrano', 'Suc 8 Moldes', 'Suc 9 Alejandro',
+    'Suc 10 Villa Mercedes', 'Suc 11 Córdoba', 'Suc 13 Río Tercero', 'Suc 14 Justo Daract', 'Suc 15 Villa Mercedes 2'];
+  const SEC = ['medicamentos', 'perfumeria', 'robot', 'jaula', 'bultos', 'frio'], PESO = [0.24, 0.2, 0.33, 0.12, 0.08, 0.03];
+  const reparto = n => { const o = {}; SEC.forEach((k, i) => { const v = Math.round(n * PESO[i] * (0.6 + az() * 0.8)); if (v) o[k] = v; }); return o; };
+  const ped = (etapa, h, m, n, dia = hoy) => ({ id: Math.round(az() * 1e6), etapa, farmacia: FARM[Math.floor(az() * FARM.length)], ts: `${dia}T${hora(h, m)}`,
+    renglones: n, unidades: n * 3, por_sector: reparto(n), sin_stock: az() < 0.3 ? Math.ceil(az() * 4) : 0 });
+  const ayer = new Date(Date.now() - 27 * 3600e3).toISOString().slice(0, 10);
+  const cola = [ped('armado', 16, 5, 48, ayer), ped('armado', Math.max(7, H - 2), 20, 120), ped('armado', Math.max(7, H - 1), 31, 64), ped('armado', Math.max(7, H - 1), 50, 38),
+    ped('entro', Math.max(7, H - 1), 5, 7), ped('entro', H, Math.max(0, M - 20), 5), ped('entro', H, Math.max(0, M - 9), 12), ped('entro', H, Math.max(0, M - 3), 4)];
+  const hechos = [];
+  for (let h = 8; h <= Math.min(H, 19); h++) for (let i = 0; i < 3; i++) if (h < H || i * 20 < M) {
+    const n = Math.round(5 + az() * 90);
+    hechos.push({ farmacia: FARM[Math.floor(az() * FARM.length)], hora: hora(h, i * 20 + Math.floor(az() * 15)), renglones: n, unidades: n * 3,
+      quien: ['Operario 1', 'Operario 2', 'Operario 3', 'Operario 4', 'Operario 5'][Math.floor(az() * 5)], con_pedido: true, procesado: null, por_sector: reparto(n) });
+  }
+  const est = {};
+  const BASE = { medicamentos: 310, perfumeria: 250, robot: 420, jaula: 150, bultos: 95, frio: 18 };
+  SEC.forEach(k => { est[k] = { stock_art: Math.round(BASE[k] * 6 + az() * 300), stock_uni: Math.round(BASE[k] * 60), en_falta: Math.round(az() * 25), bajo_min: Math.round(az() * 60),
+    hoy: 0, base: BASE[k], pend: 0, cola: 0, pend_sin_stock: 0, entro_hoy: Math.round(az() * 40),
+    top: ['IBUPROFENO 400 MG X 20', 'PAÑAL ADULTO TALLE G X 8', 'AMOXICILINA 500 MG X 16', 'SHAMPOO ANTICASPA 400 ML', 'PARACETAMOL 1 G X 10'].map((x, i) => ({ producto: x, renglones: 14 - i * 2, unidades: 40 - i * 5, stock: i === 3 ? 0 : 20 + i * 7 })) }; });
+  hechos.forEach(p => Object.entries(p.por_sector).forEach(([k, n]) => { est[k].hoy += n; }));
+  cola.forEach(p => Object.entries(p.por_sector).forEach(([k, n]) => { est[k][p.etapa === 'armado' ? 'pend' : 'cola'] += n; est[k].pend_sin_stock += p.sin_stock ? 1 : 0; }));
+  const serie = act => Array.from({ length: 15 }, (_, i) => (i + 6 >= 8 && i + 6 <= H && act ? Math.round(az() * 70) : 0));
+  const per = (nombre, rol, activo = true, ing = 0) => ({ nombre, rol, renglones: rol === 'pedidos' ? Math.round(80 + az() * 300) : 0, unidades: 0, ingresados: ing, ajustes: Math.round(az() * 6),
+    ultima: activo ? hora(H, Math.max(0, M - Math.floor(az() * 25))) : hora(Math.max(8, H - 3), 10), por_hora: serie(true) });
+  const equipo = [per('Operario 1', 'pedidos'), per('Operario 2', 'pedidos'), per('Operario 3', 'pedidos'), per('Operario 4', 'pedidos'), per('Operario 5', 'pedidos', false),
+    per('Ingreso 1', 'ingreso', true, 140), per('Ingreso 2', 'ingreso', true, 96), per('Recepción', 'recepcion'), per('Administración 1', 'admin'), per('Administración 2', 'admin', false),
+    per('Encargado', 'encargado'), { nombre: 'Sistema', rol: 'sistema', renglones: 210, unidades: 0, ingresados: 0, ajustes: 0, ultima: null, por_hora: serie(true) }];
+  const ritmo = Array.from({ length: 15 }, (_, i) => { const h = i + 6, b = h < 8 || h > 19 ? 0 : Math.round(60 + 90 * Math.sin((h - 7) / 12 * Math.PI));
+    return { hora: h, hoy: h < H ? Math.round(b * (0.7 + az() * 0.6)) : h === H ? Math.round(b * M / 60) : 0, base: b }; });
+  const ingresos = [['Droguería del Sur', 9, 12, 34], ['Laboratorio Andino', 10, 40, 18], ['Perfumería Mayorista Sur', Math.max(8, H - 1), 5, 52]].filter(i => i[1] <= H)
+    .map(([proveedor, h, m, n]) => ({ proveedor, hora: hora(h, m), quien: 'Ingreso 1', renglones: n, unidades: n * 6, por_sector: reparto(n) }));
+  return { generado: `${hoy}T${hora(H, Math.floor(M / 15) * 15)}:00-03:00`, hoy, dias_base: 20, estaciones: est, cola, hechos, ingresos, equipo, compradores: [], ritmo };
+}
+
 function semillaTickets() {
   db.it_categorias = IT_CATS.map((nombre, i) => ({ id: i + 1, nombre, orden: i + 1, activo: true }));
   db.tickets = []; db.ticket_mensajes = []; db.ticket_eventos = []; db.seq.tickets = 0; db.seq.ticket_mensajes = 0; db.seq.ticket_eventos = 0;
@@ -449,6 +490,7 @@ export const api = {
   },
   // la demo pública no muestra números de la droguería (son datos internos)
   async indicadoresDrogueria() { return tick({ modo: 'demo' }); },
+  async mapaDeposito() { return tick({ foto: mapaDemo(), actualizado: new Date().toISOString() }); },
   async feriados() { return tick([{ fecha: '2026-11-23', nombre: 'Día de la Soberanía Nacional', tipo: 'feriado' }, { fecha: '2026-12-08', nombre: 'Inmaculada Concepción de María', tipo: 'feriado' }, { fecha: '2026-12-25', nombre: 'Navidad', tipo: 'feriado' }]); },
   async tableros() {
     if (!['admin', 'direccion', 'analista'].includes(who.rol)) return tick([]);
@@ -601,7 +643,7 @@ export const api = {
   async recibirOC(id, items) { need('compras', 'admin', 'auditor'); const e = _recibir(id, items); save(); return e; },
   async guardarFotoProducto(id, file) {
     need('compras', 'admin');
-    const { achicarImagen } = await import('./ui.js?v=20261120-1345');
+    const { achicarImagen } = await import('./ui.js?v=20261120-1456');
     const blob = await achicarImagen(file, 320, 0.7);
     const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
     db.productos.find(p => p.id === id).foto_url = url; save(); return url;

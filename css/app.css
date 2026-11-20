@@ -1175,3 +1175,255 @@ body.solo-lectura .rc-agregar, body.solo-lectura .rc-sig { display: none !import
 @keyframes rail-ico { 0%, 100% { transform: none; } 30% { transform: rotate(-12deg) scale(1.12); } 60% { transform: rotate(8deg) scale(1.06); } }
 @media (prefers-reduced-motion: reduce) { .rail-pz .rail-mod, .rail-pz .rail-mod .ico { animation: none !important; transition: none; } }
 .rail { z-index: 6; overflow: visible; }
+
+/* ===== Droguería: lavada de cara =====
+   Todo acotado a body[data-mod="drogueria"]: paleta violeta y lila, encabezado tipo cartel con dibujos de la Droguería,
+   tarjetas redondeadas que entran con un pequeño salto y números grandes. El resto de los módulos no cambia. */
+body[data-mod="drogueria"] {
+  --dr-1: #4f2577; --dr-2: #6f3a9f; --dr-3: #915ebd; --dr-4: #b98be0; --dr-5: #e8dbf6; --dr-6: #f6f0fc; --dr-ink: #5b2d86;
+  --dr-frio: #1aa6b7; --dr-sombra: 91 45 134;
+  --accent: #7d45b0; --accent-ink: #ffffff; --accent-soft: #ece0f8;
+  --bg: #f7f3fc; --sunk: #efe7f8; --line: #e4d9f1; --grid: #efe8f7; --r: 14px;
+  background: var(--bg); }
+:root[data-theme="dark"] body[data-mod="drogueria"] {
+  --dr-ink: #d2b4f2; --dr-5: #3a2c52; --dr-6: #241c33; --dr-sombra: 0 0 0;
+  --accent: #c39cf0; --accent-ink: #1a1026; --accent-soft: #33264a;
+  --bg: #14101d; --surface: #1d1729; --sunk: #261e35; --line: #352a49; --grid: #2a2139; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) body[data-mod="drogueria"] {
+  --dr-ink: #d2b4f2; --dr-5: #3a2c52; --dr-6: #241c33; --dr-sombra: 0 0 0;
+  --accent: #c39cf0; --accent-ink: #1a1026; --accent-soft: #33264a;
+  --bg: #14101d; --surface: #1d1729; --sunk: #261e35; --line: #352a49; --grid: #2a2139; } }
+body[data-mod="drogueria"] main[data-vista="drogueria"] { --dr-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 8l-9-5-9 5v8l9 5 9-5z'/%3E%3Cpath d='M3 8l9 5 9-5'/%3E%3Cpath d='M12 13v8'/%3E%3C/svg%3E"); }
+body[data-mod="drogueria"] main[data-vista="temperatura"] { --dr-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0z'/%3E%3Cpath d='M12 11v6'/%3E%3Cpath d='M17.5 6h3M17.5 9.5h3'/%3E%3C/svg%3E"); }
+body[data-mod="drogueria"] main[data-vista="drog-recepcion"] { --dr-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 7l9-4 9 4v10l-9 4-9-4z'/%3E%3Cpath d='M12 7v8'/%3E%3Cpath d='M8.5 11.5L12 15l3.5-3.5'/%3E%3C/svg%3E"); }
+body[data-mod="drogueria"] main[data-vista="drog-expedicion"] { --dr-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2 6h11v10H2z'/%3E%3Cpath d='M13 9h4l3.5 3.5V16H13'/%3E%3Ccircle cx='6' cy='17.5' r='1.8'/%3E%3Ccircle cx='17' cy='17.5' r='1.8'/%3E%3C/svg%3E"); }
+body[data-mod="drogueria"] main[data-vista="drog-indicadores"] { --dr-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 20V10M10 20V4M16 20v-7M22 20H2'/%3E%3Cpath d='M3 7l6-3 6 5 6-4'/%3E%3C/svg%3E"); }
+body[data-mod="drogueria"] main[data-vista="conciliacion"] { --dr-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M4 8h13l-3-3M20 16H7l3 3'/%3E%3C/svg%3E"); }
+body[data-mod="drogueria"] main[data-vista="bachas"] { --dr-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 9h18l-2 10H5z'/%3E%3Cpath d='M7 9V6a2 2 0 0 1 2-2h6a2 2 0 0 1 2 2v3'/%3E%3Cpath d='M9 13h6'/%3E%3C/svg%3E"); }
+body[data-mod="drogueria"] .main { --dr-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 8l-9-5-9 5v8l9 5 9-5z'/%3E%3Cpath d='M3 8l9 5 9-5'/%3E%3Cpath d='M12 13v8'/%3E%3C/svg%3E"); }
+
+/* encabezado: cartel violeta con patrón de cápsulas y cajas que se desplaza despacio */
+body[data-mod="drogueria"] .main .view > .view-head { position: relative; isolation: isolate; overflow: hidden; align-items: center; padding: 24px 26px; border-radius: 22px; color: #fff;
+  background: radial-gradient(120% 140% at 100% 0%, rgb(201 163 239 / 0.75) 0, transparent 50%), linear-gradient(118deg, var(--dr-1), var(--dr-2) 55%, var(--dr-3));
+  box-shadow: 0 18px 34px -20px rgb(var(--dr-sombra) / 0.7); animation: dr-cartel 0.6s cubic-bezier(0.2, 0.8, 0.3, 1) both; }
+body[data-mod="drogueria"] .main .view > .view-head::before { content: ''; position: absolute; inset: 0; z-index: -1; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='160' viewBox='0 0 240 160' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' opacity='0.16'%3E%3Crect x='18' y='22' width='34' height='14' rx='7' transform='rotate(-25 35 29)'/%3E%3Cpath d='M35 22v14' transform='rotate(-25 35 29)'/%3E%3Cpath d='M120 30v16M112 38h16'/%3E%3Cpath d='M190 18l12-6 12 6v13l-12 6-12-6z'/%3E%3Cpath d='M190 18l12 6 12-6M202 24v13'/%3E%3Ccircle cx='70' cy='112' r='9'/%3E%3Cpath d='M64 106l12 12'/%3E%3Crect x='150' y='100' width='30' height='13' rx='6.5' transform='rotate(30 165 106)'/%3E%3Cpath d='M222 120v12M216 126h12'/%3E%3Cpath d='M20 140v10M15 145h10'/%3E%3Cpath d='M100 132l9-4.5 9 4.5v10l-9 4.5-9-4.5z'/%3E%3C/svg%3E") 0 0 / 240px 160px; animation: dr-patron 60s linear infinite; }
+body[data-mod="drogueria"] .main .view > .view-head::after { content: ''; position: absolute; z-index: -1; right: -60px; bottom: -90px; width: 260px; height: 260px; border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 255 255 / 0.18), transparent 65%); animation: dr-brillo 7s ease-in-out infinite alternate; }
+body[data-mod="drogueria"] .main .view > .view-head > div:first-child { position: relative; padding-left: 80px; min-height: 62px; justify-content: center; }
+body[data-mod="drogueria"] .main .view > .view-head > div:first-child::before { content: ''; position: absolute; left: 0; top: 50%; width: 62px; height: 62px; margin-top: -31px; border-radius: 19px;
+  background: #fff; box-shadow: 0 10px 20px -8px rgb(30 10 50 / 0.45), inset 0 -4px 0 var(--dr-5); animation: dr-flota 4.5s ease-in-out infinite; }
+body[data-mod="drogueria"] .main .view > .view-head > div:first-child::after { content: ''; position: absolute; left: 14px; top: 50%; width: 34px; height: 34px; margin-top: -19px;
+  background: linear-gradient(135deg, var(--dr-2), var(--dr-4)); -webkit-mask: var(--dr-ico) center / contain no-repeat; mask: var(--dr-ico) center / contain no-repeat; animation: dr-flota 4.5s ease-in-out infinite; }
+body[data-mod="drogueria"] .main .view > .view-head h1 { color: #fff; font-size: clamp(1.6rem, 1.2rem + 1.4vw, 2.2rem); letter-spacing: -0.02em; }
+body[data-mod="drogueria"] .main .view > .view-head .eyebrow { color: rgb(255 255 255 / 0.78); }
+body[data-mod="drogueria"] .main .view > .view-head .muted, body[data-mod="drogueria"] .main .view > .view-head p { color: rgb(255 255 255 / 0.86); }
+body[data-mod="drogueria"] .main .view > .view-head .field-label, body[data-mod="drogueria"] .main .view > .view-head label { color: rgb(255 255 255 / 0.9); }
+body[data-mod="drogueria"] .main .view > .view-head .btn { background: rgb(255 255 255 / 0.14); color: #fff; border-color: rgb(255 255 255 / 0.4); backdrop-filter: blur(4px); }
+body[data-mod="drogueria"] .main .view > .view-head .btn:hover { background: rgb(255 255 255 / 0.24); }
+body[data-mod="drogueria"] .main .view > .view-head .btn.primary { background: #fff; color: var(--dr-2); border-color: #fff; box-shadow: 0 6px 14px -6px rgb(30 10 50 / 0.5); }
+body[data-mod="drogueria"] .main .view > .view-head input, body[data-mod="drogueria"] .main .view > .view-head select { background: #fff; color: #241a33; border-color: transparent; }
+
+/* botones: redondeados y con un toque de relieve */
+body[data-mod="drogueria"] .main .btn { border-radius: 999px; padding-inline: 16px; transition: transform 0.15s, box-shadow 0.15s, background 0.15s; }
+body[data-mod="drogueria"] .main .btn:hover { transform: translateY(-1px); }
+body[data-mod="drogueria"] .main .btn:active { transform: translateY(1px) scale(0.98); }
+body[data-mod="drogueria"] .main .btn.primary { background: linear-gradient(135deg, var(--dr-2), var(--dr-3)); border-color: transparent; box-shadow: 0 6px 14px -8px rgb(var(--dr-sombra) / 0.8); }
+
+/* tarjetas: blancas, redondeadas, con sombra lila y entrada escalonada */
+body[data-mod="drogueria"] .main :is(.drog-grid .block, .drogueria .block, .table-wrap, .ex-ola, .temp-turno, .ind-grid > .block, .rc-col, .bachas-resumen, .bachas-porsuc) {
+  border-radius: 18px; border-color: var(--line); box-shadow: 0 1px 0 rgb(var(--dr-sombra) / 0.04), 0 12px 26px -20px rgb(var(--dr-sombra) / 0.55); }
+body[data-mod="drogueria"] .main .rc-col { background: var(--dr-6); border: 1px dashed var(--dr-5); }
+body[data-mod="drogueria"] .main .rc-card { border-radius: 12px; transition: transform 0.15s, box-shadow 0.15s; }
+body[data-mod="drogueria"] .main .rc-card:hover { transform: translateY(-2px) rotate(-0.4deg); box-shadow: 0 10px 18px -12px rgb(var(--dr-sombra) / 0.6); }
+body[data-mod="drogueria"] .main .view > * { animation: dr-sube 0.5s calc(0.08s + var(--dr-n, 0) * 0.07s) cubic-bezier(0.2, 0.8, 0.3, 1.1) both; }
+body[data-mod="drogueria"] .main .view > :nth-child(2) { --dr-n: 1; } body[data-mod="drogueria"] .main .view > :nth-child(3) { --dr-n: 2; }
+body[data-mod="drogueria"] .main .view > :nth-child(4) { --dr-n: 3; } body[data-mod="drogueria"] .main .view > :nth-child(n+5) { --dr-n: 4; }
+
+/* títulos de cada bloque con su marquita */
+body[data-mod="drogueria"] .main .block-head h2 { display: inline-flex; align-items: center; gap: 10px; font-size: 1.12rem; }
+body[data-mod="drogueria"] .main .block-head h2::before { content: ''; width: 12px; height: 12px; border-radius: 4px; flex: none; background: linear-gradient(135deg, var(--dr-2), var(--dr-4)); transform: rotate(45deg); }
+
+/* indicadores (kpi): número grande violeta, burbuja de color en la esquina, se levantan al pasar el mouse */
+body[data-mod="drogueria"] .main :is(.kpi, .tk-kpis .kpi, .drog-ultima, .drog-turno) { position: relative; overflow: hidden; border-radius: 16px; border-color: var(--line); transition: transform 0.2s, box-shadow 0.2s; }
+body[data-mod="drogueria"] .main :is(.kpi, .tk-kpis .kpi) { background: var(--surface); padding: 16px 18px; box-shadow: 0 10px 22px -20px rgb(var(--dr-sombra) / 0.7); }
+body[data-mod="drogueria"] .main :is(.kpi, .tk-kpis .kpi)::after { content: ''; position: absolute; right: -26px; top: -26px; width: 78px; height: 78px; border-radius: 50%; background: var(--dr-5); opacity: 0.7; transition: transform 0.4s; }
+body[data-mod="drogueria"] .main :is(.kpi, .tk-kpis .kpi):hover { transform: translateY(-3px); box-shadow: 0 16px 26px -18px rgb(var(--dr-sombra) / 0.8); }
+body[data-mod="drogueria"] .main :is(.kpi, .tk-kpis .kpi):hover::after { transform: scale(1.35); }
+body[data-mod="drogueria"] .main :is(.kpi-val, .tk-kpis .kpi strong, .drog-ultima strong) { position: relative; z-index: 1; font-family: var(--f-display); font-weight: 700; color: var(--dr-ink); }
+body[data-mod="drogueria"] .main .kpi-val { font-size: 1.95rem; line-height: 1.1; }
+body[data-mod="drogueria"] .main .tk-kpis .kpi strong { font-size: 1.7rem; }
+body[data-mod="drogueria"] .main :is(.kpi-label, .kpi small, .tk-kpis .kpi span) { position: relative; z-index: 1; }
+body[data-mod="drogueria"] .main :is(.kpi.bad, .kpi-bad, .tk-kpis .kpi.bad) { border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); }
+body[data-mod="drogueria"] .main :is(.kpi.bad, .kpi-bad, .tk-kpis .kpi.bad)::after { background: var(--bad-soft); }
+body[data-mod="drogueria"] .main :is(.kpi.bad, .kpi-bad) .kpi-val, body[data-mod="drogueria"] .main .tk-kpis .kpi.bad strong { color: var(--bad); }
+body[data-mod="drogueria"] .main .kpi-good::after { background: var(--ok-soft); } body[data-mod="drogueria"] .main .kpi-warn::after { background: var(--warn-soft); }
+body[data-mod="drogueria"] .main .drog-turno { background: var(--dr-6); border: 1px solid var(--dr-5); }
+body[data-mod="drogueria"] .main .drog-turno.est-hecho { background: var(--ok-soft); border-color: transparent; }
+body[data-mod="drogueria"] .main .drog-turno.est-ahora { background: var(--warn-soft); border-color: transparent; animation: dr-late 1.6s ease-in-out infinite; }
+
+/* pestañas: píldoras; la elegida en violeta */
+body[data-mod="drogueria"] .main .tabs { border-radius: 999px; padding: 4px; background: var(--surface); border: 1px solid var(--line); box-shadow: 0 8px 18px -16px rgb(var(--dr-sombra) / 0.6); }
+body[data-mod="drogueria"] .main .tab { border-radius: 999px; padding: 7px 14px; transition: background 0.2s, color 0.2s; }
+body[data-mod="drogueria"] .main .tab:hover { color: var(--dr-ink); background: var(--dr-6); }
+body[data-mod="drogueria"] .main .tab.on { background: linear-gradient(135deg, var(--dr-2), var(--dr-3)); color: #fff; box-shadow: 0 6px 14px -8px rgb(var(--dr-sombra) / 0.9); }
+body[data-mod="drogueria"] .main .tab.on .tab-count { color: rgb(255 255 255 / 0.85); }
+
+/* tablas: encabezado lila */
+body[data-mod="drogueria"] .main .tbl th { background: var(--dr-6); color: var(--dr-ink); border-bottom-color: var(--dr-5); }
+body[data-mod="drogueria"] .main .tbl.hover tbody tr:hover, body[data-mod="drogueria"] .main .tbl tbody tr:hover { background: var(--dr-6); }
+
+/* menú lateral del módulo: el ítem abierto en violeta */
+body[data-mod="drogueria"] .subnav a.on, body[data-mod="drogueria"] .modnav .sub a.on { background: linear-gradient(90deg, var(--dr-5), transparent); color: var(--dr-ink); }
+
+@keyframes dr-cartel { from { opacity: 0; transform: translateY(-8px) scale(0.985); } to { opacity: 1; transform: none; } }
+@keyframes dr-patron { to { background-position: 240px -160px; } }
+@keyframes dr-brillo { from { transform: translate(0, 0) scale(1); } to { transform: translate(-40px, -20px) scale(1.15); } }
+@keyframes dr-flota { 0%, 100% { transform: translateY(0) rotate(0); } 50% { transform: translateY(-4px) rotate(-3deg); } }
+@keyframes dr-sube { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes dr-late { 0%, 100% { box-shadow: 0 0 0 0 rgb(154 100 0 / 0.0); } 50% { box-shadow: 0 0 0 4px rgb(154 100 0 / 0.18); } }
+@media (max-width: 860px) {
+  body[data-mod="drogueria"] .main .view > .view-head { padding: 18px; border-radius: 18px; }
+  body[data-mod="drogueria"] .main .view > .view-head > div:first-child { padding-left: 64px; min-height: 50px; }
+  body[data-mod="drogueria"] .main .view > .view-head > div:first-child::before { width: 50px; height: 50px; margin-top: -25px; border-radius: 15px; }
+  body[data-mod="drogueria"] .main .view > .view-head > div:first-child::after { left: 12px; width: 26px; height: 26px; margin-top: -15px; }
+  body[data-mod="drogueria"] .main .kpi-val { font-size: 1.6rem; } }
+@media (prefers-reduced-motion: reduce) { body[data-mod="drogueria"] .main :is(.view > *, .view-head, .view-head::before, .view-head::after, .view-head > div::before, .view-head > div::after, .drog-turno) { animation: none !important; } }
+
+/* ===== Droguería · Mapa del depósito ===== */
+body[data-mod="drogueria"] main[data-vista="drog-mapa"] { --dr-ico: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z'/%3E%3Cpath d='M9 3v15M15 6v15'/%3E%3C/svg%3E"); }
+.mapa-cuerpo { display: flex; flex-direction: column; gap: 18px; }
+.mapa-estado { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; font-size: 0.9rem; }
+.mapa-vivo { width: 10px; height: 10px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 0 rgb(47 125 50 / 0.5); animation: mapa-vivo 2s infinite; }
+.mapa-vivo.viejo { background: var(--warn); animation: none; }
+.mapa-reloj { margin-left: auto; font-weight: 700; color: var(--dr-ink, var(--fg)); }
+@keyframes mapa-vivo { 70% { box-shadow: 0 0 0 8px rgb(47 125 50 / 0); } 100% { box-shadow: 0 0 0 0 rgb(47 125 50 / 0); } }
+.mapa-fichas { display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr)); gap: 10px; }
+.mapa-ficha { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line);
+  box-shadow: 0 10px 22px -20px rgb(var(--dr-sombra, 0 0 0) / 0.7); animation: dr-sube 0.5s both; }
+.mapa-ficha-ico { display: grid; place-items: center; width: 42px; height: 42px; flex: none; border-radius: 14px; background: var(--dr-6, var(--sunk)); font-size: 1.35rem; }
+.mapa-ficha strong { display: block; font: 700 1.2rem/1.15 var(--f-display); color: var(--dr-ink, var(--fg)); }
+.mapa-ficha small { color: var(--muted); font-size: 0.8rem; line-height: 1.3; display: block; }
+.mapa-ficha.warn { border-color: color-mix(in srgb, var(--warn) 45%, var(--line)); } .mapa-ficha.warn .mapa-ficha-ico { background: var(--warn-soft); }
+.mapa-ficha.bad { border-color: color-mix(in srgb, var(--bad) 45%, var(--line)); } .mapa-ficha.bad .mapa-ficha-ico { background: var(--bad-soft); }
+.mapa-ficha.ok .mapa-ficha-ico { background: var(--ok-soft); }
+.mapa-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(280px, 1fr); gap: 16px; align-items: start; }
+.mapa-plano, .mapa-panel { background: var(--surface); border: 1px solid var(--line); border-radius: 22px; padding: 14px; box-shadow: 0 14px 30px -24px rgb(var(--dr-sombra, 0 0 0) / 0.7); }
+.mapa-panel { padding: 18px; position: sticky; top: 14px; }
+.mapa-panel h2 { font-size: 1.25rem; }
+.mapa-svg { display: block; width: 100%; height: auto; max-height: 78vh; font-family: var(--f-body); }
+.mapa-nota { font-size: 0.82rem; line-height: 1.45; margin: 6px 4px 0; }
+/* plano */
+.mp-piso { fill: var(--dr-6, var(--sunk)); }
+.mp-pared { fill: none; stroke: var(--dr-ink, var(--fg)); stroke-width: 3.5; stroke-linejoin: round; opacity: 0.85; }
+.mp-pasillo { fill: var(--surface); opacity: 0.8; }
+.mp-flujo { fill: none; stroke-width: 2.4; stroke-dasharray: 2 9; stroke-linecap: round; animation: mp-flujo 1.4s linear infinite; opacity: 0.75; }
+.mp-flujo.entra { stroke: #3fae7a; } .mp-flujo.arma { stroke: #7d45b0; } .mp-flujo.sale { stroke: #e0892e; }
+@keyframes mp-flujo { to { stroke-dashoffset: -11; } }
+.mp-est { cursor: pointer; outline: none; }
+.mp-zona { fill: #fff; stroke: var(--dr-5, var(--line)); stroke-width: 1.5; transition: fill 0.4s, stroke 0.2s, transform 0.2s; }
+.mp-est.nv0 .mp-zona { fill: #ffffff; } .mp-est.nv1 .mp-zona { fill: #e7d8f6; } .mp-est.nv2 .mp-zona { fill: #fbdcae; } .mp-est.nv3 .mp-zona { fill: #f7b3a6; }
+.mp-est:hover .mp-zona, .mp-est:focus-visible .mp-zona { stroke: var(--dr-2, var(--accent)); stroke-width: 2.5; }
+.mp-est.on .mp-zona { stroke: var(--dr-2, var(--accent)); stroke-width: 3.5; }
+.mp-est.cuello .mp-zona { stroke: var(--bad); stroke-width: 3; animation: mp-late 1.6s ease-in-out infinite; }
+@keyframes mp-late { 50% { stroke-width: 6; stroke-opacity: 0.55; } }
+.mp-zona.escr { fill: #f4f1f9; } .mp-zona.recep { fill: #e6f5ed; } .mp-zona.exped { fill: #fcefe0; }
+.mp-deco { fill: var(--dr-4, #b98be0); opacity: 0.22; pointer-events: none; }
+.mp-deco .mp-jaula { fill: url(#mp-reja); opacity: 1; }
+.mp-reja { stroke: #e0892e; stroke-width: 1.4; opacity: 0.7; }
+.mp-copo { fill: none; stroke: #1aa6b7; stroke-width: 3; stroke-linecap: round; }
+.mp-modulo { fill: #3b7be0; }
+.mp-led { fill: #7cf0a6; opacity: 1; animation: mp-led 1.4s ease-in-out infinite; }
+@keyframes mp-led { 50% { fill: #fff; } }
+.mp-rotulo { pointer-events: none; }
+.mp-num-sec { fill: #fff; font-size: 11px; font-weight: 800; }
+.mp-num-gris { fill: #8a8f9c; }
+.mp-nombre { fill: #241a33; font-size: 12px; font-weight: 700; }
+.mp-grande { fill: #241a33; font: 800 26px var(--f-display); pointer-events: none; }
+.mp-grande.chico { font-size: 20px; }
+.mp-chico { fill: #5a5470; font-size: 10px; font-weight: 600; pointer-events: none; }
+.mp-cartel rect { fill: var(--bad); } .mp-cartel text { fill: #fff; font-size: 10.5px; font-weight: 800; }
+.mp-cartel { animation: mp-salta 1.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; pointer-events: none; }
+@keyframes mp-salta { 50% { transform: translateY(-3px); } }
+.mp-caja { fill: #c99a62; stroke: #8a6235; stroke-width: 0.8; animation: mp-cae 0.5s both; }
+.mp-bacha { fill: #7d45b0; animation: mp-cae 0.5s both; }
+@keyframes mp-cae { from { transform: translateY(-14px); opacity: 0; } }
+.mp-puerta { stroke: #3fae7a; stroke-width: 5; stroke-linecap: round; }
+.mp-persona { cursor: pointer; }
+.mp-persona text { fill: #fff; font-size: 9px; font-weight: 800; pointer-events: none; }
+.mp-persona circle { stroke: #fff; stroke-width: 2; }
+.mp-persona:hover circle, .mp-persona:focus-visible circle { stroke: #241a33; }
+/* panel */
+.mapa-ranking { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.mapa-ranking button { all: unset; box-sizing: border-box; cursor: pointer; width: 100%; display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; padding: 9px 12px; border-radius: 12px; background: var(--dr-6, var(--sunk)); }
+.mapa-ranking button:hover, .mapa-ranking button:focus-visible { background: var(--dr-5, var(--line)); }
+.mapa-pt { width: 12px; height: 12px; border-radius: 4px; transform: rotate(45deg); }
+.mapa-nv { font: 700 0.8rem var(--f-mono); padding: 2px 8px; border-radius: 999px; background: var(--surface); }
+.mapa-nv.nv2 { background: #fbdcae; color: #7a4a00; } .mapa-nv.nv3 { background: #f7b3a6; color: #7c2416; } .mapa-nv.nv1 { background: #e7d8f6; color: #4f2577; }
+.mapa-leyenda { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 0.78rem; color: var(--muted); }
+.mapa-leyenda span { display: inline-flex; align-items: center; gap: 6px; }
+.mapa-leyenda i { width: 14px; height: 10px; border-radius: 3px; display: inline-block; border: 1px solid var(--line); }
+.mapa-leyenda i.nv0 { background: #fff; } .mapa-leyenda i.nv1 { background: #e7d8f6; } .mapa-leyenda i.nv2 { background: #fbdcae; } .mapa-leyenda i.nv3 { background: #f7b3a6; }
+.mapa-leyenda i.r-hoy { background: var(--dr-3, var(--accent)); } .mapa-leyenda i.r-base { background: var(--dr-5, var(--line)); }
+.mapa-est-cab, .mapa-per-cab { display: flex; gap: 12px; align-items: center; }
+.mapa-est-cab > span { display: grid; place-items: center; width: 44px; height: 44px; flex: none; border-radius: 14px; background: var(--c); color: #fff; font: 800 1.2rem var(--f-display); }
+.mapa-avatar { display: grid; place-items: center; width: 40px; height: 40px; flex: none; border-radius: 50%; color: #fff; font: 800 0.85rem var(--f-display); box-shadow: 0 0 0 3px var(--surface), 0 0 0 4px var(--line); }
+.mapa-mini-kpis { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.mapa-mini-kpis > div { padding: 10px 12px; border-radius: 12px; background: var(--dr-6, var(--sunk)); }
+.mapa-mini-kpis strong { display: block; font: 700 1.3rem/1.1 var(--f-display); color: var(--dr-ink, var(--fg)); }
+.mapa-mini-kpis small { color: var(--muted); font-size: 0.76rem; line-height: 1.25; display: block; }
+.mapa-mini-kpis .mal { background: var(--bad-soft); } .mapa-mini-kpis .mal strong { color: var(--bad); }
+.mapa-comp { display: grid; grid-template-columns: auto auto 1fr; gap: 4px 10px; align-items: baseline; font-size: 0.88rem; }
+.mapa-comp strong { font: 700 1.1rem var(--f-display); }
+.mapa-barra { grid-column: 1 / -1; height: 10px; border-radius: 999px; background: var(--dr-6, var(--sunk)); overflow: hidden; }
+.mapa-barra i { display: block; height: 100%; border-radius: inherit; transition: width 0.8s cubic-bezier(0.2, 0.8, 0.3, 1); }
+.mapa-h3 { font-size: 0.95rem; margin: 0 0 8px; }
+.mapa-top { margin: 0; padding-left: 1.2em; display: flex; flex-direction: column; gap: 5px; font-size: 0.85rem; }
+.mapa-top li span { display: block; } .mapa-top small { font-size: 0.75rem; }
+.mapa-spark { display: inline-flex; align-items: flex-end; gap: 2px; height: 46px; width: 100%; }
+.mapa-spark i { flex: 1; border-radius: 3px 3px 0 0; min-height: 2px; }
+.mapa-spark.chico { height: 22px; width: 90px; }
+/* cola de pedidos */
+.mapa-cola .block-head { align-items: flex-start; }
+.mapa-carriles { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.mapa-carriles > div { background: var(--dr-6, var(--sunk)); border-radius: 16px; padding: 12px; min-width: 0; }
+.mapa-peds { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 420px; overflow-y: auto; }
+.mapa-ped { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 9px 11px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; animation: dr-sube 0.4s both; }
+.mapa-ped > div:first-child { display: flex; flex-direction: column; min-width: 0; } .mapa-ped > div:first-child strong { font-size: 0.88rem; }
+.mapa-ped small { font-size: 0.75rem; }
+.mapa-ped.viejo { border-color: var(--bad); box-shadow: inset 3px 0 0 var(--bad); }
+.mapa-ped.hecho { opacity: 0.92; }
+.mapa-ped-num { text-align: right; } .mapa-ped-num strong { font: 700 1rem var(--f-display); color: var(--dr-ink, var(--fg)); display: block; line-height: 1; }
+.mapa-mix { grid-column: 1 / -1; display: flex; height: 7px; border-radius: 999px; overflow: hidden; background: var(--grid); }
+.mapa-mix i { display: block; height: 100%; }
+/* equipo */
+.mapa-equipo { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 8px; }
+.mapa-per { all: unset; box-sizing: border-box; cursor: pointer; width: 100%; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-rows: auto auto; gap: 4px 10px; align-items: center;
+  padding: 10px 12px; border-radius: 14px; background: var(--surface); border: 1px solid var(--line); opacity: 0.62; transition: transform 0.15s, box-shadow 0.15s; }
+.mapa-per.activo { opacity: 1; }
+.mapa-per:hover, .mapa-per:focus-visible { transform: translateY(-2px); box-shadow: 0 10px 18px -14px rgb(var(--dr-sombra, 0 0 0) / 0.8); }
+.mapa-per .mapa-avatar { grid-row: 1 / 3; }
+.mapa-per.activo .mapa-avatar { box-shadow: 0 0 0 3px var(--surface), 0 0 0 5px #3fae7a; }
+.mapa-per-txt { display: flex; flex-direction: column; min-width: 0; } .mapa-per-txt small { font-size: 0.75rem; }
+.mapa-per-num { font: 700 1.15rem var(--f-display); color: var(--dr-ink, var(--fg)); }
+.mapa-per .mapa-spark { grid-column: 2 / 4; width: 100%; }
+/* ritmo */
+.mapa-ritmo { display: flex; align-items: flex-end; gap: 6px; height: 170px; padding-top: 8px; }
+.mapa-hora { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; }
+.mapa-hora small { font: 600 0.72rem var(--f-mono); color: var(--muted); }
+.mapa-hora.ahora small { color: var(--dr-2, var(--accent)); font-weight: 800; }
+.mapa-col { position: relative; flex: 1; width: 100%; }
+.mapa-col i { position: absolute; bottom: 0; border-radius: 6px 6px 2px 2px; transition: height 0.8s cubic-bezier(0.2, 0.8, 0.3, 1); }
+.mapa-col i.r-base { left: 0; right: 0; background: var(--dr-5, var(--line)); }
+.mapa-col i.r-hoy { left: 22%; right: 22%; background: linear-gradient(var(--dr-3, var(--accent)), var(--dr-2, var(--accent))); }
+/* oscuro: el plano mantiene colores claros legibles en las zonas */
+:root[data-theme="dark"] .mp-piso { fill: #241c33; }
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .mp-piso { fill: #241c33; } }
+@media (max-width: 980px) { .mapa-grid { grid-template-columns: 1fr; } .mapa-panel { position: static; } .mapa-carriles { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .mp-flujo, .mp-led, .mp-cartel, .mp-est.cuello .mp-zona, .mapa-vivo, .mp-caja, .mp-bacha { animation: none !important; } }
+
+.mp-ped rect { stroke-width: 1.5; } .mp-ped text { font-size: 9.5px; font-weight: 800; pointer-events: none; }
+.mp-ped.entro rect { fill: #fff; stroke: var(--dr-4, #b98be0); stroke-dasharray: 3 2; } .mp-ped.entro text { fill: var(--dr-ink, #5b2d86); }
+.mp-ped.armado rect { fill: var(--dr-2, #6f3a9f); stroke: var(--dr-2, #6f3a9f); } .mp-ped.armado text { fill: #fff; }
+.mp-ped { animation: mp-cae 0.5s both; }
+@media (max-width: 600px) { .mapa-fichas { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .mapa-ficha { padding: 10px; gap: 8px; align-items: flex-start; }
+  .mapa-ficha-ico { width: 32px; height: 32px; border-radius: 10px; font-size: 1.05rem; } .mapa-ficha strong { font-size: 1rem; } .mapa-ficha small { font-size: 0.74rem; } }

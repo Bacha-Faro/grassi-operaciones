@@ -1,6 +1,6 @@
 // Droguería · Tablero: cómo vienen hoy las lecturas, temperaturas de las últimas dos semanas y dónde están las bachas.
-import { h, empty, cargarScript } from '../ui.js?v=20261120-1345';
-import { hoyAR, sumarDias, fechaLarga, fechaCorta, turnosDe, estadoTurno, fmt, rangoTxt, pillBacha, cargarFeriados, feriadoDe } from './drog-comun.js?v=20261120-1345';
+import { h, empty, cargarScript } from '../ui.js?v=20261120-1456';
+import { hoyAR, sumarDias, fechaLarga, fechaCorta, turnosDe, estadoTurno, fmt, rangoTxt, pillBacha, cargarFeriados, feriadoDe } from './drog-comun.js?v=20261120-1456';
 
 const TONO = { hecho: 'ok', ahora: 'warn', atrasado: 'bad', proximo: 'muted' };
 const TXT = { hecho: 'Cargado', ahora: 'Toca ahora', atrasado: 'Pendiente', proximo: 'Más tarde' };
@@ -36,7 +36,7 @@ export async function render({ api, go }) {
   cargarScript('vendor/chart.umd.js').then(() => {
     const ultimas = lect.filter(l => l.fecha >= desde).sort((a, b) => (a.fecha + a.turno).localeCompare(b.fecha + b.turno));
     const etiquetas = [...new Set(ultimas.map(l => `${fechaCorta(l.fecha)} ${l.turno}`))];
-    const colores = ['#0055b8', '#3b8ff0', '#915ebd'];
+    const colores = ['#5b2d86', '#b98be0', '#1aa6b7'];   // depósito 1 violeta, depósito 2 lila, cámara de frío celeste
     const css = getComputedStyle(document.documentElement);
     new window.Chart(canvas, { type: 'line', data: { labels: etiquetas, datasets: puntos.map((p, i) => ({ label: p.nombre, borderColor: colores[i % 3], backgroundColor: colores[i % 3], pointRadius: 0, borderWidth: 2, tension: 0.25,
       data: etiquetas.map(e => ultimas.find(l => `${fechaCorta(l.fecha)} ${l.turno}` === e && l.punto_id === p.id)?.temperatura ?? null), spanGaps: true })) },
