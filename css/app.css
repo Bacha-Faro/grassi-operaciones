@@ -1101,3 +1101,66 @@ body.solo-lectura:not([data-mod="it"]) .modal input, body.solo-lectura:not([data
 /* solo lectura: también los botones secundarios de las pantallas nuevas de la Droguería */
 body.solo-lectura:not([data-mod="it"]) .main .btn.ghost-bad, body.solo-lectura:not([data-mod="it"]) .modal .btn.ghost-bad,
 body.solo-lectura .rc-agregar, body.solo-lectura .rc-sig { display: none !important; }
+
+/* ===== Ingreso: los módulos como piezas de rompecabezas que encastran =====
+   Grilla: Droguería | Soporte IT / De compras | RRHH / Analytics (ancho completo).
+   Cada pieza tiene "lengüetas" (pz-encastre) que entran en el "hueco" de la vecina. El fondo de la pieza es su ::after,
+   recortado con máscara donde van los huecos; las lengüetas quedan afuera de la máscara. Fondo opaco (--pz) para que
+   lengüeta y pieza se vean como una sola forma. */
+.login-mods { gap: 6px; --pz-r: 16px; --pz-c: 9px; --pz-g: 6px; }
+.login-mod.pieza { --pz: color-mix(in srgb, #fff 8%, var(--navy)); background: transparent; border: 0; overflow: visible; border-radius: 14px; isolation: isolate;
+  animation: encastra 0.75s calc(0.3s + var(--i) * 0.13s) cubic-bezier(0.2, 0.9, 0.25, 1.15) both; transition: transform 0.25s, filter 0.25s; }
+.login-mod.pieza::after { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: linear-gradient(90deg, var(--c) 0 4px, var(--pz) 4px); transition: background 0.25s;
+  -webkit-mask: var(--h1, linear-gradient(#000 0 0)), var(--h2, linear-gradient(#000 0 0)); mask: var(--h1, linear-gradient(#000 0 0)), var(--h2, linear-gradient(#000 0 0));
+  -webkit-mask-composite: source-in; mask-composite: intersect; }
+.login-mod.pieza::before { display: none; }
+.login-mod.pieza:hover { --pz: color-mix(in srgb, #fff 13%, var(--navy)); background: transparent; transform: translateY(-3px); filter: drop-shadow(0 8px 16px rgb(0 0 0 / 0.28)); z-index: 2; }
+.pz-encastre { display: none; position: absolute; width: calc(var(--pz-r) * 2); height: calc(var(--pz-r) * 2); border-radius: 50%; background: var(--pz); z-index: 1; transition: background 0.25s; }
+.pz-der { top: calc(50% - var(--pz-r)); right: calc(-1 * (var(--pz-c) + var(--pz-r))); }
+.pz-abajo { left: calc(50% - var(--pz-r)); bottom: calc(-1 * (var(--pz-c) + var(--pz-r))); }
+.login-mod.mod-drogueria .pz-der, .login-mod.mod-drogueria .pz-abajo, .login-mod.mod-it .pz-abajo,
+.login-mod.mod-compras .pz-der, .login-mod.mod-compras .pz-abajo, .login-mod.mod-rrhh .pz-abajo { display: block; }
+/* huecos (un poco más grandes que la lengüeta): en el borde de la pieza vecina */
+.login-mod.mod-it, .login-mod.mod-rrhh { --h1: radial-gradient(circle calc(var(--pz-r) + 1.5px) at calc(var(--pz-c) - var(--pz-g)) 50%, #0000 97%, #000); }
+.login-mod.mod-compras, .login-mod.mod-rrhh { --h2: radial-gradient(circle calc(var(--pz-r) + 1.5px) at 50% calc(var(--pz-c) - var(--pz-g)), #0000 97%, #000); }
+.login-mod.mod-analytics { --h1: radial-gradient(circle calc(var(--pz-r) + 1.5px) at calc((100% - var(--pz-g)) / 4) calc(var(--pz-c) - var(--pz-g)), #0000 97%, #000);
+  --h2: radial-gradient(circle calc(var(--pz-r) + 1.5px) at calc(100% - (100% - var(--pz-g)) / 4) calc(var(--pz-c) - var(--pz-g)), #0000 97%, #000); }
+/* cada pieza entra desde un lado distinto y "encastra" con un pequeño rebote */
+.login-mod.mod-drogueria { --dx: -26px; --dy: -14px; --rz: -5deg; } .login-mod.mod-it { --dx: 26px; --dy: -14px; --rz: 5deg; }
+.login-mod.mod-compras { --dx: -26px; --dy: 10px; --rz: 4deg; } .login-mod.mod-rrhh { --dx: 26px; --dy: 10px; --rz: -4deg; }
+.login-mod.mod-analytics { --dx: 0px; --dy: 26px; --rz: 0deg; }
+@keyframes encastra { 0% { opacity: 0; transform: translate(var(--dx), var(--dy)) rotate(var(--rz)); } 70% { opacity: 1; transform: translate(0, 0) rotate(0); } 85% { transform: scale(1.015); } 100% { opacity: 1; transform: none; } }
+@media (max-width: 860px) { .login-mods { gap: 6px; --pz-r: 11px; --pz-c: 6px; } }
+@media (prefers-reduced-motion: reduce) { .login-mod.pieza { animation: none; } }
+
+/* ===== Barra de módulos: piezas de rompecabezas apiladas =====
+   Cada módulo encastra con el de abajo (lengüeta = ::after, hueco = máscara arriba). El módulo abierto toma su color
+   y sale un poco hacia la derecha, como una pieza que se levanta del tablero. Al pasar el mouse aparece su nombre. */
+.rail-pz { display: flex; flex-direction: column; align-items: center; gap: 3px; --pz-r: 7px; }
+.rail-pz .rail-mod { --pz: color-mix(in srgb, #fff 9%, var(--navy)); width: 48px; height: 46px; border-radius: 11px; color: var(--navy-ink); isolation: isolate;
+  transition: transform 0.35s cubic-bezier(0.3, 1.5, 0.5, 1), color 0.2s; }
+.rail-pz .rail-mod::before { content: ''; position: absolute; inset: 0; z-index: -1; border-radius: inherit; background: var(--pz); transition: background 0.25s;
+  -webkit-mask: radial-gradient(circle calc(var(--pz-r) + 1px) at 50% -3px, #0000 96%, #000); mask: radial-gradient(circle calc(var(--pz-r) + 1px) at 50% -3px, #0000 96%, #000); }
+.rail-pz .rail-mod:first-child::before { -webkit-mask: none; mask: none; }
+.rail-pz .rail-mod::after { content: ''; position: absolute; left: calc(50% - var(--pz-r)); bottom: calc(-3px - var(--pz-r)); width: calc(var(--pz-r) * 2); height: calc(var(--pz-r) * 2);
+  border-radius: 50%; background: var(--pz); z-index: 1; transition: background 0.25s; pointer-events: none; }
+.rail-pz .rail-mod:last-child::after { display: none; }
+.rail-pz .rail-mod:hover { --pz: color-mix(in srgb, var(--m) 35%, var(--navy)); background: none; color: #fff; transform: translateX(4px); z-index: 2; }
+.rail-pz .rail-mod:hover .ico { animation: rail-ico 0.5s ease; }
+.rail-pz .rail-mod.on { --pz: var(--m); background: none; color: #fff; box-shadow: none; transform: translateX(9px); z-index: 3; filter: drop-shadow(0 4px 10px rgb(0 0 0 / 0.3)); }
+.rail-pz .rail-mod .punto { z-index: 2; }
+/* nombre del módulo al pasar el mouse */
+.rail-pz .rail-mod .mod-nombre { position: absolute; left: calc(100% + 12px); top: 50%; white-space: nowrap; padding: 5px 11px; border-radius: 8px; background: var(--m); color: #fff;
+  font: 600 0.82rem var(--f-body); pointer-events: none; opacity: 0; transform: translate(-6px, -50%); transition: opacity 0.18s, transform 0.18s; z-index: 30; box-shadow: 0 6px 16px rgb(0 0 0 / 0.18); }
+.rail-pz .rail-mod:hover .mod-nombre, .rail-pz .rail-mod:focus-visible .mod-nombre { opacity: 1; transform: translate(0, -50%); }
+/* animaciones: las piezas caen y encastran (primera vez), la que vuelve a su lugar y la que sale */
+.rail-pz.entra .rail-mod { animation: rail-cae 0.55s calc(0.08s + var(--i) * 0.09s) cubic-bezier(0.3, 1.4, 0.5, 1) both; }
+.rail-pz .rail-mod.salio { animation: rail-sale 0.5s cubic-bezier(0.3, 1.6, 0.5, 1); }
+.rail-pz .rail-mod.volvio { animation: rail-vuelve 0.45s cubic-bezier(0.3, 1.4, 0.5, 1); }
+.rail-pz.entra .rail-mod.on { animation: rail-cae 0.55s calc(0.08s + var(--i) * 0.09s) cubic-bezier(0.3, 1.4, 0.5, 1) both, rail-sale 0.5s calc(0.25s + var(--i) * 0.09s + 0.4s) cubic-bezier(0.3, 1.6, 0.5, 1) both; }
+@keyframes rail-cae { from { opacity: 0; transform: translateY(-22px) rotate(-8deg); } to { opacity: 1; transform: none; } }
+@keyframes rail-sale { from { transform: translateX(0); } to { transform: translateX(9px); } }
+@keyframes rail-vuelve { from { transform: translateX(9px); } to { transform: none; } }
+@keyframes rail-ico { 0%, 100% { transform: none; } 30% { transform: rotate(-12deg) scale(1.12); } 60% { transform: rotate(8deg) scale(1.06); } }
+@media (prefers-reduced-motion: reduce) { .rail-pz .rail-mod, .rail-pz .rail-mod .ico { animation: none !important; transition: none; } }
+.rail { z-index: 6; overflow: visible; }
