@@ -1,6 +1,6 @@
 // IT · GraBot: los mensajes que dejan desde la pantalla de ingreso (gente sin usuario o que no puede entrar).
-import { h, toast, modal, field, empty, tabs, fechaHora } from '../ui.js?v=20261121-1423';
-import { caraBot } from '../grabot.js?v=20261121-1423';
+import { h, toast, modal, field, empty, tabs, fechaHora } from '../ui.js?v=20261121-1455';
+import { caraBot } from '../grabot.js?v=20261121-1455';
 
 const TIPO = { acceso: ['No puede entrar', 'bad'], consulta: ['Consulta', 'info'], reclamo: ['Reclamo', 'warn'], sugerencia: ['Sugerencia', 'ok'] };
 const ESTADO = { nuevo: ['Nuevo', 'bad'], leido: ['Leído', 'info'], resuelto: ['Resuelto', 'ok'] };

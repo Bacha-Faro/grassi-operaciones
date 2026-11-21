@@ -1,7 +1,7 @@
 // Droguería · Indicadores: servicio a farmacias, tiempos, stock, robot y compras.
 // Los números los calcula la compu de IT con los datos de Quantio (herramientas/subir_indicadores.py) y los sube
 // de lunes a sábado a la noche; esta pantalla solo los muestra. Ven IT y Dirección.
-import { h, money, n, empty, tabs, modal, cargarScript, descargarCSV, fecha } from '../ui.js?v=20261121-1423';
+import { h, money, n, empty, tabs, modal, cargarScript, descargarCSV, fecha } from '../ui.js?v=20261121-1455';
 
 const charts = [];
 const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();

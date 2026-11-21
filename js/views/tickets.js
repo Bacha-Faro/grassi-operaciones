@@ -1,7 +1,7 @@
 // IT Grassi · bandeja de IT: todos los tickets, ordenados por urgencia, con el plazo de primera respuesta.
-import { h, empty, fechaHora, tkNum, tabs, toast } from '../ui.js?v=20261121-1423';
-import { abrirTicket, estadoPill, prioPill, plazo, plazoTag, minutosHabiles, OBJETIVO_TXT } from './ticket.js?v=20261121-1423';
-import { disponibilidad, estadoActual, activar, desactivar } from '../push.js?v=20261121-1423';
+import { h, empty, fechaHora, tkNum, tabs, toast } from '../ui.js?v=20261121-1455';
+import { abrirTicket, estadoPill, prioPill, plazo, plazoTag, minutosHabiles, OBJETIVO_TXT } from './ticket.js?v=20261121-1455';
+import { disponibilidad, estadoActual, activar, desactivar } from '../push.js?v=20261121-1455';
 
 const GRUPOS = [
   ['pendientes', 'Por atender', ['nuevo', 'en_curso']],

@@ -1,7 +1,7 @@
 // Soporte IT · Guías y respuestas: la base de soluciones que ve la sucursal antes de cargar un ticket,
 // y las respuestas rápidas que usa IT al contestar. Solo IT.
-import { h, toast, modal, field, empty, tabs, confirmar } from '../ui.js?v=20261121-1423';
-import { pasosLista } from './ticket.js?v=20261121-1423';
+import { h, toast, modal, field, empty, tabs, confirmar } from '../ui.js?v=20261121-1455';
+import { pasosLista } from './ticket.js?v=20261121-1455';
 
 export async function render({ api }) {
   let [guias, respuestas, cats, usos] = await Promise.all([api.itSoluciones(), api.itRespuestas(), api.itCategorias(), api.itSolucionesUsos().catch(() => [])]);

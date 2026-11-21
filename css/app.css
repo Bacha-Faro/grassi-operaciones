@@ -1427,3 +1427,11 @@ body[data-mod="drogueria"] main[data-vista="drog-mapa"] { --dr-ico: url("data:im
 .mp-ped { animation: mp-cae 0.5s both; }
 @media (max-width: 600px) { .mapa-fichas { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; } .mapa-ficha { padding: 10px; gap: 8px; align-items: flex-start; }
   .mapa-ficha-ico { width: 32px; height: 32px; border-radius: 10px; font-size: 1.05rem; } .mapa-ficha strong { font-size: 1rem; } .mapa-ficha small { font-size: 0.74rem; } }
+.mp-chico.fact { fill: #6f3a9f; font-weight: 800; }
+.mapa-h3.mapa-sub { margin-top: 12px; }
+.mapa-ped.fact { border-style: dashed; }
+.mapa-fact { grid-column: 1 / -1; color: var(--dr-2, var(--accent)); font-weight: 700; }
+.mapa-aviso { padding: 10px 12px; border-radius: 12px; background: var(--dr-6, var(--sunk)); border: 1px dashed var(--dr-4, var(--line)); font-size: 0.88rem; }
+.mp-fact-ico { font-size: 12px; }
+.mp-persona.facturando circle { animation: mp-factura 1.2s ease-in-out infinite; }
+@keyframes mp-factura { 50% { stroke: #ffd24d; stroke-width: 4; } }

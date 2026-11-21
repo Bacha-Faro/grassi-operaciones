@@ -3,9 +3,9 @@
 // la más cargada se marca como cuello de botella. Los operarios activos caminan entre las estaciones según dónde está el
 // trabajo (la posición es ilustrativa: Quantio no registra quién junta qué). Datos: foto de Quantio cada 2 minutos
 // (herramientas/mapa_deposito.py) + lo que se registra en la app (recepciones y salidas).
-import { h, empty } from '../ui.js?v=20261121-1423';
-import { hoyAR, horaAR } from './drog-comun.js?v=20261121-1423';
-import { salidasDelDia } from '../olas.js?v=20261121-1423';
+import { h, empty } from '../ui.js?v=20261121-1455';
+import { hoyAR, horaAR } from './drog-comun.js?v=20261121-1455';
+import { salidasDelDia } from '../olas.js?v=20261121-1455';
 
 const NS = 'http://www.w3.org/2000/svg';
 const s = (tag, attrs = {}, ...hijos) => {
@@ -71,7 +71,7 @@ export async function render({ api }) {
 
     // ---------- números de arriba ----------
     const cola = f.cola || [];
-    const entro = cola.filter(p => p.etapa === 'entro'), armado = cola.filter(p => p.etapa === 'armado');
+    const entro = cola.filter(p => p.etapa === 'entro'), armado = cola.filter(p => p.etapa === 'armado'), facturando = cola.filter(p => p.etapa === 'facturando');
     const viejo = armado.length ? armado[0].ts : null;
     const hechos = f.hechos || [];
     const ahoraH = +horaAR().slice(0, 2);
@@ -84,7 +84,7 @@ export async function render({ api }) {
       h('div', {}, h('strong', {}, val), h('small', {}, txt)));
     const fichas = h('div', { class: 'mapa-fichas' },
       ficha('📥', nf(entro.length), `pedido${entro.length === 1 ? '' : 's'} esperando que se procesen`, entro.length > 8 ? 'warn' : ''),
-      ficha('🛒', `${nf(armado.length)} · ${nf(armado.reduce((n, p) => n + p.renglones, 0))} renglones`, viejo ? `en armado · el más viejo desde ${viejo.slice(8, 10)}/${viejo.slice(5, 7)} ${viejo.slice(11, 16)}` : 'en armado', armado.some(p => p.ts.slice(0, 10) < f.hoy) ? 'bad' : ''),
+      ficha('🛒', `${nf(armado.length)} · ${nf(armado.reduce((n, p) => n + p.renglones, 0))} renglones`, (viejo ? `en armado · el más viejo desde ${viejo.slice(8, 10)}/${viejo.slice(5, 7)} ${viejo.slice(11, 16)}` : 'en armado') + (facturando.length ? ` · ${facturando.length} facturándose` : ''), armado.some(p => p.ts.slice(0, 10) < f.hoy) ? 'bad' : ''),
       ficha('🚚', `${nf(hechos.length)} · ${nf(hechos.reduce((n, p) => n + p.renglones, 0))} renglones`, 'remitos despachados hoy'),
       ult ? ficha('⚡', `${nf(ult.hoy)} renglones`, `de ${ult.hora} a ${ult.hora + 1} h · normal ${nf(ult.base)}`, ult.hoy < ult.base * 0.6 ? 'warn' : ult.hoy > ult.base * 1.1 ? 'ok' : '') : null,
       prox ? ficha('⏰', minFalta < 60 ? `${minFalta} min` : `${Math.floor(minFalta / 60)} h ${minFalta % 60} min`, `para que salga ${prox.nombre} (${prox.hora} h)`, minFalta < 45 ? 'warn' : '') : ficha('🌙', 'Sin más salidas', 'por hoy'));
@@ -136,6 +136,7 @@ export async function render({ api }) {
       s('text', { x: ESCR.x + 33, y: ESCR.y + 22, class: 'mp-nombre' }, 'Escritorios'),
       s('text', { x: ESCR.x + ESCR.w / 2, y: ESCR.y + ESCR.h - 46, class: 'mp-grande', 'text-anchor': 'middle' }, nf(hechos.length)),
       s('text', { x: ESCR.x + ESCR.w / 2, y: ESCR.y + ESCR.h - 29, class: 'mp-chico', 'text-anchor': 'middle' }, 'remitos hoy'),
+      facturando.length ? s('text', { x: ESCR.x + ESCR.w / 2, y: ESCR.y + ESCR.h - 14, class: 'mp-chico fact', 'text-anchor': 'middle' }, `🧾 ${facturando.map(p => p.quien || '?').join(', ')} facturando`.slice(0, 34)) : null,
       s('rect', { class: 'mp-zona recep', x: RECEP.x + 3, y: RECEP.y + 3, width: RECEP.w - 4, height: RECEP.h - 6, rx: 10 }),
       s('rect', { class: 'mp-zona exped', x: EXPED.x + 1, y: EXPED.y + 3, width: EXPED.w - 4, height: EXPED.h - 6, rx: 10 }),
       s('circle', { cx: RECEP.x + 16, cy: RECEP.y + 18, r: 10, class: 'mp-num-gris' }), s('text', { x: RECEP.x + 16, y: RECEP.y + 22, class: 'mp-num-sec', 'text-anchor': 'middle' }, 1),
@@ -180,7 +181,7 @@ export async function render({ api }) {
     const generado = new Date(f.generado).getTime();
     const minDesde = hm => { if (!hm) return 9e9; const [a, b] = hm.split(':').map(Number), d = new Date(generado); return (d.getHours() * 60 + d.getMinutes()) - (a * 60 + b); };
     const equipo = (f.equipo || []).filter(p => p.rol !== 'sistema');
-    const activos = equipo.filter(p => minDesde(p.ultima) <= 60);
+    const activos = equipo.filter(p => minDesde(p.ultima) <= 60 || facturando.some(x => x.quien === p.nombre));
     const pesos = k => Object.keys(EST).map(x => [x, k === 'ingreso' ? (est[x]?.entro_hoy || 0) + 1 : carga[x].pendTot + (carga[x].hoy ? 2 : 0)]);
     const sortear = lista => { const tot = lista.reduce((n, [, w]) => n + w, 0); let r = Math.random() * tot; for (const [k, w] of lista) { r -= w; if (r <= 0) return k; } return lista[0][0]; };
     const casa = p => p.rol === 'ingreso' || p.rol === 'recepcion' ? { x: RECEP.x + 36, y: RECEP.y + 150 + Math.random() * 120 } : { x: ESCR.x + 30 + Math.random() * 85, y: ESCR.y + 60 + Math.random() * 180 };
@@ -192,7 +193,9 @@ export async function render({ api }) {
       nodo.addEventListener('click', e => { e.stopPropagation(); elegir({ tipo: 'per', id: p.nombre }); });
       capa.append(nodo);
       const base = casa(p);
-      return { p, nodo, pos: { ...base }, casa: base, tramo: [], espera: 800 + i * 700, fijo: !['pedidos', 'ingreso', 'recepcion'].includes(p.rol) };
+      const factura = facturando.find(x => x.quien === p.nombre);
+      if (factura) { nodo.classList.add('facturando'); nodo.append(s('text', { x: 10, y: -8, class: 'mp-fact-ico' }, '🧾')); }
+      return { p, nodo, pos: { ...base }, casa: base, tramo: [], espera: 800 + i * 700, fijo: !!factura || !['pedidos', 'ingreso', 'recepcion'].includes(p.rol) };
     });
     const quieto = matchMedia('(prefers-reduced-motion: reduce)').matches;
     const poner = m => m.nodo.setAttribute('transform', `translate(${m.pos.x.toFixed(1)} ${m.pos.y.toFixed(1)})`);
@@ -243,6 +246,7 @@ export async function render({ api }) {
             h('div', {}, h('strong', {}, nf(p.renglones)), h('small', {}, 'renglones en remitos')),
             p.ingresados ? h('div', {}, h('strong', {}, nf(p.ingresados)), h('small', {}, 'renglones ingresados')) : null,
             p.ajustes ? h('div', {}, h('strong', {}, nf(p.ajustes)), h('small', {}, 'ajustes')) : null),
+          facturando.filter(x => x.quien === p.nombre).map(x => h('div', { class: 'mapa-aviso' }, `🧾 Facturando ahora el pedido de ${x.farmacia} (${nf(x.renglones)} renglones), desde las ${(x.desde || '').slice(11, 16)} h.`)),
           barritas(p.por_hora, 6, col),
           h('p', { class: 'muted mapa-nota' }, p.rol === 'pedidos' ? 'Los renglones son los de los remitos que hizo con su usuario. Quien factura no siempre es quien juntó: para medir el armado de cada uno hace falta marcar en el celular cuándo toma y termina cada pedido.' : 'Movimientos de stock registrados hoy con su usuario de Quantio.'),
           h('button', { class: 'btn', onclick: () => { elegir(null); } }, 'Ver todo el depósito'));
@@ -294,7 +298,10 @@ export async function render({ api }) {
       h('div', { class: 'block-head' }, h('h2', {}, 'Pedidos en el camino'), h('div', { class: 'mapa-leyenda' }, Object.values(EST).map(r => h('span', {}, h('i', { style: `background:${r.color}` }), r.corto)))),
       h('div', { class: 'mapa-carriles' },
         h('div', {}, h('h3', { class: 'mapa-h3' }, `📥 Entraron · ${entro.length}`), entro.length ? h('ul', { class: 'mapa-peds' }, entro.slice(-40).reverse().map(tarjetaPed)) : h('p', { class: 'muted' }, 'Nada esperando.')),
-        h('div', {}, h('h3', { class: 'mapa-h3' }, `🛒 En armado · ${armado.length}`), armado.length ? h('ul', { class: 'mapa-peds' }, armado.map(tarjetaPed)) : h('p', { class: 'muted' }, 'Ningún pedido en armado.')),
+        h('div', {}, h('h3', { class: 'mapa-h3' }, `🛒 En armado · ${armado.length}`), armado.length ? h('ul', { class: 'mapa-peds' }, armado.map(tarjetaPed)) : h('p', { class: 'muted' }, 'Ningún pedido en armado.'),
+          facturando.length ? h('h3', { class: 'mapa-h3 mapa-sub' }, `🧾 Facturándose · ${facturando.length}`) : null,
+          facturando.length ? h('ul', { class: 'mapa-peds' }, facturando.map(p => { const li = tarjetaPed(p); li.classList.add('fact');
+            li.append(h('small', { class: 'mapa-fact' }, `🧾 ${p.quien || 'Alguien'} lo está facturando desde las ${(p.desde || '').slice(11, 16)} h${(p.desde || '').slice(0, 10) < f.hoy ? ' de ayer o antes' : ''}`)); return li; })) : null),
         h('div', {}, h('h3', { class: 'mapa-h3' }, `🚚 Despachados hoy · ${hechos.length}`), hechos.length ? h('ul', { class: 'mapa-peds hechos' }, hechos.slice().reverse().slice(0, 40).map(p =>
           h('li', { class: 'mapa-ped hecho' }, h('div', {}, h('strong', {}, p.farmacia), h('small', { class: 'muted' }, `${p.hora} h${p.quien ? ' · ' + p.quien : ''}`)),
             h('div', { class: 'mapa-ped-num' }, h('strong', {}, nf(p.renglones)), h('small', {}, 'reng.')), sectorBar(p.por_sector)))) : h('p', { class: 'muted' }, 'Todavía no salió nada.'))));

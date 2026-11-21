@@ -1,6 +1,6 @@
 // Modo demo: misma interfaz que api-supabase.js, con datos en el navegador.
 // Genera 11 meses de historia (dic-2025 a oct-2026) para que los indicadores tengan contenido.
-import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261121-1423';
+import { EMPRESAS, SUCURSALES, CATEGORIAS, PROVEEDORES, PRODUCTOS } from './seed-data.js?v=20261121-1455';
 
 const KEY = 'insumos-demo-v1';
 const clone = o => JSON.parse(JSON.stringify(o));
@@ -187,7 +187,7 @@ function mapaDemo() {
     renglones: n, unidades: n * 3, por_sector: reparto(n), sin_stock: az() < 0.3 ? Math.ceil(az() * 4) : 0 });
   const ayer = new Date(Date.now() - 27 * 3600e3).toISOString().slice(0, 10);
   const cola = [ped('armado', 16, 5, 48, ayer), ped('armado', Math.max(7, H - 2), 20, 120), ped('armado', Math.max(7, H - 1), 31, 64), ped('armado', Math.max(7, H - 1), 50, 38),
-    ped('entro', Math.max(7, H - 1), 5, 7), ped('entro', H, Math.max(0, M - 20), 5), ped('entro', H, Math.max(0, M - 9), 12), ped('entro', H, Math.max(0, M - 3), 4)];
+    { ...ped('facturando', Math.max(7, H - 1), 10, 52), quien: 'Operario 2', desde: `${hoy}T${hora(H, Math.max(0, M - 6))}` }, ped('entro', Math.max(7, H - 1), 5, 7), ped('entro', H, Math.max(0, M - 20), 5), ped('entro', H, Math.max(0, M - 9), 12), ped('entro', H, Math.max(0, M - 3), 4)];
   const hechos = [];
   for (let h = 8; h <= Math.min(H, 19); h++) for (let i = 0; i < 3; i++) if (h < H || i * 20 < M) {
     const n = Math.round(5 + az() * 90);
@@ -200,7 +200,7 @@ function mapaDemo() {
     hoy: 0, base: BASE[k], pend: 0, cola: 0, pend_sin_stock: 0, entro_hoy: Math.round(az() * 40),
     top: ['IBUPROFENO 400 MG X 20', 'PAÑAL ADULTO TALLE G X 8', 'AMOXICILINA 500 MG X 16', 'SHAMPOO ANTICASPA 400 ML', 'PARACETAMOL 1 G X 10'].map((x, i) => ({ producto: x, renglones: 14 - i * 2, unidades: 40 - i * 5, stock: i === 3 ? 0 : 20 + i * 7 })) }; });
   hechos.forEach(p => Object.entries(p.por_sector).forEach(([k, n]) => { est[k].hoy += n; }));
-  cola.forEach(p => Object.entries(p.por_sector).forEach(([k, n]) => { est[k][p.etapa === 'armado' ? 'pend' : 'cola'] += n; est[k].pend_sin_stock += p.sin_stock ? 1 : 0; }));
+  cola.filter(p => p.etapa !== 'facturando').forEach(p => Object.entries(p.por_sector).forEach(([k, n]) => { est[k][p.etapa === 'armado' ? 'pend' : 'cola'] += n; est[k].pend_sin_stock += p.sin_stock ? 1 : 0; }));
   const serie = act => Array.from({ length: 15 }, (_, i) => (i + 6 >= 8 && i + 6 <= H && act ? Math.round(az() * 70) : 0));
   const per = (nombre, rol, activo = true, ing = 0) => ({ nombre, rol, renglones: rol === 'pedidos' ? Math.round(80 + az() * 300) : 0, unidades: 0, ingresados: ing, ajustes: Math.round(az() * 6),
     ultima: activo ? hora(H, Math.max(0, M - Math.floor(az() * 25))) : hora(Math.max(8, H - 3), 10), por_hora: serie(true) });
@@ -643,7 +643,7 @@ export const api = {
   async recibirOC(id, items) { need('compras', 'admin', 'auditor'); const e = _recibir(id, items); save(); return e; },
   async guardarFotoProducto(id, file) {
     need('compras', 'admin');
-    const { achicarImagen } = await import('./ui.js?v=20261121-1423');
+    const { achicarImagen } = await import('./ui.js?v=20261121-1455');
     const blob = await achicarImagen(file, 320, 0.7);
     const url = await new Promise(r => { const fr = new FileReader(); fr.onload = () => r(fr.result); fr.readAsDataURL(blob); });
     db.productos.find(p => p.id === id).foto_url = url; save(); return url;
