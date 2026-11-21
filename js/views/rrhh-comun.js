@@ -1,6 +1,6 @@
 // RRHH: utilidades compartidas (colores de sucursal, tipos de ausencia, fechas y la ficha para cargar o editar una ausencia).
-import { h, toast, modal, field, confirmar } from '../ui.js?v=20261120-1456';
-import { hoyAR, sumarDias } from './drog-comun.js?v=20261120-1456';
+import { h, toast, modal, field, confirmar } from '../ui.js?v=20261121-1423';
+import { hoyAR, sumarDias } from './drog-comun.js?v=20261121-1423';
 export { hoyAR, sumarDias };
 
 // Colores de las sucursales, los mismos que usa RRHH en su planilla de cobertura

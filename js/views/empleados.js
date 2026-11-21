@@ -1,6 +1,6 @@
 // RRHH · Empleados: la lista de personas con su sucursal, acuerdo de sábado, horas y vacaciones del período.
-import { h, toast, modal, field, empty, confirmar } from '../ui.js?v=20261120-1456';
-import { hoyAR, estiloSuc, ordenSuc, nombreSuc, TIPOS, ACUERDOS, periodoDe, rango, fichaAusencia } from './rrhh-comun.js?v=20261120-1456';
+import { h, toast, modal, field, empty, confirmar } from '../ui.js?v=20261121-1423';
+import { hoyAR, estiloSuc, ordenSuc, nombreSuc, TIPOS, ACUERDOS, periodoDe, rango, fichaAusencia } from './rrhh-comun.js?v=20261121-1423';
 
 export async function render({ api, cat }) {
   const hoy = hoyAR(), per = periodoDe(hoy);

@@ -1,11 +1,11 @@
 // Droguería · Mapa del depósito: el plano de la Droguería con cómo está operando ahora.
 // Cada estación se pinta según el trabajo que tiene por delante (renglones de pedidos por juntar contra su ritmo normal);
 // la más cargada se marca como cuello de botella. Los operarios activos caminan entre las estaciones según dónde está el
-// trabajo (la posición es ilustrativa: Quantio no registra quién junta qué). Datos: foto de Quantio cada 15 minutos
+// trabajo (la posición es ilustrativa: Quantio no registra quién junta qué). Datos: foto de Quantio cada 2 minutos
 // (herramientas/mapa_deposito.py) + lo que se registra en la app (recepciones y salidas).
-import { h, empty } from '../ui.js?v=20261120-1456';
-import { hoyAR, horaAR } from './drog-comun.js?v=20261120-1456';
-import { salidasDelDia } from '../olas.js?v=20261120-1456';
+import { h, empty } from '../ui.js?v=20261121-1423';
+import { hoyAR, horaAR } from './drog-comun.js?v=20261121-1423';
+import { salidasDelDia } from '../olas.js?v=20261121-1423';
 
 const NS = 'http://www.w3.org/2000/svg';
 const s = (tag, attrs = {}, ...hijos) => {
@@ -56,7 +56,7 @@ export async function render({ api }) {
   function pintar() {
     if (anim) { cancelAnimationFrame(anim); anim = null; }
     const f = datos?.foto;
-    if (!f) { vista.replaceChildren(empty('Todavía no hay datos del depósito', 'Los manda la compu de IT desde Quantio cada 15 minutos, con la VPN prendida.')); return; }
+    if (!f) { vista.replaceChildren(empty('Todavía no hay datos del depósito', 'Los manda la compu de IT desde Quantio cada 2 minutos, con la VPN prendida.')); return; }
     const est = f.estaciones || {};
     const sab = new Date(f.hoy + 'T12:00:00').getDay() === 6;
     const jornada = sab ? 4.5 : 8.5;
@@ -327,8 +327,8 @@ export async function render({ api }) {
         : h('p', { class: 'muted' }, 'Hoy todavía no se cargó ninguna factura de compra en Quantio.'));
 
     vista.replaceChildren(
-      h('div', { class: 'mapa-estado' }, h('span', { class: `mapa-vivo${edad > 30 ? ' viejo' : ''}` }), `Datos de Quantio de las ${f.generado.slice(11, 16)} h`,
-        h('span', { class: 'muted' }, edad > 30 ? ` · hace ${edad < 120 ? edad + ' min' : Math.round(edad / 60) + ' h'}: revisá que la compu de IT y la VPN estén prendidas` : ' · se actualiza cada 15 minutos'), reloj),
+      h('div', { class: 'mapa-estado' }, h('span', { class: `mapa-vivo${edad > 10 ? ' viejo' : ''}` }), `Datos de Quantio de las ${f.generado.slice(11, 16)} h`,
+        h('span', { class: 'muted' }, edad > 10 ? ` · hace ${edad < 120 ? edad + ' min' : Math.round(edad / 60) + ' h'}: revisá que la compu de IT y la VPN estén prendidas` : ' · se actualiza cada 2 minutos'), reloj),
       fichas,
       h('div', { class: 'mapa-grid' }, h('div', { class: 'mapa-plano' }, svg, h('p', { class: 'muted mapa-nota' }, 'Las personas en el plano muestran quién está activo y hacia dónde está el trabajo; su posición es ilustrativa.')), panel),
       colaSec, h('div', { class: 'ind-grid' }, ritmoSec, ingSec), gente);
@@ -340,7 +340,7 @@ export async function render({ api }) {
   timer = setInterval(() => {
     if (!vista.isConnected) { clearInterval(timer); return; }
     tic();
-    if (new Date().getSeconds() < 5 || Date.now() - (cargar.ultima || 0) > 120000) { cargar.ultima = Date.now(); cargar().catch(() => {}); }
+    if (Date.now() - (cargar.ultima || 0) >= 30000) { cargar.ultima = Date.now(); cargar().catch(() => {}); }   // busca datos nuevos cada 30 segundos
   }, 5000);
 
   return h('div', { class: 'view drog-mapa' },

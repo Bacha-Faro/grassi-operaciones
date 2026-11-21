@@ -1,6 +1,6 @@
 // GraBot: botón flotante en la pantalla de ingreso. Por ahora solo toma un mensaje (consulta, problema para entrar,
 // reclamo o sugerencia) y lo deja para IT, que lo lee en su módulo. Más adelante puede crecer a un asistente.
-import { h, toast } from './ui.js?v=20261120-1456';
+import { h, toast } from './ui.js?v=20261121-1423';
 
 const NS = 'http://www.w3.org/2000/svg';
 const svg = (attrs, ...hijos) => { const e = document.createElementNS(NS, attrs.tag); for (const [k, v] of Object.entries(attrs)) if (k !== 'tag') e.setAttribute(k, v); e.append(...hijos); return e; };

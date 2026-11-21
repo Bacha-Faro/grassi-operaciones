@@ -1,5 +1,5 @@
 // Inicio de Grassi Operaciones: una tarjeta por módulo con lo pendiente y "Para hacer hoy" con todo junto.
-import { h, modal, field, toast } from '../ui.js?v=20261120-1456';
+import { h, modal, field, toast } from '../ui.js?v=20261121-1423';
 
 const saludo = () => { const hr = new Date().getHours(); return hr < 13 ? 'Buen día' : hr < 20 ? 'Buenas tardes' : 'Buenas noches'; };
 const hoy = () => new Date().toLocaleDateString('es-AR', { weekday: 'long', day: 'numeric', month: 'long' });
